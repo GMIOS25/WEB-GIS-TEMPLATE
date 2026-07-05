@@ -1,0 +1,36 @@
+package com.website.gis.Entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.locationtech.jts.geom.Geometry;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "gis_provinces")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class GisProvince {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_code", nullable = false)
+    private Province province;
+
+    @Column(name = "gis_server_id", length = 50)
+    private String gisServerId;
+
+    @Column(name = "area_km2", precision = 12, scale = 5)
+    private BigDecimal areaKm2;
+
+    @Column(name = "bbox", columnDefinition = "geometry(Geometry, 4326)")
+    private Geometry bbox;
+
+    @Column(name = "geom", columnDefinition = "geometry(Geometry, 4326)")
+    private Geometry geom;
+}
