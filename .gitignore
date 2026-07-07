@@ -41,7 +41,7 @@ out/
 .next/
 
 # User specific files
-docs/
+#docs/
 
 # Testing API
 Bruno/
