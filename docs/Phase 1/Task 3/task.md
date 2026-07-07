@@ -1,0 +1,4 @@
+- [x] Clean up `index.css` to remove dark mode code and custom gradients, keeping the styling simple and white/light grey based
+- [x] Redesign `Login.tsx` to follow the Penpot layout (light mode, white page background, green top icon box, light grey login card, white text on green button, neutral gray inputs)
+- [x] Update `Home.tsx` to remove the dark mode toggle button and force light theme
+- [x] Build and verify implementation (check for compilation errors)

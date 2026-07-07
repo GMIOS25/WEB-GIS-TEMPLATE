@@ -1,0 +1,8 @@
+- [x] Cấu hình phân quyền truy cập trong SecurityConfig.java
+- [x] Tạo các lớp DTO cho Authentication, Admin User management và Wards
+- [x] Tạo WardRepository.java và GisWardRepository.java
+- [x] Tạo AuthController.java (`POST /api/auth/login`)
+- [x] Tạo AdminController.java (Các APIs CRUD users cho ADMIN)
+- [x] Tạo WardController.java (Các APIs tra cứu xã/phường và GeoJSON)
+- [x] Xác thực và chạy thử nghiệm (Compile & Unit Tests)
+- [x] Tạo tài liệu kiểm thử thủ công qua Bruno

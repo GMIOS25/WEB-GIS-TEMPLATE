@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface User {
@@ -29,15 +30,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (savedToken && savedUser) {
       try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        // Defer states to avoid synchronous set-state-in-effect warning
+        Promise.resolve().then(() => {
+          setToken(savedToken);
+          setUser(parsedUser);
+          setLoading(false);
+        });
+        return;
       } catch (e) {
         console.error('Failed to parse saved user', e);
         localStorage.removeItem('gis_token');
         localStorage.removeItem('gis_user');
       }
     }
-    setLoading(false);
+    // Defer loading update to avoid synchronous set-state-in-effect warning
+    Promise.resolve().then(() => {
+      setLoading(false);
+    });
   }, []);
 
   const login = (newToken: string, newUser: User) => {

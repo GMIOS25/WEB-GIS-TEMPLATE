@@ -1,0 +1,29 @@
+# Task Checklist - Phase 1 Task 4
+
+- [x] **1. Backend Optimizations (Spring Boot)**
+  - [x] Add query to `GisWardRepository.java` to fetch all ward details and geometries
+  - [x] Implement `GET /api/wards/geojson` endpoint in `WardController.java` returning a FeatureCollection
+  - [x] Verify backend compilation and API response
+- [x] **2. Frontend Mapping Integration (React + Leaflet)**
+  - [x] Install `leaflet` and `react-leaflet` in `FE` project
+  - [x] Import Leaflet CSS in `main.tsx`
+  - [x] Remove "Huyện" layer checkbox and District layer state from `Home.tsx`
+  - [x] Render Leaflet Map in `Home.tsx` centered on Gia Lai
+  - [x] Load and render ward GeoJSON boundaries from the optimized backend API
+  - [x] Implement hover highlighting and selection click listener on wards
+- [x] **3. Right Sidebar Details Panel & Statistics Dashboard**
+  - [x] Create floating statistics card showing total wards and total area
+  - [x] Design and slide in a right details panel showing details (Name, District, Area) when clicking a ward
+- [x] **4. Autocomplete Search Bar**
+  - [x] Implement floating search input at the top of the map
+  - [x] Query `/api/wards` on input change and show suggestions
+  - [x] Fly to (`map.flyTo`) selected ward and open details sidebar
+- [x] **5. Admin User CRUD Management Dialogs**
+  - [x] Create custom modal overlay in React
+  - [x] Build Add User Form and connect to `/api/admin/users`
+  - [x] Build Edit User / Change Password Form and connect to `/api/admin/users/{id}`
+  - [x] Build Delete User confirmation modal and connect to `/api/admin/users/{id}`
+  - [x] Wire state triggers and handle API success/error alerts
+- [x] **6. Verification & Final Audits**
+  - [x] Run `pnpm run build` to verify frontend builds without errors
+  - [x] Run manual verification under ADMIN and VIEWER roles
