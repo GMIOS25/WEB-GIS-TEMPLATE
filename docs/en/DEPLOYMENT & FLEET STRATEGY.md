@@ -1,0 +1,133 @@
+# Local Development Setup Guide
+
+This guide provides instructions on how to set up the local development environment for the **Provincial Administrative Information Management and GIS Lookup System**.
+
+The project consists of:
+
+1. **Backend (BE):** Spring Boot (Java 17) web application.
+2. **Frontend (FE):** React + TypeScript (Vite) single-page application.
+3. **Database:** PostgreSQL with PostGIS spatial extension.
+
+---
+
+## 1. Prerequisites
+
+Ensure you have the following installed on your machine:
+
+- **Java Development Kit (JDK) 17** (e.g., Eclipse Temurin or OpenJDK 17)
+- **Node.js** (LTS version recommended)
+- **pnpm** (Package manager for Frontend; install via `npm i -g pnpm`)
+- **PostgreSQL 15+** with the **PostGIS** extension enabled
+- **Maven** (optional, wrapper `./mvnw` is included in the BE project)
+
+---
+
+## 2. Database Setup & Seeding
+
+The system stores administrative boundaries and spatial attributes in PostgreSQL. Follow the steps below to initialize and seed the database manually.
+
+### Step 2.1: Create Database & Enable PostGIS
+
+Log into your PostgreSQL instance (via pgAdmin, DBeaver, or psql console) and execute:
+
+```sql
+-- 1. Create a database named 'gialai'
+CREATE DATABASE gialai;
+
+-- 2. Connect to the 'gialai' database and enable the PostGIS extension
+CREATE EXTENSION postgis;
+```
+
+### Step 2.2: Import Database Schema & Seed Data
+
+Navigate to the SQL data resources folder: `BE/src/main/resources/data` (relative to repo root). Import the SQL files into the `gialai` database in the **exact order** specified below:
+
+1. **`postgres_CreateSchema_CreateTables_vn_units.sql`**
+   - _Description:_ Creates core administrative schema tables (`administrative_regions`, `administrative_units`, `provinces`, `wards`). **Note:** the project intentionally does not model a district/county level — `wards` link directly to `provinces` (see `Project Overview.md` Section 4.2 and `DATA_MODEL.md` Section 3.4). Do not expect or create a `districts` table.
+2. **`postgres_ImportData_vn_units.sql`**
+   - _Description:_ Seeds national administrative unit dictionary data (province/ward names, codes) for province 52 — Gia Lai.
+3. **`postgresql_CreateGISTables.sql`**
+   - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_wards`) with PostGIS geometry columns, 1:1 linked to `provinces`/`wards` via `province_code`/`ward_code` (see `DATA_MODEL.md` Section 1).
+4. **`postgresql_ImportData_gis_2026-06-20__12_32_01.sql`**
+   - _Description:_ Imports coordinates, boundary borders (`MultiPolygon`), and bounding boxes specifically for the 135 wards of Gia Lai province.
+5. **`DDL.sql`**
+   - _Description:_ Creates application-level tables — `users` (authentication) and `local_leaders` (per-ward leadership info) — and seeds default dev accounts. Full column-level reference for every table above: `DATA_MODEL.md`.
+
+---
+
+## 3. Backend Setup (Spring Boot)
+
+The Backend code is located in the `/BE` directory.
+
+### Step 3.1: Configure Connection Settings
+
+Open `BE/src/main/resources/application.properties` and update the database credentials to match your local PostgreSQL configuration:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/gialai
+spring.datasource.username=YOUR_POSTGRES_USER
+spring.datasource.password=YOUR_POSTGRES_PASSWORD
+```
+
+### Step 3.2: Build and Run the Application
+
+From your terminal, navigate to the `BE` folder and execute the Spring Boot run task:
+
+```bash
+cd BE
+./mvnw spring-boot:run
+```
+
+_(On Windows cmd/powershell, run `mvnw.cmd spring-boot:run`)_
+
+Alternatively, open the `BE` folder in your IDE (IntelliJ IDEA or VS Code) and run the main entrypoint: `com.website.gis.GisApplication`.
+
+The server will launch and listen at **`http://localhost:8080`**. You can verify that it is active by checking the health endpoint: `http://localhost:8080/actuator/health`.
+
+---
+
+## 4. Frontend Setup (React & Vite)
+
+The Frontend code is located in the `/FE` directory.
+
+### Step 4.1: Environment Configuration
+
+Create a `.env` file in the root of the `FE` directory (if it does not exist) and configure the Backend API URL:
+
+```env
+VITE_API_URL=http://localhost:8080
+```
+
+### Step 4.2: Install Dependencies & Run
+
+Open a terminal, navigate to the `FE` folder, install the packages, and start the development server:
+
+```bash
+cd FE
+pnpm install
+pnpm dev
+```
+
+The Vite dev server will start (usually on **`http://localhost:5173`** or similar). Open the provided URL in your web browser to access the GIS portal.
+
+---
+
+## 5. Development Credentials
+
+Use the following seeded accounts to log in during local testing:
+
+| Username     | Password | Role     | Access Level / Privileges                                 |
+| :----------- | :------- | :------- | :-------------------------------------------------------- |
+| **`admin`**  | `123456` | `ADMIN`  | Manage user accounts (Create, Edit, Delete), View GIS map |
+| **`viewer`** | `123456` | `VIEWER` | View-only GIS map & look up commune boundaries            |
+
+---
+
+## 6. Project Architecture References
+
+- [Project Overview & Requirement Specs](./Project_Overview.md)
+- [Architecture Specification (modularity + deployment isolation)](./ARCHITECTURE_SPECIFICATION.md)
+- [Data Model Specification](./DATA_MODEL.md)
+- [API Contract](./API_CONTRACT.md)
+- [Coding Conventions & Standards](./CODING_CONVENTIONS.md)
+- [Deployment & Fleet Strategy](./DEPLOYMENT_AND_FLEET_STRATEGY.md) (for production/multi-customer deployment, not needed for local dev)

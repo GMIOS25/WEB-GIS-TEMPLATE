@@ -1,3 +1,0 @@
-Hiện tại bạn đang làm rất tốt rồi nhưng đang gặp 1 lỗi nhỏ giao diện sau. [Home.tsx](file;file:///d%3A/Work/WEB%20GIS%20TEMPLATE/FE/src/pages/Home.tsx) 
-1. Khi chọn vào xã thì tôi muốn nó có thể hiện được là nó đang được chọn bằng cách thể hiện ra một màu đậm hơn hoặc một màu khác biệt. 
-2. Hiện tại khi dùng hover rê chuột các xã/phường vào thì sẽ có màu đậm hơn. Nhưng nếu lướt nhanh trỏ chuột qua sẽ gây ra hiện tượng ghost hover. Tôi không biết nguyên nhân có phải là do cấu hình máy tôi yếu không vì cấu hình máy hiện tại đang chạy local là i3 7100u và 8GB ram.  Nhưng tôi 

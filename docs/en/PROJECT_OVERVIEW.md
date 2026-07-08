@@ -11,7 +11,7 @@ The provincial administrative information management and lookup system is built 
 The system allows managing, updating, and querying information of commune/ward/township administrative units under the province, while supporting scalability to manage agencies, public service institutions, and local points of interest (POI).
 
 > [!IMPORTANT]
-> **Infrastructure Requirement:** The system is deployed on-premise on private server infrastructure, operating completely independently. It does not depend on third-party paid services or cloud platforms, ensuring absolute data security.
+> **Infrastructure Requirement:** The system is deployed and self-managed on rented Virtual Private Server (VPS) infrastructure from domestic cloud providers (e.g., Viettel IDC, FPT Cloud, VNG Cloud). It operates independently without relying on paid third-party API services, ensuring absolute data security and sovereignty.
 
 ---
 
@@ -19,11 +19,11 @@ The system allows managing, updating, and querying information of commune/ward/t
 
 The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (Schools, Hospitals, etc.) based on each client's specific requirements at the package build time (Compile-time):
 
-| Phase | Phase Name | Core Deliverables |
-| :--- | :--- | :--- |
-| **Phase 1** | **Administrative Foundation** | - Commune-level administrative map: Display Gia Lai borders, select and view area details directly on the map.<br>- Administrative information lookup: Fast search of communes/wards.<br>- User roles (ADMIN: account administration, VIEWER: map lookup). Direct data or boundary editing via the web is not supported. |
-| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (Schools, Hospitals, Health Centers, Police, Tourist Spots, OCOP production units, etc.).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization). |
-| **Phase 3** | **GIS Map Integration** | - Geopoint coordinate mapping (Point) and visualization of enabled modules' organizations on the map.<br>- Establish spatial relations between organizations and managing administrative units.<br>- Map-based queries (radius search, administrative area filter).<br>- Visual reporting and analytics on the map via toggleable data layers. |
+| Phase       | Phase Name                     | Core Deliverables                                                                                                                                                                                                                                                                                                                              |
+| :---------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 1** | **Administrative Foundation**  | - Commune-level administrative map: Display Gia Lai borders, select and view area details directly on the map.<br>- Administrative information lookup: Fast search of communes/wards.<br>- User roles (ADMIN: account administration, VIEWER: map lookup). Direct data or boundary editing via the web is not supported.                       |
+| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (Schools, Hospitals, Health Centers, Police, Tourist Spots, OCOP production units, etc.).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).       |
+| **Phase 3** | **GIS Map Integration**        | - Geopoint coordinate mapping (Point) and visualization of enabled modules' organizations on the map.<br>- Establish spatial relations between organizations and managing administrative units.<br>- Map-based queries (radius search, administrative area filter).<br>- Visual reporting and analytics on the map via toggleable data layers. |
 
 ---
 
@@ -132,21 +132,21 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 Libraries configured in the backend `pom.xml`:
 
-| Group | Artifact ID | Core Functionality |
-| :--- | :--- | :--- |
-| **Core** | `spring-boot-starter-web` | RESTful API creation |
-| | `spring-boot-starter-data-jpa` | DB connection and ORM |
-| | `spring-boot-starter-validation` | Inputs validation |
-| | `spring-boot-starter-security` | JWT auth & role management |
-| | `postgresql` | PostgreSQL driver |
-| **GIS** | `hibernate-spatial` | Spatial data type integration for Hibernate |
-| | `jts-core` | Geometric processing library (JTS Topology Suite) |
-| **Utilities** | `lombok` | Boilerplate code generation (Getters/Setters, etc.) |
-| | `mapstruct` | DTO $\leftrightarrow$ Entity mapping |
-| **Docs & Monitoring** | `springdoc-openapi-starter-webmvc-ui` | Automated Swagger UI docs |
-| | `spring-boot-starter-actuator` | Application health monitoring |
-| **Testing** | `spring-boot-starter-test` | Unit & Integration testing framework |
-| | `testcontainers-postgresql` | Dynamic PostgreSQL Docker container for test env |
+| Group                 | Artifact ID                           | Core Functionality                                  |
+| :-------------------- | :------------------------------------ | :-------------------------------------------------- |
+| **Core**              | `spring-boot-starter-web`             | RESTful API creation                                |
+|                       | `spring-boot-starter-data-jpa`        | DB connection and ORM                               |
+|                       | `spring-boot-starter-validation`      | Inputs validation                                   |
+|                       | `spring-boot-starter-security`        | JWT auth & role management                          |
+|                       | `postgresql`                          | PostgreSQL driver                                   |
+| **GIS**               | `hibernate-spatial`                   | Spatial data type integration for Hibernate         |
+|                       | `jts-core`                            | Geometric processing library (JTS Topology Suite)   |
+| **Utilities**         | `lombok`                              | Boilerplate code generation (Getters/Setters, etc.) |
+|                       | `mapstruct`                           | DTO $\leftrightarrow$ Entity mapping                |
+| **Docs & Monitoring** | `springdoc-openapi-starter-webmvc-ui` | Automated Swagger UI docs                           |
+|                       | `spring-boot-starter-actuator`        | Application health monitoring                       |
+| **Testing**           | `spring-boot-starter-test`            | Unit & Integration testing framework                |
+|                       | `testcontainers-postgresql`           | Dynamic PostgreSQL Docker container for test env    |
 
 ---
 
@@ -179,3 +179,7 @@ The system is designed to facilitate quick packaging and exclusion of unnecessar
 3. **Database (PostgreSQL & Flyway):**
    - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/school`, `db/migration/hospital`, etc.).
    - During application startup, depending on active profiles, the system dynamically appends corresponding path locations to Flyway scan targets, avoiding the creation of unused tables in client databases.
+4. **Deployment Isolation:**
+   - Each customer runs as a fully separate application container **and** a fully separate database instance ("database-per-customer"), not a shared multi-tenant database with row-level filtering. This guarantees that one customer can never query or view another customer's specialized data, since there is no network or code path between them.
+   - Multiple customer stacks may share a single Virtual Private Server (VPS) for cost efficiency, but this is purely an infrastructure placement decision and carries no code-level coupling.
+   - See `ARCHITECTURE SPECIFICATION.md` (Sections 6–7) for the isolation model and rollout mechanics, and `DEPLOYMENT_AND_FLEET_STRATEGY.md` for the full operational runbook (fleet registry, build pipeline, rollout scripts, and standard runbooks for onboarding customers, emergency fixes, partial feature rollouts, and core data corrections).
