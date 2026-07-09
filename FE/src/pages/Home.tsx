@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import api from '../api/axiosInstance';
 import { Map, X } from 'lucide-react';
 import GisMap, { type GeoJsonData, type GeoJsonFeature } from './home/components/GisMap';
@@ -33,11 +33,16 @@ const Home: React.FC = () => {
           api.get('/api/wards/geojson'),
           api.get('/api/wards/province/geojson'),
         ]);
-        setGeoJsonData(wardsRes.data);
-        setProvinceGeoJson(provinceRes.data);
+        // startTransition marks the (expensive) map layer render as low-priority so
+        // React keeps the UI thread free to respond to clicks on the drawer/profile
+        // while Leaflet builds out the ward polygons in the background.
+        startTransition(() => {
+          setGeoJsonData(wardsRes.data);
+          setProvinceGeoJson(provinceRes.data);
+          setMapLoading(false);
+        });
       } catch (err) {
         console.error('Failed to load GIS boundary data', err);
-      } finally {
         setMapLoading(false);
       }
     };
