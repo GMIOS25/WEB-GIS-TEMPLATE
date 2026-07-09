@@ -182,7 +182,7 @@ Indexes: `idx_gis_provinces_province_code` (btree), `idx_gis_provinces_bbox` (**
 
 Spatial data for wards, 1:1 with `wards` via `ward_code`. Same column shape and indexing pattern as `gis_provinces` (see above), FK to `wards.code`.
 
-### 3.7. `local_leaders`
+### 3.7. `local_leaders`(For now, skip this step as there is no data.)
 
 Leadership info per ward (e.g. Chủ tịch UBND) — implemented as its own table, **not** an inline attribute of `wards` as earlier high-level docs implied.
 

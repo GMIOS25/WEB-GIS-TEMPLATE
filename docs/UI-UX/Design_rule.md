@@ -25,14 +25,14 @@ Hệ thống khuyến nghị mặc định sử dụng **Light Theme** (đặc t
 
 ### Bảng mã màu chi tiết (Hex Codes)
 
-| Thành phần hiển thị             | Light Theme (Khuyên dùng)           | Dark Theme (Dự phòng)       | Trạng thái / Ghi chú UX                                         |
-| :------------------------------ | :---------------------------------- | :-------------------------- | :-------------------------------------------------------------- |
-| **Màu nền UI hệ thống**         | `#F8FAFC` (Slate Light)             | `#0F172A` (Deep Slate)      | Tạo cảm giác công sở sạch sẽ, hiện đại.                         |
-| **Màu chữ chính (Text)**        | `#1E293B` (Slate Dark)              | `#F1F5F9` (Slate White)     | Đảm bảo độ tương phản đọc text tốt.                             |
-| **Style Bản đồ nền (Base Map)** | `CartoDB Positron` / `Mapbox Light` | `CartoDB Dark Matter`       | Tối giản, ẩn bớt các POI thương mại không liên quan.            |
-| **Viền Ranh giới Phường/Xã**    | `#94A3B8` hoặc `#64748B`            | `#334155`                   | Nét mảnh (`1px - 1.5px`), dạng nét đứt (`dashed`).              |
-| **Màu vùng Phường/Xã (Fill)**   | `Transparent` (Trong suốt)          | `Transparent` (Trong suốt)  | Chỉ đổi màu khi `Hover` hoặc `Select` (Xem chi tiết phía dưới). |
-| **Màu Điểm Trường Học (Point)** | `#F97316` (Cam ấm)                  | `#FACC15` (Vàng Chanh Neon) | Dạng chấm tròn, có viền trắng (`Halo effect`) tách nền.         |
+| Thành phần hiển thị             | Light Theme (Khuyên dùng)                  | Dark Theme (Dự phòng)       | Trạng thái / Ghi chú UX                                 |
+| :------------------------------ | :----------------------------------------- | :-------------------------- | :------------------------------------------------------ |
+| **Màu nền UI hệ thống**         | `#F8FAFC` (Slate Light)                    | `#0F172A` (Deep Slate)      | Tạo cảm giác công sở sạch sẽ, hiện đại.                 |
+| **Màu chữ chính (Text)**        | `#1E293B` (Slate Dark)                     | `#F1F5F9` (Slate White)     | Đảm bảo độ tương phản đọc text tốt.                     |
+| **Style Bản đồ nền (Base Map)** | `CartoDB Positron` / `Mapbox Light`        | `CartoDB Dark Matter`       | Tối giản, ẩn bớt các POI thương mại không liên quan.    |
+| **Viền Ranh giới Phường/Xã**    | `#6b7280` (mặc định) / `#059669` (hover)   | -                           | Nét mảnh (`1px`), dạng nét liền (`solid`).              |
+| **Màu vùng Phường/Xã (Fill)**   | `#10b981`, opacity `0.08` (gần trong suốt) | -                           | Đổi sang `#6ee7b7` opacity `0.35` khi `Hover`.          |
+| **Màu Điểm Trường Học (Point)** | `#F97316` (Cam ấm)                         | `#FACC15` (Vàng Chanh Neon) | Dạng chấm tròn, có viền trắng (`Halo effect`) tách nền. |
 
 ---
 
@@ -43,8 +43,10 @@ Agent cần thiết lập logic xử lý bản đồ theo 3 kịch bản tương
 ### Lớp dữ liệu Ranh giới Phường/Xã (Polygon Layer)
 
 1. **Trạng thái mặc định (Default):** Chỉ hiển thị đường viền mảnh. Màu nền của vùng để trong suốt để thấy rõ đường sá bên dưới bản đồ nền.
-2. **Trạng thái Di chuột (Hover):** Thay đổi màu nền vùng (Fill) sang xanh dương siêu nhạt `#E0F2FE` (Opacity 20-30%) để người dùng biết họ đang định vị ở xã nào.
+2. **Trạng thái Di chuột (Hover):** Thay đổi màu nền vùng (Fill) sang xanh lá nhạt `#6ee7b7` (Opacity 35%), viền `#059669`, để người dùng biết họ đang định vị ở xã nào.
 3. **Trạng thái Click chọn (Selected):** Giữ màu nền chọn, đồng thời làm mờ nhẹ (`opacity`) các vùng xung quanh để làm nổi bật thực thể đang thao tác.
+
+- Fill: `#a7f3d0`, opacity `0.3`; viền: `#059669`, weight `3px`.
 
 ### Lớp dữ liệu (Ví dụ: Điểm Trường Học) (Point Layer)
 
