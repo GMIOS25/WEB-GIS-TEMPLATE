@@ -1,7 +1,8 @@
 package com.website.gis.repository;
 
-import com.website.gis.Entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.website.gis.entity.User;
 
 import java.util.Optional;
 

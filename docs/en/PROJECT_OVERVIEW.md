@@ -38,7 +38,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 - **State & Data Fetching:** TanStack Query (React Query).
 - **Styling & UI Components:** Tailwind CSS combined with Shadcn UI.
 - **GIS & Map:** Leaflet and React Leaflet.
-  - _Base Map:_ Uses OpenStreetMap (OSM) Tile Layer.
+  - _Base Map:_ CartoDB Light Tile Layer.
   - _Spatial Data:_ Administrative boundaries stored in PostgreSQL/PostGIS in MultiPolygon format, returned as GeoJSON via API to render directly on the client, ensuring independence from paid map APIs.
 
 #### 3.2. Backend Stack (Folder `/BE`)

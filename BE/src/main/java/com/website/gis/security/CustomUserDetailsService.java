@@ -1,6 +1,6 @@
 package com.website.gis.security;
 
-import com.website.gis.Entity.User;
+import com.website.gis.entity.User;
 import com.website.gis.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

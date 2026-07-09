@@ -1,9 +1,9 @@
 package com.website.gis.controller;
 
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.Entity.GisWard;
-import com.website.gis.Entity.Province;
-import com.website.gis.Entity.Ward;
+import com.website.gis.entity.GisWard;
+import com.website.gis.entity.Province;
+import com.website.gis.entity.Ward;
 import com.website.gis.repository.GisWardRepository;
 import com.website.gis.repository.UserRepository;
 import com.website.gis.repository.WardRepository;
