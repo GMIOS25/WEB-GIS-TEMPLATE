@@ -7,9 +7,12 @@ import com.website.gis.entity.Ward;
 import com.website.gis.exception.ResourceNotFoundException;
 import com.website.gis.repository.GisWardRepository;
 import com.website.gis.repository.WardRepository;
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.TimeUnit;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -106,14 +109,18 @@ public class WardController {
                     .append("}}");
         }
         sb.append("]}");
-        return ResponseEntity.ok(sb.toString());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                .body(sb.toString());
     }
 
     @GetMapping(value = "/province/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getProvinceGeoJson() {
         String geoJson = gisWardRepository.findProvinceGeoJson()
                 .orElseThrow(() -> new ResourceNotFoundException("Province GeoJSON not found"));
-        return ResponseEntity.ok(geoJson);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                .body(geoJson);
     }
 
     private String escapeJson(String s) {
