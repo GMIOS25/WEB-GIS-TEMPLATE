@@ -4,6 +4,8 @@ import com.website.gis.dto.UserCreateRequest;
 import com.website.gis.dto.UserDto;
 import com.website.gis.dto.UserUpdateRequest;
 import com.website.gis.entity.User;
+import com.website.gis.exception.BadRequestException;
+import com.website.gis.exception.ResourceNotFoundException;
 import com.website.gis.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -15,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -44,10 +44,9 @@ public class AdminController {
         }
 
         @PostMapping
-        public ResponseEntity<?> createUser(@Valid @RequestBody UserCreateRequest request) {
+        public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserCreateRequest request) {
                 if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                        .body("Username already exists");
+                        throw new BadRequestException("Username already exists");
                 }
 
                 User user = User.builder()
@@ -70,9 +69,10 @@ public class AdminController {
         }
 
         @PutMapping("/{id}")
-        public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
+        public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
+                        @Valid @RequestBody UserUpdateRequest request) {
                 User user = userRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
                 user.setFullName(request.getFullName());
 
@@ -91,17 +91,16 @@ public class AdminController {
         }
 
         @DeleteMapping("/{id}")
-        public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        public ResponseEntity<String> deleteUser(@PathVariable Long id) {
                 User user = userRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
                 // Get currently logged-in user to prevent deleting self
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String currentUsername = auth.getName();
 
                 if (user.getUsername().equals(currentUsername)) {
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                        .body("You cannot delete your own account");
+                        throw new BadRequestException("You cannot delete your own account");
                 }
 
                 userRepository.delete(user);

@@ -4,6 +4,7 @@ import com.website.gis.dto.WardDetailDto;
 import com.website.gis.dto.WardDto;
 import com.website.gis.entity.GisWard;
 import com.website.gis.entity.Ward;
+import com.website.gis.exception.ResourceNotFoundException;
 import com.website.gis.repository.GisWardRepository;
 import com.website.gis.repository.WardRepository;
 import org.springframework.http.MediaType;
@@ -49,7 +50,7 @@ public class WardController {
     @GetMapping("/{code}")
     public ResponseEntity<WardDetailDto> getWardDetail(@PathVariable String code) {
         Ward ward = wardRepository.findById(code)
-                .orElseThrow(() -> new RuntimeException("Ward not found with code: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + code));
 
         GisWard gisWard = gisWardRepository.findByWardCode(code).orElse(null);
 
@@ -67,7 +68,7 @@ public class WardController {
     @GetMapping(value = "/{code}/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getWardGeoJson(@PathVariable String code) {
         String geoJson = gisWardRepository.findGeoJsonByWardCode(code)
-                .orElseThrow(() -> new RuntimeException("GeoJSON not found for ward code: " + code));
+                .orElseThrow(() -> new ResourceNotFoundException("GeoJSON not found for ward code: " + code));
 
         return ResponseEntity.ok(geoJson);
     }
@@ -96,13 +97,13 @@ public class WardController {
             }
 
             sb.append("{\"type\":\"Feature\",\"geometry\":")
-              .append(geomJson)
-              .append(",\"properties\":{")
-              .append("\"code\":\"").append(escapeJson(wardCode)).append("\",")
-              .append("\"name\":\"").append(escapeJson(name)).append("\",")
-              .append("\"fullName\":\"").append(escapeJson(fullName)).append("\",")
-              .append("\"areaKm2\":").append(areaKm2 != null ? areaKm2.toString() : "null")
-              .append("}}");
+                    .append(geomJson)
+                    .append(",\"properties\":{")
+                    .append("\"code\":\"").append(escapeJson(wardCode)).append("\",")
+                    .append("\"name\":\"").append(escapeJson(name)).append("\",")
+                    .append("\"fullName\":\"").append(escapeJson(fullName)).append("\",")
+                    .append("\"areaKm2\":").append(areaKm2 != null ? areaKm2.toString() : "null")
+                    .append("}}");
         }
         sb.append("]}");
         return ResponseEntity.ok(sb.toString());
@@ -111,12 +112,13 @@ public class WardController {
     @GetMapping(value = "/province/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getProvinceGeoJson() {
         String geoJson = gisWardRepository.findProvinceGeoJson()
-                .orElseThrow(() -> new RuntimeException("Province GeoJSON not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Province GeoJSON not found"));
         return ResponseEntity.ok(geoJson);
     }
 
     private String escapeJson(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\b", "\\b")

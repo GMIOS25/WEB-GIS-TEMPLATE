@@ -16,7 +16,7 @@ const Home: React.FC = () => {
 
   // Map settings and GeoJSON data state
   const [layers, setLayers] = useState({
-    province: true,
+    province: false,
     commune: true,
   });
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonData | null>(null);

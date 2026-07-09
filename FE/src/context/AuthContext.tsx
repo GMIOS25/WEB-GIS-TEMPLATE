@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api/axiosInstance';
 
 export interface User {
   username: string;
@@ -58,6 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Fire-and-forget: không await, không để lỗi mạng chặn việc đăng xuất
+    // cục bộ (BE là no-op stateless nên không có gì để chờ).
+    api.post('/api/auth/logout').catch(() => {});
     setToken(null);
     setUser(null);
     localStorage.removeItem('gis_token');
