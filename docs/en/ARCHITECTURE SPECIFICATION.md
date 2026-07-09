@@ -7,6 +7,7 @@ This document outlines the system architecture design for the Provincial Adminis
 ## 1. Architectural Design Overview
 
 The system follows a standard three-tier architecture split into:
+
 1. **Presentation Layer (Frontend):** React (Vite) + Leaflet (Map rendering) + Tailwind CSS (Styling).
 2. **Application Layer (Backend):** Spring Boot (Java 17) + Spring Security (JWT auth) + Hibernate Spatial.
 3. **Database Layer (Storage):** PostgreSQL with PostGIS extensions + local file storage.
@@ -70,7 +71,9 @@ sequenceDiagram
 Modularity in the frontend is controlled by environment variables injected at build time.
 
 ### 3.1. Environment Configuration (`.env`)
+
 Each client deployment will have its own `.env` file containing feature switches:
+
 ```env
 # Core Administrative Configurations
 VITE_API_URL=http://localhost:8080/api
@@ -84,6 +87,7 @@ VITE_ENABLE_OCOP=true
 ```
 
 ### 3.2. Dynamic Routing & Menu Filtering
+
 The sidebar menu and router read environment variables to register paths:
 
 ```typescript
@@ -123,6 +127,7 @@ export const routes = [...baseRoutes, ...featureRoutes];
 ```
 
 ### 3.3. Map Layer Control (Leaflet)
+
 On the interactive GIS map, overlays are conditionally loaded:
 
 ```typescript
@@ -158,12 +163,15 @@ export const GisMap: React.FC = () => {
 At the Backend, feature toggles are driven by Spring Application configuration property keys and Spring Profiles, controlling the dependency injection (DI) lifecycle.
 
 ### 4.1. Package Structure
+
 Core administrative capabilities are separated from feature packages. This structure allows feature directories to be safely modified, omitted, or skipped.
 
 ```
 BE/src/main/java/com/website/gis/
 ├── core/                         # Core administrative packages
 │   ├── controller/               # Administrative Unit Controllers
+│   ├── dto/                      # Data Transfer Objects
+│   ├── exception/                # Handling Errors
 │   ├── entity/                   # Administrative Unit & User Entities
 │   ├── repository/               # Basic JpaRepositories
 │   └── security/                 # Spring Security & JWT components
@@ -179,6 +187,7 @@ BE/src/main/java/com/website/gis/
 ```
 
 ### 4.2. Conditional Spring Bean Initialization
+
 Controllers, services, and repositories for optional features use Spring Boot's `@ConditionalOnProperty` annotation. If disabled, Spring will not create these beans, meaning their REST endpoints are never registered:
 
 ```java
@@ -197,14 +206,16 @@ public class SchoolController {
     public SchoolController(SchoolService schoolService) {
         this.schoolService = schoolService;
     }
-    
+
     // Endpoints mapped here return 404 (Not Found) if disabled,
     // as Spring Boot does not load the controller bean at startup.
 }
 ```
 
 ### 4.3. Application Settings Configuration (`application.yml`)
+
 The main backend settings config:
+
 ```yaml
 features:
   school:
@@ -224,6 +235,7 @@ features:
 To ensure client databases do not have ghost tables for features they did not request (e.g. creating the `schools` table for a client that only wants `hospitals`), Flyway migrations are partitioned by folder directories.
 
 ### 5.1. Flyway Directory Structure
+
 ```
 BE/src/main/resources/db/migration/
 ├── core/
@@ -236,6 +248,7 @@ BE/src/main/resources/db/migration/
 ```
 
 ### 5.2. Dynamic Flyway Scan Locations Configuration
+
 To merge active folders at run time based on active configurations, a configuration bean dynamically customizes the Flyway locations path list:
 
 ```java
