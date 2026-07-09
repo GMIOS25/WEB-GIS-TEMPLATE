@@ -12,8 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -51,4 +49,15 @@ public class AuthController {
                                 .role(user.getRole())
                                 .build());
         }
+
+        /**
+         * Stateless no-op endpoint. JWT ở đây không có session/token store phía
+         * server nên không có gì để invalidate — client tự xóa token ở local.
+         * Route này tồn tại để khớp API_CONTRACT.md (mục 4.1).
+         */
+        @PostMapping("/logout")
+        public ResponseEntity<Void> logoutUser() {
+                return ResponseEntity.ok().build();
+        }
+
 }

@@ -62,7 +62,8 @@ const GisMap: React.FC<GisMapProps> = ({
   }, [selectedWard]);
 
   // Leaflet Layer Interactive Styles
-  const onEachFeature = useCallback((feature: GeoJsonFeature, layer: L.Layer) => {
+  const onEachFeature = useCallback((feature: unknown, layer: L.Layer) => {
+    const f = feature as GeoJsonFeature;
     layer.on({
       mouseover: (e: L.LeafletMouseEvent) => {
         const hoverLayer = e.target;
@@ -79,7 +80,7 @@ const GisMap: React.FC<GisMapProps> = ({
       mouseout: (e: L.LeafletMouseEvent) => {
         const hoverLayer = e.target;
         const currentSelectedWard = selectedWardRef.current;
-        const isSelected = currentSelectedWard && currentSelectedWard.properties.code === feature.properties.code;
+        const isSelected = currentSelectedWard && currentSelectedWard.properties.code === f.properties.code;
         hoverLayer.setStyle({
           weight: isSelected ? 3 : 1,
           color: isSelected ? '#10b981' : '#6b7280',
@@ -88,7 +89,7 @@ const GisMap: React.FC<GisMapProps> = ({
         });
       },
       click: () => {
-        setSelectedWard(feature);
+        setSelectedWard(f);
       },
     });
   }, [setSelectedWard]);
@@ -108,7 +109,7 @@ const GisMap: React.FC<GisMapProps> = ({
 
   return (
     <MapContainer
-      center={[13.8, 108.2]}
+      center={[13.883358, 108.542896]}
       zoom={9}
       scrollWheelZoom={true}
       zoomControl={false}
@@ -129,7 +130,7 @@ const GisMap: React.FC<GisMapProps> = ({
       )}
 
       {/* Province Outline boundary */}
-      {layers.province && provinceGeoJson && (
+      {layers.province && !!provinceGeoJson && (
         <GeoJSON
           data={provinceGeoJson as unknown as Parameters<typeof GeoJSON>[0]['data']}
           style={{
