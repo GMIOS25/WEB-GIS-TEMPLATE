@@ -1,4 +1,4 @@
-package com.website.gis.Entity;
+package com.website.gis.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

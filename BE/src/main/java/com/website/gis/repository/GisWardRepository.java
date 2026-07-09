@@ -1,9 +1,10 @@
 package com.website.gis.repository;
 
-import com.website.gis.Entity.GisWard;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.website.gis.entity.GisWard;
 
 import java.util.List;
 import java.util.Optional;

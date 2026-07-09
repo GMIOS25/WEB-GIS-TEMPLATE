@@ -1,7 +1,8 @@
 package com.website.gis.repository;
 
-import com.website.gis.Entity.Ward;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.website.gis.entity.Ward;
 
 import java.util.List;
 

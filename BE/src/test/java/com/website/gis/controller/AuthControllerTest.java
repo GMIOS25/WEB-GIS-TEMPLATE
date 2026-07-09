@@ -1,9 +1,9 @@
 package com.website.gis.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.website.gis.Entity.User;
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.dto.LoginRequest;
+import com.website.gis.entity.User;
 import com.website.gis.repository.UserRepository;
 import com.website.gis.security.CustomUserDetailsService;
 import com.website.gis.security.JwtAuthenticationFilter;
