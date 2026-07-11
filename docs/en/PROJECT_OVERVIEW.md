@@ -35,8 +35,8 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 - **Framework:** React with Vite and TypeScript.
 - **Routing:** React Router.
-- **State & Data Fetching:** TanStack Query (React Query).
-- **Styling & UI Components:** Tailwind CSS combined with Shadcn UI.
+- **State & Data Fetching:** TanStack Query (React Query will be use in the phase 2, Phase 1 use directive local state for simple).
+- **Styling & UI Components:** Tailwind CSS
 - **GIS & Map:** Leaflet and React Leaflet.
   - _Base Map:_ CartoDB Light Tile Layer.
   - _Spatial Data:_ Administrative boundaries stored in PostgreSQL/PostGIS in MultiPolygon format, returned as GeoJSON via API to render directly on the client, ensuring independence from paid map APIs.
@@ -182,4 +182,4 @@ The system is designed to facilitate quick packaging and exclusion of unnecessar
 4. **Deployment Isolation:**
    - Each customer runs as a fully separate application container **and** a fully separate database instance ("database-per-customer"), not a shared multi-tenant database with row-level filtering. This guarantees that one customer can never query or view another customer's specialized data, since there is no network or code path between them.
    - Multiple customer stacks may share a single Virtual Private Server (VPS) for cost efficiency, but this is purely an infrastructure placement decision and carries no code-level coupling.
-   - See `ARCHITECTURE SPECIFICATION.md` (Sections 6–7) for the isolation model and rollout mechanics, and `DEPLOYMENT_AND_FLEET_STRATEGY.md` for the full operational runbook (fleet registry, build pipeline, rollout scripts, and standard runbooks for onboarding customers, emergency fixes, partial feature rollouts, and core data corrections).
+   - See `ARCHITECTURE SPECIFICATION.md` (Sections 6–7) for the isolation model and rollout mechanics, and `DEPLOYMENT & FLEET STRATEGY.md` for the full operational runbook (fleet registry, build pipeline, rollout scripts, and standard runbooks for onboarding customers, emergency fixes, partial feature rollouts, and core data corrections).

@@ -13,7 +13,6 @@ All developers must adhere to these standards to ensure codebase consistency, ma
 - **Packages:** All lowercase, singular, flat where possible.
   - _Example:_ `com.website.gis.controller`, `com.website.gis.dto`, `com.website.gis.entity`, `com.website.gis.repository`
   - _Rule:_ Package names are always lowercase, no exceptions — e.g. `com.website.gis.entity`, never `com.website.gis.Entity`.
-  - **Known cleanup item:** the current codebase has an existing `com.website.gis.Entity` package (capitalized) from the Core phase. Treat any new code as lowercase going forward, and rename the existing package during the next refactor pass rather than perpetuating the capitalized form in new feature modules (`ocop`, `khcn`, `nonglam`).
 - **Classes & Interfaces:** `PascalCase`.
   - _Example:_ `GisWard`, `GisWardRepository`, `GlobalExceptionHandler`
 - **Methods & Variables:** `camelCase`.
@@ -209,7 +208,7 @@ public class UserService {
 
 ---
 
-## 4. React Query (TanStack Query) Key Conventions
+## 4. React Query will be use in phase 2 (TanStack Query) Key Conventions
 
 To prevent bugs related to cache invalidation, typo errors, and inconsistent querying, the frontend uses a **Query Key Factory** pattern.
 

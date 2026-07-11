@@ -1,6 +1,6 @@
 # Data Model Specification
 
-This document is the authoritative reference for the database schema of the **Provincial Administrative Information Management and GIS Lookup System**, reverse-documented from the actual implemented DDL (`DDL.sql`) as of the completion of the Core phase (login + 135 ward boundaries rendering).
+This document is the authoritative reference for the database schema of the **Provincial Administrative Information Management and GIS Lookup System**, reverse-documented from the actual schema as created by `postgres_CreateSchema_CreateTables_vn_units.sql` and `postgresql_CreateGISTables.sql`.
 
 It complements `ARCHITECTURE SPECIFICATION.md` (which describes _how_ modules are toggled) by defining exactly _what_ the core schema looks like, and establishes the pattern that future feature modules (`ocop`, `khcn`, `nonglam`) must follow.
 
@@ -279,6 +279,6 @@ All of the above are new **feature** migrations, not core migrations — they be
 ## 5. Cross-References
 
 - Compile-time toggling of the entities/repositories built on this schema: `ARCHITECTURE SPECIFICATION.md`, Sections 4–5.
-- Per-customer database isolation (each customer gets their own copy of this schema plus their one enabled feature module): `ARCHITECTURE SPECIFICATION.md` Section 6, `DEPLOYMENT_AND_FLEET_STRATEGY.md`.
+- Per-customer database isolation (each customer gets their own copy of this schema plus their one enabled feature module): `ARCHITECTURE SPECIFICATION.md` Section 6, `DEPLOYMENT & FLEET STRATEGY.md`.
 - API shapes built on top of these tables: `API_CONTRACT.md`.
 - Entity/DTO/Mapper naming conventions: `CODING_CONVENTIONS.md`.
