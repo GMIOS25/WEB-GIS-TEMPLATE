@@ -174,6 +174,13 @@ const GisMap: React.FC<GisMapProps> = ({
     prevSelectedCodeRef.current = null;
   }, [wardsKey]);
 
+  // A wider padding means Leaflet keeps a bigger off-screen buffer drawn on the
+  // canvas, so panning a bit outside the visible viewport doesn't immediately force
+  // a full redraw of every polygon — this is what removes the stutter while dragging
+  // the map. Default padding is only 0.1 (10% of viewport); 1 means a full extra
+  // viewport's worth of buffer in every direction.
+  const canvasRenderer = useMemo(() => L.canvas({ padding: 1 }), []);
+
   return (
     <MapContainer
       center={[13.883358, 108.542896]}
@@ -181,16 +188,24 @@ const GisMap: React.FC<GisMapProps> = ({
       scrollWheelZoom={true}
       zoomControl={false}
       className="w-full h-full"
-      // Canvas renderer draws every polygon into a single <canvas> element instead of
-      // one <path> DOM node per feature (the default SVG renderer). For a layer with
-      // hundreds/thousands of ward polygons this is what actually removes the multi
-      // second main-thread freeze on first load and the stutter on re-styling, since
-      // there's no per-feature DOM insertion/reflow cost.
-      preferCanvas={true}
+      // A shared, padded Canvas renderer as the map's default renderer for all vector
+      // layers. Canvas draws every polygon into a single <canvas> element instead of
+      // one <path> DOM node per feature (the default SVG renderer) — for a layer with
+      // hundreds/thousands of ward polygons this is what removes the multi-second
+      // main-thread freeze on first load and the stutter on re-styling, since there's
+      // no per-feature DOM insertion/reflow cost. The wider padding (default is 0.1,
+      // i.e. 10% of the viewport) keeps a bigger off-screen buffer already drawn, so
+      // panning a bit outside the visible viewport doesn't immediately force a full
+      // redraw of every polygon — this is what removes the stutter while dragging.
+      renderer={canvasRenderer}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        // Keep more previously-loaded tiles around the edges instead of discarding
+        // them immediately, so panning/zooming shows fewer blank/gray tiles while
+        // new ones load.
+        keepBuffer={4}
       />
 
       {/* Wards Boundary layer */}

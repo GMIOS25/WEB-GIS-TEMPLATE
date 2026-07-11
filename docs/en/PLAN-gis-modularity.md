@@ -95,7 +95,7 @@ Follow-up phase, triggered by the confirmed real-world scenario of 3 concurrent 
 - **INPUT:** `docs/ARCHITECTURE SPECIFICATION.md`
 - **OUTPUT:**
   - Updated `docs/ARCHITECTURE SPECIFICATION.md` with new **Section 6 (Multi-Customer Deployment & Isolation Strategy)** and **Section 7 (Fleet Management & Rollout Automation)**, including the current customer roster (Customer A/OCOP, Customer B/KHCN, Customer C/Nong Lam) and the geometry-type distinction (Point vs Polygon) for `nonglam`.
-  - New `docs/DEPLOYMENT_AND_FLEET_STRATEGY.md` containing the fleet registry schema (`ops/fleet.yaml`), CI build pipeline description, the fleet rollout script (`ops/deploy.sh`), and standard runbooks (emergency fix to all, partial feature rollout, core data correction, new customer onboarding).
+  - New `docs/DEPLOYMENT & FLEET STRATEGY.md` containing the fleet registry schema (`ops/fleet.yaml`), CI build pipeline description, the fleet rollout script (`ops/deploy.sh`), and standard runbooks (emergency fix to all, partial feature rollout, core data correction, new customer onboarding).
   - Updated `docs/Project Overview.md` Section 7 with a 4th bullet on deployment isolation, cross-referencing the two documents above.
 - **VERIFY:** View all three files; confirm the database-per-customer isolation model is stated as the adopted decision (not shared multi-tenant), confirm `ops/fleet.yaml` and `ops/deploy.sh` examples are present and consistent with the Flyway/feature-flag mechanics already defined in Sections 2–5 of the Architecture Specification.
 
@@ -106,12 +106,12 @@ docs/
 ├── Tổng quan dự án.md (modified)
 ├── Project Overview.md (modified - section 7 updated)
 ├── ARCHITECTURE SPECIFICATION.md (modified - sections 6-7 added)
-└── DEPLOYMENT_AND_FLEET_STRATEGY.md (new)
+└── DEPLOYMENT & FLEET STRATEGY.md (new)
 ```
 
 ## Phase Y: Final Verification
 
 - [ ] View `ARCHITECTURE SPECIFICATION.md` and confirm Sections 6-7 exist and reference the customer roster correctly.
-- [ ] View `DEPLOYMENT_AND_FLEET_STRATEGY.md` and confirm it exists and is populated.
+- [ ] View `DEPLOYMENT & FLEET STRATEGY.md` and confirm it exists and is populated.
 - [ ] Verify `Project Overview.md` Section 7 references both companion documents.
 - [ ] Verify no contradiction with the database-per-customer decision (no shared multi-tenant / `tenant_id` pattern introduced anywhere).

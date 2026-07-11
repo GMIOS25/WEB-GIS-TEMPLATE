@@ -50,8 +50,7 @@ Navigate to the SQL data resources folder: `BE/src/main/resources/data` (relativ
    - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_wards`) with PostGIS geometry columns, 1:1 linked to `provinces`/`wards` via `province_code`/`ward_code` (see `DATA_MODEL.md` Section 1).
 4. **`postgresql_ImportData_gis_2026-06-20__12_32_01.sql`**
    - _Description:_ Imports coordinates, boundary borders (`MultiPolygon`), and bounding boxes specifically for the 135 wards of Gia Lai province.
-5. **`DDL.sql`**
-   - _Description:_ Creates application-level tables — `users` (authentication) and `local_leaders` (per-ward leadership info) — and seeds default dev accounts. Full column-level reference for every table above: `DATA_MODEL.md`.
+     **Note** : Default administrator and viewer accounts are defined to be automatically created by the `DatabaseSeeder` upon the initial startup of the backend (no separate SQL execution required).
 
 ---
 
@@ -95,7 +94,7 @@ The Frontend code is located in the `/FE` directory.
 Create a `.env` file in the root of the `FE` directory (if it does not exist) and configure the Backend API URL:
 
 ```env
-VITE_API_URL=http://localhost:8080
+VITE_API_BASE_URL=http://localhost:8080
 ```
 
 ### Step 4.2: Install Dependencies & Run
