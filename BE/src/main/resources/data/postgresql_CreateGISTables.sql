@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS gis_wards;
 
 DROP TABLE IF EXISTS gis_provinces;
 
-CREATE TABLE gis_provinces IF NOT EXISTS (
+CREATE TABLE gis_provinces (
     id integer primary key generated always as identity,
     province_code varchar(20) NOT NULL,
     gis_server_id varchar(50),
@@ -23,7 +23,7 @@ CREATE INDEX idx_gis_provinces_bbox ON gis_provinces USING gist (bbox);
 
 CREATE INDEX idx_gis_provinces_geom ON gis_provinces USING gist (geom);
 
-CREATE TABLE gis_wards IF NOT EXISTS (
+CREATE TABLE gis_wards (
     id integer primary key generated always as identity,
     ward_code varchar(20) NOT NULL,
     gis_server_id varchar(50),
