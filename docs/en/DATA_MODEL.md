@@ -176,8 +176,6 @@ Spatial data for provinces, 1:1 with `provinces` via `province_code`.
 
 Indexes: `idx_gis_provinces_province_code` (btree), `idx_gis_provinces_bbox` (**GiST**), `idx_gis_provinces_geom` (**GiST**).
 
-> **Action item:** `bbox`/`geom` are declared as generic `geometry` with no SRID or subtype constraint. Confirm the data is stored as SRID 4326 (WGS84, matching GeoJSON/Leaflet expectations) and consider tightening future migrations to `geometry(MultiPolygon, 4326)` for safety, though altering existing populated columns should be done as a deliberate, tested migration — not casually.
-
 ### 3.6. `gis_wards`
 
 Spatial data for wards, 1:1 with `wards` via `ward_code`. Same column shape and indexing pattern as `gis_provinces` (see above), FK to `wards.code`.

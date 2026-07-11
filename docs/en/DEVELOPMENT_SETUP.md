@@ -50,7 +50,9 @@ Navigate to the SQL data resources folder: [BE/src/main/resources/data](file:///
    - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_districts`, `gis_wards`) with PostGIS geography types.
 4. **`postgresql_ImportData_gis_2026-06-20__12_32_01.sql`**
    - _Description:_ Imports coordinates, boundary borders (`MULTIPOLYGON`), and GIS spatial points specifically for Gia Lai province (Administrative Code: **52**).
-**Note** : Default administrator and viewer accounts are defined to be automatically created by the `DatabaseSeeder` upon the initial startup of the backend (no separate SQL execution required).
+
+> **Note** : Default administrator and viewer accounts are defined to be automatically created by the `DatabaseSeeder` upon the initial startup of the backend (no separate SQL execution required).
+
 ---
 
 ## 3. Backend Setup (Spring Boot)
@@ -93,7 +95,7 @@ The Frontend code is located in the [/FE](file:///d:/Work/WEB%20GIS%20TEMPLATE/F
 Create a `.env` file in the root of the `FE` directory (if it does not exist) and configure the Backend API URL:
 
 ```env
-VITE_API_URL=http://localhost:8080
+VITE_API_BASE_URL=http://localhost:8080
 ```
 
 ### Step 4.2: Install Dependencies & Run

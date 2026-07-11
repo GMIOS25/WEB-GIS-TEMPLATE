@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.security.core.AuthenticationException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
             details.put(fieldName, errorMessage);
         });
         return buildResponse(HttpStatus.BAD_REQUEST, "Lỗi xác thực dữ liệu", request, details);
+    }
+
+    // Bắt các lỗi xác thực (sai username/password, tài khoản bị khoá, v.v.)
+    // BadCredentialsException ném từ AuthenticationManager.authenticate() là
+    // subclass của AuthenticationException nên rule này cũng bắt luôn nó.
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu", request, null);
     }
 
     @ExceptionHandler(Exception.class)

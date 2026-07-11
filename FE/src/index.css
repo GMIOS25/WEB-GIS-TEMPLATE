@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Outfit", system-ui, -apple-system, sans-serif;
+  --font-sans: "Be Vietnam Pro", "Noto Sans", system-ui, -apple-system, sans-serif;
   
   /* Primary & Accent colors: Emerald Green and Neutral Grays */
   --color-primary-50: #ecfdf5;
