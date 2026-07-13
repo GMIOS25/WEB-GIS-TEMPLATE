@@ -2,12 +2,14 @@ package com.website.gis.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.dto.LoginRequest;
-import com.website.gis.entity.User;
-import com.website.gis.repository.UserRepository;
-import com.website.gis.security.CustomUserDetailsService;
-import com.website.gis.security.JwtAuthenticationFilter;
-import com.website.gis.security.JwtTokenProvider;
+import com.website.gis.core.controller.AuthController;
+import com.website.gis.core.dto.LoginRequest;
+import com.website.gis.core.entity.User;
+import com.website.gis.core.repository.UserRepository;
+import com.website.gis.core.security.CustomUserDetailsService;
+import com.website.gis.core.security.JwtAuthenticationFilter;
+import com.website.gis.core.security.JwtTokenProvider;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

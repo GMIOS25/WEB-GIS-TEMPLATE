@@ -1,15 +1,17 @@
 package com.website.gis.controller;
 
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.entity.GisWard;
-import com.website.gis.entity.Province;
-import com.website.gis.entity.Ward;
-import com.website.gis.repository.GisWardRepository;
-import com.website.gis.repository.UserRepository;
-import com.website.gis.repository.WardRepository;
-import com.website.gis.security.CustomUserDetailsService;
-import com.website.gis.security.JwtAuthenticationFilter;
-import com.website.gis.security.JwtTokenProvider;
+import com.website.gis.core.controller.WardController;
+import com.website.gis.core.entity.GisWard;
+import com.website.gis.core.entity.Province;
+import com.website.gis.core.entity.Ward;
+import com.website.gis.core.repository.GisWardRepository;
+import com.website.gis.core.repository.UserRepository;
+import com.website.gis.core.repository.WardRepository;
+import com.website.gis.core.security.CustomUserDetailsService;
+import com.website.gis.core.security.JwtAuthenticationFilter;
+import com.website.gis.core.security.JwtTokenProvider;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(WardController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class })
 class WardControllerTest {
 
     @Autowired
