@@ -95,12 +95,15 @@ public class AdminController {
                 User user = userRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-                // Get currently logged-in user to prevent deleting self
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String currentUsername = auth.getName();
 
                 if (user.getUsername().equals(currentUsername)) {
                         throw new BadRequestException("You cannot delete your own account");
+                }
+
+                if (user.getRole().equals("ADMIN") && userRepository.countByRole("ADMIN") <= 1) {
+                        throw new BadRequestException("Cannot delete the last remaining ADMIN account");
                 }
 
                 userRepository.delete(user);

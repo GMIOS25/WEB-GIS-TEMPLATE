@@ -43,11 +43,11 @@ CREATE EXTENSION postgis;
 Navigate to the SQL data resources folder: [BE/src/main/resources/data](file:///d:/Work/WEB%20GIS%20TEMPLATE/BE/src/main/resources/data). Import the SQL files into the `gialai` database in the **exact order** specified below:
 
 1. **`postgres_CreateSchema_CreateTables_vn_units.sql`**
-   - _Description:_ Creates core administrative schema tables (`provinces`, `districts`, `wards`).
+   - _Description:_ Creates core administrative schema tables (`provinces`, `wards`).
 2. **`postgres_ImportData_vn_units.sql`**
    - _Description:_ Seeds national administrative unit dictionary data.
 3. **`postgresql_CreateGISTables.sql`**
-   - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_districts`, `gis_wards`) with PostGIS geography types.
+   - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_wards`) with PostGIS geography types.
 4. **`postgresql_ImportData_gis_2026-06-20__12_32_01.sql`**
    - _Description:_ Imports coordinates, boundary borders (`MULTIPOLYGON`), and GIS spatial points specifically for Gia Lai province (Administrative Code: **52**).
 
