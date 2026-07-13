@@ -31,7 +31,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
     } catch (err: unknown) {
       console.error(err);
       const errorMsg = err && typeof err === 'object' && 'response' in err
-        ? ((err as { response?: { data?: string } }).response?.data)
+        ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message)
         : null;
       onError(errorMsg || 'Không thể xóa tài khoản này.');
     } finally {

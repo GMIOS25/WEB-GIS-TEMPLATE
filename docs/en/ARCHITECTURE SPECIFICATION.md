@@ -252,7 +252,7 @@ BE/src/main/resources/db/migration/
 To merge active folders at run time based on active configurations, a configuration bean dynamically customizes the Flyway locations path list:
 
 ```java
-package com.website.gis.core.config;
+package com.website.gis.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
