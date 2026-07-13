@@ -17,12 +17,12 @@ Hệ thống cho phép quản lý, cập nhật và tra cứu thông tin các đ
 
 ### 2. Kế hoạch triển khai (Phân kỳ Giai đoạn)
 
-Dự án được chia làm 3 giai đoạn phát triển cuốn chiếu. Hệ thống được thiết kế dưới dạng khung chung (Template) linh hoạt, hỗ trợ bật/tắt (Feature Toggle) các module (Trường học, Bệnh viện...) tùy theo yêu cầu của từng khách hàng tại thời điểm đóng gói (Compile-time):
+Dự án được chia làm 3 giai đoạn phát triển cuốn chiếu. Hệ thống được thiết kế dưới dạng khung chung (Template) linh hoạt, hỗ trợ bật/tắt (Feature Toggle) các module (OCOP, Khoa học công nghệ, Nông nghiệp...) tùy theo yêu cầu của từng khách hàng tại thời điểm đóng gói (Compile-time):
 
 | Giai đoạn       | Tên phân kỳ                       | Nội dung thực hiện chính                                                                                                                                                                                                                                                                                                                                     |
 | :-------------- | :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Giai đoạn 1** | **Nền tảng hành chính**           | - Bản đồ hành chính cấp xã: hiển thị ranh giới địa giới hành chính Gia Lai, tương tác chọn và xem chi tiết diện tích trực tiếp trên bản đồ.<br>- Tra cứu thông tin hành chính, tìm kiếm nhanh xã/phường.<br>- Phân quyền người dùng (ADMIN quản trị tài khoản, VIEWER tra cứu bản đồ). Không có tính năng chỉnh sửa dữ liệu hay địa giới trực tiếp trên web. |
-| **Giai đoạn 2** | **Quản lý đơn vị trực thuộc**     | - Mở rộng quản lý danh mục tổ chức, đơn vị trực thuộc trên địa bàn xã/phường dưới dạng các module độc lập (Trường học, Bệnh viện, Trạm y tế, Công an, Điểm du lịch, OCOP...).<br>- Phát triển Module Quản lý Tài nguyên (Tải lên hình ảnh đại diện, hình ảnh thực tế, tài liệu đính kèm cho từng đơn vị trực thuộc).                                         |
+| **Giai đoạn 2** | **Quản lý đơn vị trực thuộc**     | - Mở rộng quản lý danh mục tổ chức, đơn vị trực thuộc trên địa bàn xã/phường dưới dạng các module độc lập (cơ sở OCOP, đơn vị Khoa học công nghệ, cơ sở Nông nghiệp, Điểm du lịch...).<br>- Phát triển Module Quản lý Tài nguyên (Tải lên hình ảnh đại diện, hình ảnh thực tế, tài liệu đính kèm cho từng đơn vị trực thuộc).                                         |
 | **Giai đoạn 3** | **Tích hợp bản đồ mở rộng (GIS)** | - Định vị tọa độ (Point) và hiển thị vị trí các đơn vị trực thuộc của các module được kích hoạt trên bản đồ.<br>- Thiết lập liên kết không gian giữa đơn vị trực thuộc và đơn vị hành chính quản lý.<br>- Tra cứu, tìm kiếm theo bán kính/khu vực địa lý.<br>- Thống kê, báo cáo trực quan hóa dữ liệu trên bản đồ theo các lớp (layer) dữ liệu khác nhau.   |
 
 ---
@@ -95,7 +95,7 @@ Hệ thống áp dụng kiến trúc tách biệt Frontend (FE) và Backend (BE)
 
 #### 4.3. Module Quản lý Tổ chức & Đơn vị trực thuộc (Organization)
 
-- **Phân loại tổ chức:** UBND các cấp, Công an, Trường học, Bệnh viện, Trạm y tế, Điểm du lịch, Hợp tác xã OCOP, Đơn vị KHCN, và các đơn vị khác.
+- **Phân loại tổ chức:** UBND các cấp, Hợp tác xã OCOP, Đơn vị KHCN (Science), cơ sở Nông nghiệp (Agriculture), Điểm du lịch, và các đơn vị khác.
 - **Trường dữ liệu chi tiết:**
   - Tên tổ chức, Loại hình tổ chức.
   - Thông tin liên hệ: Địa chỉ chi tiết, Số điện thoại, Email.
@@ -104,7 +104,7 @@ Hệ thống áp dụng kiến trúc tách biệt Frontend (FE) và Backend (BE)
 
 #### 4.4. Module Quản lý Tài nguyên (Media & Storage - Triển khai từ Giai đoạn 2)
 
-- **Vai trò triển khai:** Được phát triển và tích hợp trong **Giai đoạn 2** để hỗ trợ quản lý hình ảnh cho các đơn vị trực thuộc (OCOP, Bệnh viện, Trường học, v.v.). Khi người dùng nhấn vào các điểm đối tượng (Points) này trên bản đồ, hình ảnh sẽ hiển thị như một phần thông tin chi tiết.
+- **Vai trò triển khai:** Được phát triển và tích hợp trong **Giai đoạn 2** để hỗ trợ quản lý hình ảnh cho các đơn vị trực thuộc (OCOP, Khoa học công nghệ, Nông nghiệp, v.v.). Khi người dùng nhấn vào các điểm đối tượng (Points) này trên bản đồ, hình ảnh sẽ hiển thị như một phần thông tin chi tiết.
 - **Chức năng:**
   - Hỗ trợ tải lên (Upload) hình ảnh (JPEG, PNG) làm ảnh đại diện hoặc ảnh thực tế của đơn vị trực thuộc.
   - Hỗ trợ tải lên tài liệu liên quan (PDF, DOCX) và hỗ trợ tải xuống (Download) trực tiếp.
@@ -116,14 +116,14 @@ Hệ thống áp dụng kiến trúc tách biệt Frontend (FE) và Backend (BE)
 - **Chức năng:**
   - Thống kê số lượng đơn vị hành chính trực thuộc tỉnh.
   - Thống kê diện tích và phân bố cơ cấu hành chính.
-  - Thống kê số lượng tổ chức trực thuộc phân loại theo loại hình (Trường học, y tế, điểm du lịch,...).
+  - Thống kê số lượng tổ chức trực thuộc phân loại theo loại hình (OCOP, Khoa học công nghệ, Nông nghiệp, điểm du lịch,...).
   - Xuất báo cáo thống kê dạng PDF hoặc Excel.
 
 #### 4.6. Module Bản đồ chuyên sâu (GIS - Giai đoạn 3)
 
 - _Lưu ý: Giai đoạn 1 tập trung hiển thị ranh giới hành chính cơ bản, giai đoạn này sẽ mở rộng:_
   - Tải và chuyển đổi qua lại giữa các lớp dữ liệu bản đồ khác nhau (Lớp ranh giới hành chính, Lớp định vị tổ chức, v.v.).
-  - Hiển thị marker định vị tọa độ tổ chức (UBND, Trường học, Bệnh viện) trên nền bản đồ ranh giới xã.
+  - Hiển thị marker định vị tọa độ tổ chức (UBND, cơ sở OCOP, đơn vị Khoa học công nghệ, cơ sở Nông nghiệp) trên nền bản đồ ranh giới xã.
   - Tìm kiếm không gian: Tìm kiếm các tổ chức trực thuộc trong phạm vi xã hoặc bán kính tùy chọn từ một vị trí.
 
 ---
@@ -171,13 +171,13 @@ graph TD
 Hệ thống được thiết kế để dễ dàng đóng gói và loại bỏ các thành phần chức năng không cần thiết theo từng đơn hàng của khách hàng thông qua cơ chế **Compile-time Modularity**:
 
 1. **Frontend (Vite/React):**
-   - Sử dụng các biến môi trường (`VITE_ENABLE_SCHOOLS`, `VITE_ENABLE_HOSPITALS`,...) trong file `.env` của từng bản build.
+   - Sử dụng các biến môi trường (`VITE_ENABLE_OCOP`, `VITE_ENABLE_SCIENCE`, `VITE_ENABLE_AGRICULTURE`,...) trong file `.env` của từng bản build.
    - Hệ thống Routing và Menu Sidebar sẽ tự động đọc các biến này để đăng ký hoặc ẩn các trang/chức năng tương ứng.
 2. **Backend (Spring Boot):**
-   - Chia tách mã nguồn các đối tượng đặc thù thành các package/module riêng biệt dưới dạng tính năng (ví dụ: `com.website.gis.features.school`).
+   - Chia tách mã nguồn các đối tượng đặc thù thành các package/module riêng biệt dưới dạng tính năng (ví dụ: `com.website.gis.features.ocop`).
    - Sử dụng Spring Profiles kết hợp các annotation điều kiện như `@ConditionalOnProperty` để chỉ kích hoạt các Controller/Service/Repository khi module đó được kích hoạt trong tệp cấu hình. Nếu module bị tắt, API Endpoint tương ứng sẽ không đăng ký và trả về lỗi 404.
 3. **Cơ sở dữ liệu (PostgreSQL & Flyway):**
-   - Phân mảnh các script DDL/DML khởi tạo cơ sở dữ liệu thành các thư mục Flyway riêng biệt (ví dụ: `db/migration/core` chứa bảng hành chính cơ bản, và các thư mục độc lập `db/migration/school`, `db/migration/hospital`...).
+   - Phân mảnh các script DDL/DML khởi tạo cơ sở dữ liệu thành các thư mục Flyway riêng biệt (ví dụ: `db/migration/core` chứa bảng hành chính cơ bản, và các thư mục độc lập `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`...).
    - Khi khởi chạy ứng dụng, dựa vào các profile cấu hình đang hoạt động, hệ thống sẽ chỉ định Flyway quét các thư mục migrations tương ứng, tránh tạo các bảng dữ liệu thừa trong DB của khách hàng.
 4. **Cô lập trong triển khai:**
    - Mỗi khách hàng hoạt động như một container ứng dụng hoàn toàn tách biệt **và** sử dụng một instance cơ sở dữ liệu riêng biệt (mô hình "mỗi khách hàng một cơ sở dữ liệu"), thay vì dùng chung cơ sở dữ liệu đa khách hàng (multi-tenant) với cơ chế lọc dữ liệu ở cấp độ dòng. Điều này đảm bảo rằng một khách hàng không bao giờ có thể truy vấn hoặc xem dữ liệu riêng của khách hàng khác, do không có kết nối mạng hay đường dẫn mã nguồn nào giữa chúng.

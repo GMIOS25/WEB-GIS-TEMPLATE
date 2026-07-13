@@ -17,12 +17,12 @@ The system allows managing, updating, and querying information of commune/ward/t
 
 ### 2. Implementation Roadmap (Phased Approach)
 
-The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (Schools, Hospitals, etc.) based on each client's specific requirements at the package build time (Compile-time):
+The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture, etc.) based on each client's specific requirements at the package build time (Compile-time):
 
 | Phase       | Phase Name                     | Core Deliverables                                                                                                                                                                                                                                                                                                                              |
 | :---------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Phase 1** | **Administrative Foundation**  | - Commune-level administrative map: Display Gia Lai borders, select and view area details directly on the map.<br>- Administrative information lookup: Fast search of communes/wards.<br>- User roles (ADMIN: account administration, VIEWER: map lookup). Direct data or boundary editing via the web is not supported.                       |
-| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (Schools, Hospitals, Health Centers, Police, Tourist Spots, OCOP production units, etc.).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).       |
+| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (OCOP production units, Sci-Tech units, Agricultural production units, Tourist Spots, etc.).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).       |
 | **Phase 3** | **GIS Map Integration**        | - Geopoint coordinate mapping (Point) and visualization of enabled modules' organizations on the map.<br>- Establish spatial relations between organizations and managing administrative units.<br>- Map-based queries (radius search, administrative area filter).<br>- Visual reporting and analytics on the map via toggleable data layers. |
 
 ---
@@ -95,7 +95,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 #### 4.3. Affiliated Organization Management Module
 
-- **Types of Organizations:** People's Committee, Police, Schools, Hospitals, Clinics, Tourist Spots, OCOP Cooperatives, Sci-Tech Units, etc.
+- **Types of Organizations:** People's Committee, OCOP Cooperatives, Sci-Tech Units, Agricultural Units, Tourist Spots, etc.
 - **Detailed Attributes:**
   - Organization Name, Organization Type.
   - Contact Info: Address, Phone, Email.
@@ -104,7 +104,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 #### 4.4. Resource Management Module (Media & Storage)
 
-- **Role:** Developed and integrated starting from **Phase 2** to support media attachment for affiliated entities (OCOP, Hospitals, Schools, etc.). These assets will be displayed within map popups when users click on points (Points of Interest).
+- **Role:** Developed and integrated starting from **Phase 2** to support media attachment for affiliated entities (OCOP, Science, Agriculture, etc.). These assets will be displayed within map popups when users click on points (Points of Interest).
 - **Features:**
   - Upload images (JPEG, PNG) as avatars or actual photos of the organization.
   - Upload related documents (PDF, DOCX) and support direct downloads.
@@ -116,14 +116,14 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 - **Features:**
   - Count of administrative units under the province.
   - Area distribution and administrative structure statistics.
-  - Count of affiliated organizations by category (Schools, Hospitals, Tourism...).
+  - Count of affiliated organizations by category (OCOP, Science, Agriculture, Tourism...).
   - Export analytical reports in PDF or Excel formats.
 
 #### 4.6. Advanced GIS Map Module (Phase 3)
 
 - _Note: Phase 1 focuses on basic administrative boundaries, Phase 3 expands to:_
   - Load and toggle between different map layers (Administrative borders, Organization locations, etc.).
-  - Render point markers for organizations (Hospitals, Schools, People's Committees) on top of the commune boundary map layer.
+  - Render point markers for organizations (OCOP units, Science units, Agriculture units, People's Committees) on top of the commune boundary map layer.
   - Spatial query: Search organizations within a specific commune or within a custom radius from a chosen location.
 
 ---
@@ -171,13 +171,13 @@ graph TD
 The system is designed to facilitate quick packaging and exclusion of unnecessary functional components depending on each customer's purchase order using **Compile-time Modularity**:
 
 1. **Frontend (Vite/React):**
-   - Utilizes environment variables (`VITE_ENABLE_SCHOOLS`, `VITE_ENABLE_HOSPITALS`, etc.) inside the `.env` file for each build target.
+   - Utilizes environment variables (`VITE_ENABLE_OCOP`, `VITE_ENABLE_SCIENCE`, `VITE_ENABLE_AGRICULTURE`, etc.) inside the `.env` file for each build target.
    - The Routing system and Menu Sidebar automatically inspect these environment variables to register or hide corresponding pages/functionalities.
 2. **Backend (Spring Boot):**
-   - Isolates specific feature modules into designated packages (e.g., `com.website.gis.features.school`).
+   - Isolates specific feature modules into designated packages (e.g., `com.website.gis.features.ocop`).
    - Uses Spring Profiles along with conditional annotations like `@ConditionalOnProperty` to only instantiate controllers, services, and repositories when their respective feature toggles are enabled in the configuration file. If a feature is disabled, the corresponding endpoints will return 404.
 3. **Database (PostgreSQL & Flyway):**
-   - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/school`, `db/migration/hospital`, etc.).
+   - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`, etc.).
    - During application startup, depending on active profiles, the system dynamically appends corresponding path locations to Flyway scan targets, avoiding the creation of unused tables in client databases.
 4. **Deployment Isolation:**
    - Each customer runs as a fully separate application container **and** a fully separate database instance ("database-per-customer"), not a shared multi-tenant database with row-level filtering. This guarantees that one customer can never query or view another customer's specialized data, since there is no network or code path between them.
