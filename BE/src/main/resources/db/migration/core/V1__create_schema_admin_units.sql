@@ -4,7 +4,6 @@
 -- DROP TABLE IF EXISTS administrative_units;
 -- DROP TABLE IF EXISTS administrative_regions;
 
-CREATE DATABASE GiaLai WITH ENCODING = 'UTF8';
 -- CREATE administrative_regions TABLE
 CREATE TABLE administrative_regions (
     id integer NOT NULL,

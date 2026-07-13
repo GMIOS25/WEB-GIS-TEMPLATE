@@ -43,9 +43,10 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      const errorMsg = err && typeof err === 'object' && 'response' in err
-        ? ((err as { response?: { data?: string } }).response?.data)
-        : null;
+      // Sửa cả AddUserModal.tsx và DeleteUserModal.tsx
+    const errorMsg = err && typeof err === 'object' && 'response' in err
+      ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message)
+      : null;
       onError(errorMsg || 'Có lỗi xảy ra khi tạo tài khoản.');
     } finally {
       setLoading(false);

@@ -40,7 +40,7 @@ CREATE EXTENSION postgis;
 
 ### Step 2.2: Import Database Schema & Seed Data
 
-Navigate to the SQL data resources folder: [BE/src/main/resources/data](file:///d:/Work/WEB%20GIS%20TEMPLATE/BE/src/main/resources/data). Import the SQL files into the `gialai` database in the **exact order** specified below:
+Navigate to the SQL data resources folder: [BE/src/main/resources/data](../../BE/src/main/resources/data). Import the SQL files into the `gialai` database in the **exact order** specified below:
 
 1. **`postgres_CreateSchema_CreateTables_vn_units.sql`**
    - _Description:_ Creates core administrative schema tables (`provinces`, `wards`).
@@ -57,11 +57,11 @@ Navigate to the SQL data resources folder: [BE/src/main/resources/data](file:///
 
 ## 3. Backend Setup (Spring Boot)
 
-The Backend code is located in the [/BE](file:///d:/Work/WEB%20GIS%20TEMPLATE/BE) directory.
+The Backend code is located in the [/BE](../../BE) directory.
 
 ### Step 3.1: Configure Connection Settings
 
-Open [BE/src/main/resources/application.properties](file:///d:/Work/WEB%20GIS%20TEMPLATE/BE/src/main/resources/application.properties) and update the database credentials to match your local PostgreSQL configuration:
+Open [BE/src/main/resources/application.properties](../../BE/src/main/resources/application.properties) and update the database credentials to match your local PostgreSQL configuration:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/gialai
@@ -88,7 +88,7 @@ The server will launch and listen at **`http://localhost:8080`**. You can verify
 
 ## 4. Frontend Setup (React & Vite)
 
-The Frontend code is located in the [/FE](file:///d:/Work/WEB%20GIS%20TEMPLATE/FE) directory.
+The Frontend code is located in the [/FE](../../FE) directory.
 
 ### Step 4.1: Environment Configuration
 
@@ -125,5 +125,5 @@ Use the following seeded accounts to log in during local testing:
 
 ## 6. Project Architecture References
 
-- [Project Overview & Requirement Specs](file:///d:/Work/WEB%20GIS%20TEMPLATE/docs/en/Project%20Overview.md)
-- [Coding Conventions & Standards](file:///d:/Work/WEB%20GIS%20TEMPLATE/docs/en/CODING_CONVENTIONS.md)
+- [Project Overview & Requirement Specs](../../docs/en/Project%20Overview.md)
+- [Coding Conventions & Standards](../../docs/en/CODING_CONVENTIONS.md)
