@@ -32,7 +32,7 @@ Hệ thống khuyến nghị mặc định sử dụng **Light Theme** (đặc t
 | **Style Bản đồ nền (Base Map)** | `CartoDB Positron` / `Mapbox Light`        | `CartoDB Dark Matter`       | Tối giản, ẩn bớt các POI thương mại không liên quan.    |
 | **Viền Ranh giới Phường/Xã**    | `#6b7280` (mặc định) / `#059669` (hover)   | -                           | Nét mảnh (`1px`), dạng nét liền (`solid`).              |
 | **Màu vùng Phường/Xã (Fill)**   | `#10b981`, opacity `0.08` (gần trong suốt) | -                           | Đổi sang `#6ee7b7` opacity `0.35` khi `Hover`.          |
-| **Màu Điểm Trường Học (Point)** | `#F97316` (Cam ấm)                         | `#FACC15` (Vàng Chanh Neon) | Dạng chấm tròn, có viền trắng (`Halo effect`) tách nền. |
+| **Màu Điểm OCOP (Point)**       | `#F97316` (Cam ấm)                         | `#FACC15` (Vàng Chanh Neon) | Dạng chấm tròn, có viền trắng (`Halo effect`) tách nền. |
 
 ---
 
@@ -48,19 +48,19 @@ Agent cần thiết lập logic xử lý bản đồ theo 3 kịch bản tương
 
 - Fill: `#a7f3d0`, opacity `0.3`; viền: `#059669`, weight `3px`.
 
-### Lớp dữ liệu (Ví dụ: Điểm Trường Học) (Point Layer)
+### Lớp dữ liệu (Ví dụ: Điểm OCOP) (Point Layer)
 
 - **Cơ chế Kích hoạt:** Chỉ hiển thị khi người dùng tích chọn (Toggle On) tại Sidebar quản lý lớp dữ liệu.
 - **Logic Thu phóng (Zoom Visibility & Clustering):**
-  - **Khi Zoom xa (Mức Tỉnh):** `BẮT BUỘC` gộp các điểm trường học gần nhau lại thành một vòng tròn lớn kèm số lượng (Ví dụ: `(50)` trường) để tránh nghẹt thở bản đồ.
+  - **Khi Zoom xa (Mức Tỉnh):** `BẮT BUỘC` gộp các điểm OCOP gần nhau lại thành một vòng tròn lớn kèm số lượng (Ví dụ: `(50)` điểm) để tránh nghẹt thở bản đồ.
   - **Khi Zoom gần (Mức Huyện/Xã):** Tự động rã gộp (Uncluster), hiển thị thành các chấm tròn màu Cam đơn lẻ tại vị trí tọa độ chính xác.
 
 ### Logic Hiển thị Hộp thông tin (Popup/Infowindow)
 
-- Khi người dùng `Click` vào một Point Trường học:
+- Khi người dùng `Click` vào một Point OCOP:
   1. Thêm hiệu ứng mạch đập (Ripple effect) hoặc phóng to nhẹ điểm đó để định vị thị giác.
   2. Hiển thị Popup nhỏ ngay tại vị trí điểm với cấu trúc:
-     - **Tiêu đề:** Tên trường học (Bold).
+     - **Tiêu đề:** Tên cơ sở OCOP (Bold).
      - **Nội dung:** Địa chỉ chi tiết, Số điện thoại liên hệ, Thuộc Phường/Xã nào.
      - **Hành động:** Nút `[Xem chi tiết]` ở góc dưới để mở panel dữ liệu lớn (nếu cần).
 
@@ -70,4 +70,4 @@ Agent cần thiết lập logic xử lý bản đồ theo 3 kịch bản tương
 
 - **Vị trí cố định:** Cạnh trái (Left Sidebar) hoặc Cạnh phải (Right Sidebar).
 - **Cơ chế bật/tắt:** Dùng linh hoạt `Checkbox` hoặc `Switch Toggle`.
-- **Bắt buộc có Legend trực quan:** Ngay bên cạnh nhãn "Trường học" phải có một icon nhỏ hoặc chấm tròn màu Cam đúng với màu hiển thị trên bản đồ để người dùng đối chiếu ngay lập tức mà không cần mở bảng chú giải riêng.
+- **Bắt buộc có Legend trực quan:** Ngay bên cạnh nhãn "OCOP" phải có một icon nhỏ hoặc chấm tròn màu Cam đúng với màu hiển thị trên bản đồ để người dùng đối chiếu ngay lập tức mà không cần mở bảng chú giải riêng.

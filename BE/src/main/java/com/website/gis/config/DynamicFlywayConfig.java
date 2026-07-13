@@ -13,11 +13,11 @@ import java.util.List;
  * muc 5.
  *
  * Core migrations (auth, admin units, GIS) luon chay. Cac module theo tinh nang
- * (school/hospital/police/ocop) chi duoc bat khi co feature flag tuong ung VA
+ * (science/ocop/agriculture) chi duoc bat khi co feature flag tuong ung VA
  * thu muc db/migration/<feature> da ton tai voi it nhat 1 file V*.sql.
  *
- * LUU Y: cac thu muc school/hospital/police/ocop hien CHUA duoc tao vi entity
- * tuong ung (School, Hospital,...) chua duoc trien khai trong code (Giai doan 2
+ * LUU Y: cac thu muc science/ocop/agriculture hien CHUA duoc tao vi entity
+ * tuong ung (Science, Ocop, Agriculture) chua duoc trien khai trong code (Giai doan 2
  * - roadmap).
  * Khi implement entity nao, hay tao thu muc db/migration/<feature> voi file
  * V*.sql
@@ -33,6 +33,9 @@ public class DynamicFlywayConfig {
     @Value("${features.ocop.enabled:false}")
     private boolean ocopEnabled;
 
+    @Value("${features.agriculture.enabled:false}")
+    private boolean agricultureEnabled;
+
     @Bean
     public FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
         return configuration -> {
@@ -46,6 +49,9 @@ public class DynamicFlywayConfig {
             }
             if (ocopEnabled) {
                 locations.add("classpath:db/migration/ocop");
+            }
+            if (agricultureEnabled) {
+                locations.add("classpath:db/migration/agriculture");
             }
 
             configuration.locations(locations.toArray(new String[0]));

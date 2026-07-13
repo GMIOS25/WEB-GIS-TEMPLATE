@@ -31,22 +31,24 @@ graph TD
     subgraph Database [Database Server - PostgreSQL]
         PostGIS[PostGIS Extension]
         CoreSchema[Administrative Core Tables]
-        SchoolSchema[Optional: School Tables]
-        HospitalSchema[Optional: Hospital Tables]
+        ScienceSchema[Optional: Science Tables]
+        OcopSchema[Optional: OCOP Tables]
+        AgricultureSchema[Optional: Agriculture Tables]
     end
 
     React -->|REST Calls| CoreAPI
     React -->|REST Calls| FeatureRegistry
     CoreAPI -->|SQL Spatial Queries| CoreSchema
-    FeatureRegistry -->|SQL Queries| SchoolSchema
-    FeatureRegistry -->|SQL Queries| HospitalSchema
+    FeatureRegistry -->|SQL Queries| ScienceSchema
+    FeatureRegistry -->|SQL Queries| OcopSchema
+    FeatureRegistry -->|SQL Queries| AgricultureSchema
 ```
 
 ---
 
 ## 2. Compile-Time Modularity (Feature Toggling)
 
-To deliver bespoke packages for different clients (e.g., Client A only needs schools, Client B only needs hospitals) without maintaining separate codebases, the system utilizes a **Compile-time Modularity** pattern. Feature flags are set during the build stage, prompting compilers and dependency injection containers to exclude or ignore deactivated features.
+To deliver bespoke packages for different clients (e.g., Client A only needs OCOP, Client B only needs science & agriculture) without maintaining separate codebases, the system utilizes a **Compile-time Modularity** pattern. Feature flags are set during the build stage, prompting compilers and dependency injection containers to exclude or ignore deactivated features.
 
 ```mermaid
 sequenceDiagram
@@ -55,13 +57,13 @@ sequenceDiagram
     participant BE as Spring Boot Compiler & DI (Backend)
     participant DB as Flyway Schema Migrator (Database)
 
-    Config->>FE: Inject .env Variables (e.g., VITE_ENABLE_SCHOOLS=true)
-    Config->>BE: Set active profiles or configurations (e.g., features.school.enabled=true)
+    Config->>FE: Inject .env Variables (e.g., VITE_ENABLE_OCOP=true)
+    Config->>BE: Set active profiles or configurations (e.g., features.ocop.enabled=true)
     Config->>DB: Scan locations depending on active feature profiles
 
-    Note over FE: Treeshakes/disables school routes & menus
-    Note over BE: Only initializes School Controllers/Services/Repositories
-    Note over DB: Only executes core + school migrations
+    Note over FE: Treeshakes/disables OCOP routes & menus
+    Note over BE: Only initializes OCOP Controllers/Services/Repositories
+    Note over DB: Only executes core + OCOP migrations
 ```
 
 ---
@@ -80,10 +82,9 @@ VITE_API_BASE_URL=http://localhost:8080/api
 VITE_PROVINCE_CODE=52
 
 # Feature Modularity Toggles
-VITE_ENABLE_SCHOOLS=true
-VITE_ENABLE_HOSPITALS=false
-VITE_ENABLE_POLICE=false
+VITE_ENABLE_SCIENCE=false
 VITE_ENABLE_OCOP=true
+VITE_ENABLE_AGRICULTURE=false
 ```
 
 ### 3.2. Dynamic Routing & Menu Filtering
@@ -93,10 +94,9 @@ The sidebar menu and router read environment variables to register paths:
 ```typescript
 // src/config/features.ts
 export const FEATURE_FLAGS = {
-  schools: import.meta.env.VITE_ENABLE_SCHOOLS === 'true',
-  hospitals: import.meta.env.VITE_ENABLE_HOSPITALS === 'true',
-  police: import.meta.env.VITE_ENABLE_POLICE === 'true',
+  science: import.meta.env.VITE_ENABLE_SCIENCE === 'true',
   ocop: import.meta.env.VITE_ENABLE_OCOP === 'true',
+  agriculture: import.meta.env.VITE_ENABLE_AGRICULTURE === 'true',
 };
 
 // src/router/index.tsx
@@ -110,16 +110,16 @@ const baseRoutes: RouteObject[] = [
 
 const featureRoutes: RouteObject[] = [];
 
-if (FEATURE_FLAGS.schools) {
+if (FEATURE_FLAGS.ocop) {
   featureRoutes.push({
-    path: '/schools',
-    lazy: () => import('../pages/schools/SchoolManagement'), // Lazy loaded for code splitting
+    path: '/ocop',
+    lazy: () => import('../pages/ocop/OcopManagement'), // Lazy loaded for code splitting
   });
 }
-if (FEATURE_FLAGS.hospitals) {
+if (FEATURE_FLAGS.science) {
   featureRoutes.push({
-    path: '/hospitals',
-    lazy: () => import('../pages/hospitals/HospitalManagement'),
+    path: '/science',
+    lazy: () => import('../pages/science/ScienceManagement'),
   });
 }
 
@@ -135,20 +135,20 @@ On the interactive GIS map, overlays are conditionally loaded:
 import React from 'react';
 import { LayersControl } from 'react-leaflet';
 import { FEATURE_FLAGS } from '../../config/features';
-import { SchoolMarkers } from './SchoolMarkers';
-import { HospitalMarkers } from './HospitalMarkers';
+import { OcopMarkers } from './OcopMarkers';
+import { ScienceMarkers } from './ScienceMarkers';
 
 export const GisMap: React.FC = () => {
   return (
     <LayersControl position="topright">
-      {FEATURE_FLAGS.schools && (
-        <LayersControl.Overlay name="Schools">
-          <SchoolMarkers />
+      {FEATURE_FLAGS.ocop && (
+        <LayersControl.Overlay name="OCOP">
+          <OcopMarkers />
         </LayersControl.Overlay>
       )}
-      {FEATURE_FLAGS.hospitals && (
-        <LayersControl.Overlay name="Hospitals">
-          <HospitalMarkers />
+      {FEATURE_FLAGS.science && (
+        <LayersControl.Overlay name="Science & Tech">
+          <ScienceMarkers />
         </LayersControl.Overlay>
       )}
     </LayersControl>
@@ -176,14 +176,14 @@ BE/src/main/java/com/website/gis/
 │   ├── repository/               # Basic JpaRepositories
 │   └── security/                 # Spring Security & JWT components
 └── features/                     # Pluggable features/modules
-    ├── school/
-    │   ├── SchoolController.java
-    │   ├── SchoolService.java
-    │   └── SchoolRepository.java
-    └── hospital/
-        ├── HospitalController.java
-        ├── HospitalService.java
-        └── HospitalRepository.java
+    ├── ocop/
+    │   ├── OcopController.java
+    │   ├── OcopService.java
+    │   └── OcopRepository.java
+    └── science/
+        ├── ScienceController.java
+        ├── ScienceService.java
+        └── ScienceRepository.java
 ```
 
 ### 4.2. Conditional Spring Bean Initialization
@@ -191,20 +191,20 @@ BE/src/main/java/com/website/gis/
 Controllers, services, and repositories for optional features use Spring Boot's `@ConditionalOnProperty` annotation. If disabled, Spring will not create these beans, meaning their REST endpoints are never registered:
 
 ```java
-package com.website.gis.features.school;
+package com.website.gis.features.ocop;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/schools")
-@ConditionalOnProperty(name = "features.school.enabled", havingValue = "true")
-public class SchoolController {
-    private final SchoolService schoolService;
+@RequestMapping("/api/ocop")
+@ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
+public class OcopController {
+    private final OcopService ocopService;
 
-    public SchoolController(SchoolService schoolService) {
-        this.schoolService = schoolService;
+    public OcopController(OcopService ocopService) {
+        this.ocopService = ocopService;
     }
 
     // Endpoints mapped here return 404 (Not Found) if disabled,
@@ -218,21 +218,19 @@ The main backend settings config:
 
 ```yaml
 features:
-  school:
-    enabled: ${ENABLE_SCHOOLS:true}
-  hospital:
-    enabled: ${ENABLE_HOSPITALS:false}
-  police:
-    enabled: ${ENABLE_POLICE:false}
+  science:
+    enabled: ${ENABLE_SCIENCE:false}
   ocop:
-    enabled: ${ENABLE_OCOP:true}
+    enabled: ${ENABLE_OCOP:false}
+  agriculture:
+    enabled: ${ENABLE_AGRICULTURE:false}
 ```
 
 ---
 
 ## 5. Database Schema Modularity Strategy (Flyway)
 
-To ensure client databases do not have ghost tables for features they did not request (e.g. creating the `schools` table for a client that only wants `hospitals`), Flyway migrations are partitioned by folder directories.
+To ensure client databases do not have ghost tables for features they did not request (e.g. creating the `science` table for a client that only wants `ocop`), Flyway migrations are partitioned by folder directories.
 
 ### 5.1. Flyway Directory Structure
 
@@ -241,10 +239,10 @@ BE/src/main/resources/db/migration/
 ├── core/
 │   ├── V1__init_auth_schema.sql         # Base user authentication schema
 │   └── V2__init_admin_units_schema.sql  # Administrative boundaries
-├── school/
-│   └── V3_1__create_school_table.sql    # Specific schema for schools
-└── hospital/
-    └── V3_2__create_hospital_table.sql  # Specific schema for hospitals
+├── science/
+│   └── V3_1__create_science_table.sql   # Specific schema for science
+└── ocop/
+    └── V3_2__create_ocop_table.sql      # Specific schema for ocop
 ```
 
 ### 5.2. Dynamic Flyway Scan Locations Configuration
@@ -265,17 +263,14 @@ import java.util.List;
 @Configuration
 public class DynamicFlywayConfig {
 
-    @Value("${features.school.enabled:false}")
-    private boolean schoolEnabled;
-
-    @Value("${features.hospital.enabled:false}")
-    private boolean hospitalEnabled;
-
-    @Value("${features.police.enabled:false}")
-    private boolean policeEnabled;
+    @Value("${features.science.enabled:false}")
+    private boolean scienceEnabled;
 
     @Value("${features.ocop.enabled:false}")
     private boolean ocopEnabled;
+
+    @Value("${features.agriculture.enabled:false}")
+    private boolean agricultureEnabled;
 
     @Bean
     public FlywayConfigurationCustomizer flywayConfigurationCustomizer() {
@@ -285,17 +280,14 @@ public class DynamicFlywayConfig {
             locations.add("classpath:db/migration/core");
 
             // Conditionally append modular migrations based on active feature config
-            if (schoolEnabled) {
-                locations.add("classpath:db/migration/school");
-            }
-            if (hospitalEnabled) {
-                locations.add("classpath:db/migration/hospital");
-            }
-            if (policeEnabled) {
-                locations.add("classpath:db/migration/police");
+            if (scienceEnabled) {
+                locations.add("classpath:db/migration/science");
             }
             if (ocopEnabled) {
                 locations.add("classpath:db/migration/ocop");
+            }
+            if (agricultureEnabled) {
+                locations.add("classpath:db/migration/agriculture");
             }
 
             configuration.locations(locations.toArray(new String[0]));
