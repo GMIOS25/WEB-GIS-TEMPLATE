@@ -33,7 +33,7 @@ All developers must adhere to these standards to ensure codebase consistency, ma
 - **Interfaces & Types:** `PascalCase`.
   - _Example:_ `GeoJsonData`, `GeoJsonFeature`
 - **Constants:** `SCREAMING_SNAKE_CASE`.
-  - _Example:_ `VITE_API_URL`
+  - _Example:_ `VITE_API_BASE_URL`
 
 ---
 
