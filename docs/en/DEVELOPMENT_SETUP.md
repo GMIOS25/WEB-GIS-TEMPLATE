@@ -24,7 +24,7 @@ Ensure you have the following installed on your machine:
 
 ## 2. Database Setup & Seeding
 
-The system stores administrative boundaries and spatial attributes in PostgreSQL. Follow the steps below to initialize and seed the database manually.
+The system stores administrative boundaries and spatial attributes in PostgreSQL. Follow the steps below to initialize the database.
 
 ### Step 2.1: Create Database & Enable PostGIS
 
@@ -38,17 +38,19 @@ CREATE DATABASE gialai;
 CREATE EXTENSION postgis;
 ```
 
-### Step 2.2: Import Database Schema & Seed Data
+### Step 2.2: Automatic Schema Migration & Seeding
 
-Navigate to the SQL data resources folder: [BE/src/main/resources/data](../../BE/src/main/resources/data). Import the SQL files into the `gialai` database in the **exact order** specified below:
+The system uses **Flyway** to automatically migrate the database schema and seed the initial data upon backend application startup. You do **not** need to manually import any SQL files.
 
-1. **`postgres_CreateSchema_CreateTables_vn_units.sql`**
+When you start the Spring Boot application (described in [Section 3](#3-backend-setup-spring-boot)), Flyway will automatically run the migration scripts found in [BE/src/main/resources/db/migration/core](../../BE/src/main/resources/db/migration/core):
+
+1. **`V1__create_schema_admin_units.sql`**
    - _Description:_ Creates core administrative schema tables (`provinces`, `wards`).
-2. **`postgres_ImportData_vn_units.sql`**
+2. **`V2__import_data_admin_units.sql`**
    - _Description:_ Seeds national administrative unit dictionary data.
-3. **`postgresql_CreateGISTables.sql`**
+3. **`V3__create_gis_tables.sql`**
    - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_wards`) with PostGIS geography types.
-4. **`postgresql_ImportData_gis_2026-06-20__12_32_01.sql`**
+4. **`V4__import_gis_data_gialai.sql`**
    - _Description:_ Imports coordinates, boundary borders (`MULTIPOLYGON`), and GIS spatial points specifically for Gia Lai province (Administrative Code: **52**).
 
 > **Note** : Default administrator and viewer accounts are defined to be automatically created by the `DatabaseSeeder` upon the initial startup of the backend (no separate SQL execution required).

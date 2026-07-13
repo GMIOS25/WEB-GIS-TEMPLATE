@@ -2,13 +2,15 @@ package com.website.gis.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.dto.UserCreateRequest;
-import com.website.gis.dto.UserUpdateRequest;
-import com.website.gis.entity.User;
-import com.website.gis.repository.UserRepository;
-import com.website.gis.security.CustomUserDetailsService;
-import com.website.gis.security.JwtAuthenticationFilter;
-import com.website.gis.security.JwtTokenProvider;
+import com.website.gis.core.controller.AdminController;
+import com.website.gis.core.dto.UserCreateRequest;
+import com.website.gis.core.dto.UserUpdateRequest;
+import com.website.gis.core.entity.User;
+import com.website.gis.core.repository.UserRepository;
+import com.website.gis.core.security.CustomUserDetailsService;
+import com.website.gis.core.security.JwtAuthenticationFilter;
+import com.website.gis.core.security.JwtTokenProvider;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class })
 class AdminControllerTest {
 
     @Autowired
@@ -82,8 +84,8 @@ class AdminControllerTest {
         Mockito.when(userRepository.save(Mockito.any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/admin/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(2L))
                 .andExpect(jsonPath("$.username").value("viewer2"))
@@ -105,8 +107,8 @@ class AdminControllerTest {
         Mockito.when(userRepository.save(Mockito.any())).thenReturn(updated);
 
         mockMvc.perform(put("/api/admin/users/2")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Updated Name"));
     }

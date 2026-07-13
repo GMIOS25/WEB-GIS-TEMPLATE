@@ -1,7 +1,8 @@
 package com.website.gis.config;
 
-import com.website.gis.entity.User;
-import com.website.gis.repository.UserRepository;
+import com.website.gis.core.entity.User;
+import com.website.gis.core.repository.UserRepository;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
