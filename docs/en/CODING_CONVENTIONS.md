@@ -324,10 +324,10 @@ FE/
 
 ## 6. Feature Module Naming (Backend `features/` packages)
 
-When implementing a pluggable feature module (`ocop`, `khcn`, `nonglam`), the package/class naming must follow the same conventions above, applied consistently per module:
+When implementing a pluggable feature module (`ocop`, `science`, `nonglam`), the package/class naming must follow the same conventions above, applied consistently per module:
 
-- Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.khcn`, `features.nonglam`).
-- Controller: `<Module>Controller` (e.g. `OcopController`, `KhcnController`, `NonglamController`).
+- Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.science`, `features.nonglam`).
+- Controller: `<Module>Controller` (e.g. `OcopController`, `ScienceController`, `NonglamController`).
 - Service: `<Module>Service`, Repository: `<Module>Repository`.
 - Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `nonglam` → entity `NongLamZone`.
 - DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `NongLamZoneDto`).

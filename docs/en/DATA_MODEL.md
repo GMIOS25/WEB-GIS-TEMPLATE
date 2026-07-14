@@ -2,7 +2,7 @@
 
 This document is the authoritative reference for the database schema of the **Provincial Administrative Information Management and GIS Lookup System**, reverse-documented from the actual schema as created by `postgres_CreateSchema_CreateTables_vn_units.sql` and `postgresql_CreateGISTables.sql`.
 
-It complements `ARCHITECTURE SPECIFICATION.md` (which describes _how_ modules are toggled) by defining exactly _what_ the core schema looks like, and establishes the pattern that future feature modules (`ocop`, `khcn`, `nonglam`) must follow.
+It complements `ARCHITECTURE SPECIFICATION.md` (which describes _how_ modules are toggled) by defining exactly _what_ the core schema looks like, and establishes the pattern that future feature modules (`ocop`, `science`, `nonglam`) must follow.
 
 ---
 
@@ -15,7 +15,7 @@ A key implementation decision — not explicit in the original architecture draf
 | `provinces`                              | `gis_provinces`               | `provinces.code = gis_provinces.province_code` |
 | `wards`                                  | `gis_wards`                   | `wards.code = gis_wards.ward_code`             |
 
-**Rationale to preserve going forward:** this allows administrative lookups (search, dropdowns, name display) to run against small, geometry-free tables, while spatial queries and GeoJSON serialization hit only the `gis_*` tables. When adding a new **zone/polygon-type** feature module (e.g. `nonglam`), follow this same split (`nonglam_zones` + `gis_nonglam_zones`) if the module needs frequent non-spatial listing/search separate from map rendering. For simple **point-type** POI modules (e.g. `ocop`, `khcn`) a single table with an inline `geom` column is sufficient — see Section 4.
+**Rationale to preserve going forward:** this allows administrative lookups (search, dropdowns, name display) to run against small, geometry-free tables, while spatial queries and GeoJSON serialization hit only the `gis_*` tables. When adding a new **zone/polygon-type** feature module (e.g. `nonglam`), follow this same split (`nonglam_zones` + `gis_nonglam_zones`) if the module needs frequent non-spatial listing/search separate from map rendering. For simple **point-type** POI modules (e.g. `ocop`, `science`) a single table with an inline `geom` column is sufficient — see Section 4.
 
 ---
 
@@ -214,9 +214,9 @@ Standard PostGIS system table (spatial reference system definitions). Not applic
 
 ## 4. Convention for Future Feature Module Tables
 
-When implementing `ocop`, `khcn`, or `nonglam` (per `ARCHITECTURE SPECIFICATION.md` Section 6.4), follow these patterns to stay consistent with the core schema above.
+When implementing `ocop`, `science`, or `nonglam` (per `ARCHITECTURE SPECIFICATION.md` Section 6.4), follow these patterns to stay consistent with the core schema above.
 
-### 4.1. Point-type modules (`ocop`, `khcn`)
+### 4.1. Point-type modules (`ocop`, `science`)
 
 A single table is sufficient — no need to split business/spatial data, since each row already represents one point of interest with a small attribute set.
 
@@ -238,7 +238,7 @@ CREATE INDEX idx_ocop_products_ward_code ON public.ocop_products USING btree (wa
 CREATE INDEX idx_ocop_products_geom ON public.ocop_products USING gist (geom);
 ```
 
-`khcn_units` should follow the identical shape (table/column names swapped for the domain).
+`science_units` should follow the identical shape (table/column names swapped for the domain).
 
 ### 4.2. Zone/polygon-type modules (`nonglam`)
 
@@ -270,7 +270,7 @@ This is a recommendation, not a hard requirement — if `nonglam` turns out to n
 
 ### 4.3. Migration placement
 
-All of the above are new **feature** migrations, not core migrations — they belong in `db/migration/ocop/`, `db/migration/khcn/`, `db/migration/nonglam/` respectively (per `ARCHITECTURE SPECIFICATION.md` Section 5.1), never in `db/migration/core/`.
+All of the above are new **feature** migrations, not core migrations — they belong in `db/migration/ocop/`, `db/migration/science/`, `db/migration/nonglam/` respectively (per `ARCHITECTURE SPECIFICATION.md` Section 5.1), never in `db/migration/core/`.
 
 ---
 

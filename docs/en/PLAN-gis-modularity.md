@@ -1,5 +1,12 @@
 # Plan - GIS Modularity and Specification Update
 
+> **⚠️ Status: Historical planning context only — partially superseded (2026-07-14).**
+> This file records the *planning process* that produced `PROJECT_OVERVIEW.md`, `ARCHITECTURE SPECIFICATION.md`, and `DEPLOYMENT & FLEET STRATEGY.md`. Two things in it are no longer current requirements:
+> 1. **Task 4 / Phase Y's bespoke `ops/fleet.yaml` + `ops/deploy.sh` idea** is explicitly superseded — see `DEPLOYMENT & FLEET STRATEGY.md` Section 6.2/6.4, which adopts a self-hosted PaaS (Dokploy/Coolify) instead when a second customer is onboarded.
+> 2. **The `KHCN` naming** used below for the Science & Technology module has been standardized to `science` everywhere else (code, `application.properties.example`, and the other `docs/en/` files) — see `ARCHITECTURE SPECIFICATION.md` Section 6.4's naming note. Treat `KHCN` in this file as the old name for the same module.
+>
+> Don't implement anything from this file directly — check the current spec docs (`PROJECT_OVERVIEW.md`, `ARCHITECTURE SPECIFICATION.md`, `DEPLOYMENT & FLEET STRATEGY.md`, `DATA_MODEL.md`, `API_CONTRACT.md`) first, since they reflect what was actually decided/built after this plan was written.
+
 Detailed task list for updating the Vietnamese project overview, creating the English project overview, and specifying the modular architecture using Flyway, compile-time properties, and Vite.
 
 ## Project Type
