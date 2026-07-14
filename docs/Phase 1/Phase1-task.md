@@ -4,14 +4,16 @@
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (cập nhật 2026-07-14): Giai đoạn 1 đã hoàn thành đầy đủ 5/5 task**, bao gồm cả TSK-5 (Docker) vừa được bổ sung. File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở Giai đoạn 1, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
+> **Trạng thái tài liệu (cập nhật 2026-07-14): Giai đoạn 1 đã hoàn thành 4/5 task (TSK-1 → TSK-4). TSK-5 (Docker) hiện MỚI CHỈ Ở DẠNG ĐẶC TẢ/KẾ HOẠCH trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, KHÔNG có file `Dockerfile`/`docker-compose.yml`/`Caddyfile`/`.env.example` thực tế nào trong repo** (đã kiểm tra cả working tree lẫn toàn bộ lịch sử git — chưa từng có commit nào tạo các file này). Xem ghi chú chi tiết ở mục TSK-5 bên dưới. File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở TSK-1 → TSK-4, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
 > - Schema DB thật + quy ước bảng tương lai: `DATA_MODEL.md`
 > - Kiến trúc modular, package `core/` vs `features/`: `ARCHITECTURE SPECIFICATION.md`
 > - Setup máy dev (không cần chạy SQL tay): `DEVELOPMENT_SETUP.md`
-> - Vận hành/deploy thật (Docker, Caddy, backup, fleet): `DEPLOYMENT & FLEET STRATEGY.md`
+> - Kế hoạch vận hành/deploy (Docker, Caddy, backup, fleet) — **là đặc tả, chưa triển khai thành file thật**: `DEPLOYMENT & FLEET STRATEGY.md`
 > - API hiện có + quy ước API module tương lai: `API_CONTRACT.md`
 >
 > Tên module Khoa học Công nghệ đã được thống nhất là **`science`** (không dùng `khcn`) trong toàn bộ code và tài liệu — xem ghi chú tại `ARCHITECTURE SPECIFICATION.md` mục 6.4.
+>
+> Cùng ngày 14/07 (commit "implement secure JWT authentication using HttpOnly cookies"), cơ chế JWT phía FE/BE đã đổi từ "token trả trong body response + FE lưu ở LocalStorage + Axios tự gắn header `Authorization: Bearer`" sang **cookie HttpOnly do BE set qua `Set-Cookie`** (`withCredentials: true` phía Axios, không còn thao tác token ở FE). Mục TSK-2 và TSK-3 bên dưới đã được cập nhật ghi chú tương ứng.
 
 > [!TIP]
 > **Triết lý tối giản tối đa:**
@@ -41,7 +43,7 @@
 
 ---
 
-## 3. Danh sách 5 Tasks phát triển cốt lõi
+## 3. Danh sách 5 Tasks phát triển cốt lõi (4/5 đã hoàn thành thật; TSK-5 còn ở dạng đặc tả)
 
 ### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
 
@@ -56,7 +58,7 @@
 
 #### **TSK-2: Xây dựng REST APIs** — ✅ Hoàn thành
 - **Nội dung:** Viết các endpoint RESTful sau:
-  - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về Token JWT cùng thông tin vai trò.
+  - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về thông tin vai trò. ~~Trả về Token JWT~~ *(đã lỗi thời, xem ghi chú thực tế bên dưới)*.
   - **Nhóm quản lý User (Chỉ ADMIN được phép truy cập):**
     - `GET /api/admin/users`: Lấy danh sách tài khoản.
     - `POST /api/admin/users`: Tạo mới tài khoản VIEWER.
@@ -70,6 +72,7 @@
 - **Output:** Các endpoint hoạt động chính xác.
 - **Cách verify:** Đăng nhập tài khoản `viewer`, gọi API tạo tài khoản `/api/admin/users` -> Trả về lỗi `403 Forbidden`. Đăng nhập tài khoản `admin` -> tạo thành công.
 - **Cập nhật thực tế (TSK-4):** khi làm map, đã bổ sung thêm 2 endpoint gộp không có trong danh sách gốc để tối ưu hiệu năng tải toàn bộ 135 xã một lần: `GET /api/wards/geojson` (FeatureCollection toàn tỉnh) và `GET /api/wards/province/geojson` (đường viền tỉnh). Danh sách API đầy đủ và chính xác nhất hiện nay nằm ở `docs/en/API_CONTRACT.md`, không phải danh sách trong mục này.
+- **Cập nhật thực tế (bảo mật JWT):** `POST /api/auth/login` không còn trả JWT trong response body — token được set qua cookie `HttpOnly` + `Secure` + `SameSite` (tên cookie mặc định `gis_token`, cấu hình qua `app.jwt.cookie-*`). Đồng thời đã bổ sung 2 endpoint không có trong danh sách gốc: `GET /api/auth/me` (lấy thông tin user hiện tại từ cookie, dùng để khôi phục phiên khi FE reload) và `POST /api/auth/logout` (xoá cookie bằng `Max-Age=0`). `JwtAuthenticationFilter` vẫn chấp nhận header `Authorization: Bearer` như phương án dự phòng cho công cụ gọi API trực tiếp (Swagger/Postman), nhưng FE web không dùng cách này nữa.
 
 ---
 
@@ -81,8 +84,9 @@
   - Tạo Router điều hướng và Auth Context lưu trạng thái đăng nhập. Cấu hình Axios đính kèm Bearer Token tự động.
   - Thiết kế trang Đăng nhập đơn giản, sang trọng.
 - **Input:** Khởi chạy project FE sạch.
-- **Output:** Ứng dụng login được, chuyển hướng về trang chủ và lưu Token vào LocalStorage.
+- **Output:** Ứng dụng login được, chuyển hướng về trang chủ. ~~Lưu Token vào LocalStorage~~ *(đã lỗi thời, xem ghi chú thực tế bên dưới)*.
 - **Cách verify:** Thử gõ bừa URL `/` khi chưa đăng nhập -> Tự động redirect về `/login`. Đăng nhập đúng `admin` hoặc `viewer` -> vào được bản đồ.
+- **Cập nhật thực tế (bảo mật JWT):** FE không còn lưu token ở LocalStorage và Axios không còn tự gắn header `Authorization` như mô tả gốc. Token nằm trong cookie `HttpOnly` do BE set (JS không đọc được), Axios chỉ cần bật `withCredentials: true` để trình duyệt tự đính kèm cookie. `AuthContext` khôi phục phiên đăng nhập bằng cách gọi `GET /api/auth/me` mỗi khi app khởi động, thay vì đọc token đã lưu.
 
 #### **TSK-4: Bản đồ GIS tương tác & Giao diện Quản trị** — ✅ Hoàn thành
 - **Nội dung:**
@@ -102,13 +106,17 @@
 
 ### 📦 PHẦN 3: ĐÓNG GÓI & TRIỂN KHAI
 
-#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ Hoàn thành (2026-07-14)
-- **Nội dung (đã cập nhật so với bản gốc):**
-  - Multi-stage `Dockerfile` ở root repo: build FE (`node:20-alpine` + pnpm) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước khi `mvnw package`) → runtime (`eclipse-temurin:17-jre-alpine`, chạy user không phải root).
-  - `docker-compose.yml` gồm **3 dịch vụ** (khác với bản kế hoạch gốc chỉ dự tính 2 dịch vụ `db`+`app`): `app` (Spring Boot, không public port ra ngoài), `db` (`postgis/postgis:15-3.4-alpine`, không public port 5432 ra ngoài), và **`caddy`** (reverse proxy TLS tự động cấp chứng chỉ Let's Encrypt, expose port 80/443 — vẫn giữ đúng triết lý "không dùng Nginx" ở đầu file, chỉ là thay bằng Caddy thay vì bỏ hẳn reverse proxy).
-  - `Caddyfile` cấu hình domain trỏ vào `app:8080`.
-  - `.env.example` mẫu biến môi trường (DB credentials, JWT secret, feature flags `ENABLE_OCOP`/`ENABLE_SCIENCE`/`ENABLE_AGRICULTURE` — mặc định `false` cho Giai đoạn 1).
-- **Input:** Các file cấu hình Docker (đã có sẵn tại root repo: `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `.env.example`).
-- **Output:** Toàn bộ hệ thống chạy chỉ bằng lệnh `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
-- **Cách verify:** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
-- **Chi tiết vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
+#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ⚠️ Mới ở dạng đặc tả, CHƯA triển khai thành file thật
+
+> [!WARNING]
+> **Mục này trước đây ghi "✅ Hoàn thành" là sai.** Đã kiểm tra toàn bộ working tree và lịch sử git của repo (`git log --all -- Dockerfile docker-compose.yml Caddyfile .env.example` không trả về commit nào) — repo **không có** file `Dockerfile`, `docker-compose.yml`, `Caddyfile`, hay `.env.example` nào, ở root hay bất kỳ đâu khác. Nội dung mô tả dưới đây là **thiết kế/kế hoạch** được viết trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md` (mục 2–4, dưới dạng code block minh hoạ trong tài liệu Markdown), chứ không phải file cấu hình thực thi được. Muốn `docker compose up` chạy được, các file này cần được tạo ra trước.
+
+- **Nội dung (kế hoạch, ghi trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, đã cập nhật so với bản gốc):**
+  - Multi-stage `Dockerfile` dự kiến đặt ở root repo: build FE (`node:20-alpine` + pnpm) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước khi `mvnw package`) → runtime (`eclipse-temurin:17-jre-alpine`, chạy user không phải root).
+  - `docker-compose.yml` dự kiến gồm **3 dịch vụ** (khác với bản kế hoạch gốc chỉ dự tính 2 dịch vụ `db`+`app`): `app` (Spring Boot, không public port ra ngoài), `db` (`postgis/postgis:15-3.4-alpine`, không public port 5432 ra ngoài), và **`caddy`** (reverse proxy TLS tự động cấp chứng chỉ Let's Encrypt, expose port 80/443 — vẫn giữ đúng triết lý "không dùng Nginx" ở đầu file, chỉ là thay bằng Caddy thay vì bỏ hẳn reverse proxy).
+  - `Caddyfile` dự kiến cấu hình domain trỏ vào `app:8080`.
+  - `.env.example` dự kiến mẫu biến môi trường (DB credentials, JWT secret, feature flags `ENABLE_OCOP`/`ENABLE_SCIENCE`/`ENABLE_AGRICULTURE` — mặc định `false` cho Giai đoạn 1).
+- **Input:** Chưa có file cấu hình Docker nào trong repo — cần tạo mới dựa theo đặc tả ở `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
+- **Output mong muốn (chưa đạt được):** Toàn bộ hệ thống chạy chỉ bằng lệnh `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
+- **Cách verify (sau khi tạo file thật):** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
+- **Chi tiết đặc tả vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
