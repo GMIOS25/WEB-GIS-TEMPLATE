@@ -1,4 +1,4 @@
-package com.website.gis.controller;
+package com.website.gis.core.controller;
 
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.core.controller.WardController;

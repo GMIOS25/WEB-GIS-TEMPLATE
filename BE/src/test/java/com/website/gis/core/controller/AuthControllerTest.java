@@ -1,4 +1,4 @@
-package com.website.gis.controller;
+package com.website.gis.core.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
