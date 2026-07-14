@@ -43,3 +43,14 @@ server.compression.min-response-size=1024
 # 3. Cấu hình JWT
 app.jwt.secret=${JWT_SECRET:your_jwt_secret_key_at_least_64_characters_long_for_security}
 app.jwt.expiration-ms=86400000
+
+# 3b. Cookie chứa JWT (HttpOnly) - thay cho việc FE lưu token ở localStorage.
+# HttpOnly: JS không đọc được cookie này -> giảm rủi ro mất token toàn bộ nếu có XSS.
+# cookie-secure: BẮT BUỘC true khi chạy production qua HTTPS (browser sẽ không gửi
+# cookie Secure qua kết nối HTTP). Chỉ set false khi dev local qua HTTP thuần.
+# cookie-same-site: "Strict" khi FE và BE cùng site (khuyến nghị, chống CSRF tốt nhất).
+# Nếu FE/BE khác domain (khác site) ở production, dùng "None" (bắt buộc đi kèm Secure=true);
+# "Lax" là phương án cân bằng khi cần đăng nhập từ link ngoài.
+app.jwt.cookie-name=gis_token
+app.jwt.cookie-secure=${JWT_COOKIE_SECURE:true}
+app.jwt.cookie-same-site=${JWT_COOKIE_SAME_SITE:Strict}

@@ -35,11 +35,29 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // JWT giờ được truyền qua cookie HttpOnly thay vì header do FE tự gắn,
+                // nên cookie có thể bị đính kèm tự động trong request cross-site.
+                // CSRF token vẫn để tắt (API stateless, không dùng session cookie của
+                // Spring), nhưng rủi ro CSRF cho cookie JWT được giảm thiểu bằng
+                // SameSite=Strict/Lax cấu hình ở AuthController/application.properties.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> response
                                 .sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
+                .headers(headers -> headers
+                        // CSP làm lớp phòng thủ bổ sung (defense-in-depth) chống XSS:
+                        // ngay cả khi có lỗ XSS (kể cả từ thư viện bên thứ ba), CSP chặt
+                        // giúp hạn chế việc load/thực thi script từ nguồn không tin cậy.
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self'; " +
+                                        "style-src 'self' 'unsafe-inline'; " +
+                                        "img-src 'self' data: https:; " +
+                                        "connect-src 'self'; " +
+                                        "frame-ancestors 'self'; " +
+                                        "base-uri 'self'; " +
+                                        "form-action 'self'")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -69,7 +87,11 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(
                 Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
-        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
+        // Không còn cần expose header Authorization cho JS đọc: JWT giờ nằm
+        // trong cookie HttpOnly, FE không tự đọc/gắn token vào request nữa.
+        configuration.setExposedHeaders(Collections.emptyList());
+        // allowCredentials=true là bắt buộc để trình duyệt gửi kèm cookie JWT
+        // HttpOnly trong các request cross-origin từ FE (axios withCredentials: true).
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
