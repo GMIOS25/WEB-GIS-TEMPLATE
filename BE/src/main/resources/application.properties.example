@@ -1,0 +1,45 @@
+spring.application.name=gis
+
+# 1. Cấu hình kết nối PostgreSQL
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:your_database_name}
+spring.datasource.username=${DB_USERNAME:your_database_username}
+spring.datasource.password=${DB_PASSWORD:your_database_password}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# 1b. Flyway: quản lý version schema thay cho việc import tay 4 file .sql trong data/
+# baseline-on-migrate=true: cho phép Flyway "nhận" một DB đã có sẵn schema (trường hợp bạn
+# đã từng chạy tay 4 file .sql cũ) mà không báo lỗi "schema not empty".
+# baseline-version=4: DB hiện tại tương đương đã chạy xong V1->V4 (4 file .sql cũ),
+# nên đánh dấu baseline ở version 4 để Flyway KHONG chay lai V1-V4 (se loi vi bang da ton tai).
+spring.flyway.enabled=true
+spring.flyway.baseline-on-migrate=true
+spring.flyway.baseline-version=4
+spring.flyway.locations=classpath:db/migration/core
+
+# 1c. Feature flags: bật/tắt module theo client (Giai đoạn 2 - multi-tenant)
+features.science.enabled=false   
+features.ocop.enabled=false
+features.agriculture.enabled=false
+
+# 2. Cấu hình JPA / Hibernate
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# ddl-auto: 
+# - Chọn 'validate' để Hibernate chỉ kiểm tra xem các class Entity có khớp cấu trúc với DB hay không (Khuyên dùng vì bạn đã tạo schema thủ công qua các script trong data/).
+# - Chọn 'none' nếu không muốn kiểm tra.
+spring.jpa.hibernate.ddl-auto=validate
+
+# Lưu ý: Từ Hibernate 6 (Spring Boot 3.x), Hibernate tự động nhận diện tính năng Spatial 
+# của PostgreSQL nên bạn không cần chỉ định cứng PostgisDialect nữa.
+spring.security.user.name=${SECURITY_USER_NAME:admin}
+spring.security.user.password=${SECURITY_USER_PASSWORD:your_admin_password}
+
+# 2b. Bật nén gzip cho response JSON (GeoJSON trả về rất lớn -> giảm mạnh thời gian tải)
+server.compression.enabled=true
+server.compression.mime-types=application/json,application/xml,text/html,text/plain,text/css,application/javascript
+server.compression.min-response-size=1024
+
+# 3. Cấu hình JWT
+app.jwt.secret=${JWT_SECRET:your_jwt_secret_key_at_least_64_characters_long_for_security}
+app.jwt.expiration-ms=86400000

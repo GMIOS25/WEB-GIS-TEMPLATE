@@ -127,5 +127,5 @@ Use the following seeded accounts to log in during local testing:
 
 ## 6. Project Architecture References
 
-- [Project Overview & Requirement Specs](../../docs/en/Project%20Overview.md)
+- [Project Overview & Requirement Specs](../../docs/en/PROJECT_OVERVIEW.md)
 - [Coding Conventions & Standards](../../docs/en/CODING_CONVENTIONS.md)
