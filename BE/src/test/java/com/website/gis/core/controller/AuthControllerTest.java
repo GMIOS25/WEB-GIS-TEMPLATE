@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -64,6 +65,7 @@ class AuthControllerTest {
                 Mockito.when(auth.getPrincipal()).thenReturn(userDetails);
                 Mockito.when(authenticationManager.authenticate(Mockito.any())).thenReturn(auth);
                 Mockito.when(jwtTokenProvider.generateToken(auth)).thenReturn("mock-jwt-token");
+                Mockito.when(jwtTokenProvider.getExpirationMs()).thenReturn(86400000L);
 
                 User user = User.builder()
                                 .username("admin")
@@ -76,7 +78,11 @@ class AuthControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.token").value("mock-jwt-token"))
+                                // Token không còn nằm trong JSON body -> chỉ nằm trong cookie HttpOnly
+                                .andExpect(jsonPath("$.token").doesNotExist())
+                                .andExpect(cookie().exists("gis_token"))
+                                .andExpect(cookie().httpOnly("gis_token", true))
+                                .andExpect(cookie().value("gis_token", "mock-jwt-token"))
                                 .andExpect(jsonPath("$.username").value("admin"))
                                 .andExpect(jsonPath("$.role").value("ADMIN"))
                                 .andExpect(jsonPath("$.fullName").value("Quản trị viên Gia Lai"));

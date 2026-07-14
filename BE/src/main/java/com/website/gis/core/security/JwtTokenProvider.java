@@ -29,6 +29,13 @@ public class JwtTokenProvider {
 
     private SecretKey key;
 
+    /**
+     * Dùng để tính Max-Age cho cookie HttpOnly chứa JWT (xem AuthController).
+     */
+    public long getExpirationMs() {
+        return jwtExpirationInMs;
+    }
+
     @PostConstruct
     public void init() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);

@@ -12,7 +12,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class LoginResponse {
-    private String token;
+    // Lưu ý bảo mật: KHÔNG trả JWT trong body JSON nữa.
+    // Token được set qua HttpOnly cookie (xem AuthController#authenticateUser),
+    // để JS phía FE không thể đọc được token dù có lỗ XSS.
     private String username;
     private String fullName;
     private String role;

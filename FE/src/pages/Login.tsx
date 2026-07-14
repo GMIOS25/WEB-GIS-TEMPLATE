@@ -44,10 +44,11 @@ const Login: React.FC = () => {
         password,
       });
 
-      const { token, username: retUsername, fullName, role } = response.data;
-      
-      // Store in auth context (it handles localStorage too)
-      login(token, { username: retUsername, fullName, role });
+      const { username: retUsername, fullName, role } = response.data;
+
+      // JWT đã được BE set qua cookie HttpOnly kèm response này (Set-Cookie).
+      // AuthContext chỉ cần lưu thông tin user để hiển thị UI.
+      login({ username: retUsername, fullName, role });
       
       // Redirect to homepage
       navigate('/');
