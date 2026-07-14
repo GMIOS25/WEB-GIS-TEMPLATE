@@ -297,3 +297,107 @@ public class DynamicFlywayConfig {
 ```
 
 This ensures that only database tables matching the active modules are initialized in the target customer database. It avoids schema clutter, maintains table integrity, and keeps database sizes and structures exactly aligned with client purchase orders.
+
+---
+
+## 6. Multi-Customer Deployment & Isolation Strategy
+
+> **Status note (2026-07):** the project currently has exactly **one** deployed tenant (Gia Lai, code `52`). This section documents the isolation model **decision** so it is fixed before a second customer exists — not a description of a fleet that is already running. Operational rollout mechanics live in `DEPLOYMENT & FLEET STRATEGY.md`.
+
+### 6.1. Isolation Model Decision: Database-per-Customer
+
+Each customer runs as a **fully separate application container and a fully separate database instance**. This is a deliberate rejection of the alternative — a single shared, multi-tenant database with row-level filtering (e.g. a `tenant_id` column on every table).
+
+```mermaid
+graph TD
+    subgraph CustomerA [Customer A Deployment]
+        AppA[App Container A]
+        DbA[(PostgreSQL/PostGIS A)]
+        AppA --> DbA
+    end
+
+    subgraph CustomerB [Customer B Deployment]
+        AppB[App Container B]
+        DbB[(PostgreSQL/PostGIS B)]
+        AppB --> DbB
+    end
+
+    AppA -.->|No network path| AppB
+    DbA -.->|No network path| DbB
+```
+
+**Why database-per-customer instead of shared multi-tenant:**
+
+| Concern                                          | Shared DB + `tenant_id`                                                           | Database-per-customer (adopted)                                                           |
+| :----------------------------------------------- | :-------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
+| Cross-tenant data leak risk                      | A missed `WHERE tenant_id = ?` clause anywhere leaks another customer's data      | Structurally impossible — there is no network or code path between tenants                |
+| Schema changes for one customer's feature module | Awkward — must add nullable/unused columns for tenants who didn't buy that module | Trivial — that customer's DB simply doesn't run that Flyway feature migration (Section 5) |
+| Backup/restore granularity                       | Restoring one customer means restoring rows out of a shared dump                  | Restoring one customer is restoring one independent database                              |
+| Data sovereignty per customer contract           | Harder to prove in isolation                                                      | Each customer's data physically lives in its own database instance                        |
+
+**Concrete consequence for the codebase:** no table in `DATA_MODEL.md` should ever gain a `tenant_id`/`customer_id` column, and no repository/query in this codebase should ever filter by tenant. If such a column or filter appears in a pull request, that is a sign the isolation model in this section is being silently abandoned — flag it in review rather than merging it.
+
+### 6.2. What Actually Differs Between Customer Deployments
+
+Given the isolation model above, every customer runs the **same application artifact** (the Docker image built in `DEPLOYMENT & FLEET STRATEGY.md` Section 3). What differs per customer is purely **configuration**, not code:
+
+| Layer    | What varies per customer                                                                      |
+| :------- | :-------------------------------------------------------------------------------------------- |
+| Frontend | `.env` build-time feature flags (`VITE_ENABLE_OCOP`, etc. — Section 3.1)                      |
+| Backend  | `application.properties`/env-var feature flags (`features.ocop.enabled`, etc. — Section 4.3)  |
+| Database | Which Flyway feature folders get scanned (Section 5.2) — determines which tables exist at all |
+| Infra    | A dedicated database instance and, per Section 7, a dedicated deployment slot                 |
+
+Because the differences are entirely configuration-driven, onboarding a new customer never requires a source code branch or fork — only a new `.env` and a new empty database.
+
+### 6.3. Infrastructure Placement vs. Logical Isolation
+
+`PROJECT_OVERVIEW.md` Section 7.4 already draws this distinction; it is restated here as the authoritative version:
+
+- **Logical/data isolation** (Section 6.1) is a hard guarantee: separate app process, separate database, no shared network path.
+- **Physical infrastructure placement** is a cost decision, independent of the above: multiple customers' independent stacks (app + own DB, per Section 6.1) _may_ run on the same physical VPS for cost efficiency, provided each still gets its own containers, own database, own volumes, and no shared network between customer stacks. Co-locating on one VPS is purely about hosting cost; it must never become an excuse to share a database or add tenant-filtering code.
+
+### 6.4. Geometry Type Convention Across Feature Modules
+
+Per `DATA_MODEL.md` Section 4, feature modules are not geometrically uniform, and the isolation/rollout mechanics above must accommodate both shapes:
+
+- **Point-type modules** (`ocop`, `khcn`): one row per point of interest, `geometry(Point, 4326)` column. Rendered on the frontend as Leaflet markers (`ARCHITECTURE SPECIFICATION.md` Section 3.3 pattern — `OcopMarkers`, etc.).
+- **Zone/polygon-type modules** (`nonglam`): optionally split business/spatial tables (mirroring the core `wards`/`gis_wards` pattern), `geometry(MultiPolygon, 4326)`. Rendered as `<GeoJSON>` polygon overlays, not markers.
+
+A customer's feature flag combination may mix both shapes (e.g. Customer C running both `ocop` and `nonglam`); the isolation model in Section 6.1 treats this no differently — it's still one database per customer, just with more Flyway feature folders scanned (Section 5.2).
+
+---
+
+## 7. Fleet Management & Rollout Strategy
+
+> This section defines _when and how_ the system moves beyond single-tenant hosting. It intentionally does not describe custom fleet automation (a bespoke registry file plus a hand-written rollout script) — that approach was considered and superseded. See `DEPLOYMENT & FLEET STRATEGY.md` Section 6 for the full rationale and operational detail; this section states the architectural decision it depends on.
+
+### 7.1. Current Phase: No Fleet
+
+With a single tenant, there is no fleet to manage — one VPS, one Docker Compose stack, manual deploys (`DEPLOYMENT & FLEET STRATEGY.md` Section 5.1). Building fleet tooling ahead of having a fleet would be speculative complexity; it is explicitly deferred.
+
+### 7.2. Trigger for Fleet Tooling
+
+The moment a second customer instance is onboarded, hosting moves from "one Compose stack, managed by hand" to "multiple isolated Compose stacks, managed through a control panel." That is the trigger point — not a fixed calendar date.
+
+### 7.3. Decision: Self-Hosted PaaS, Not Custom Scripts
+
+At that trigger point, the system adopts a self-hosted PaaS — **Dokploy** or **Coolify** (final choice deferred to when the trigger is hit, per `DEPLOYMENT & FLEET STRATEGY.md` Section 6.2) — to manage the fleet, rather than a bespoke fleet registry and deploy script. This keeps the operational burden appropriate for a small team while still satisfying every isolation guarantee in Section 6:
+
+- One PaaS "project" per customer maps directly onto "one app container + one dedicated database" (Section 6.1) — the PaaS does not introduce shared infrastructure between customers.
+- The same `Dockerfile`/`docker-compose.yml` artifact (`DEPLOYMENT & FLEET STRATEGY.md` Sections 3–4) is reused unchanged; adopting a PaaS is an operational change, not a re-architecture.
+- Rolling out a fix to "all customers" or "one customer" (Section 7.4 below) becomes a per-project redeploy in the PaaS panel, never a shared-code-path change that could accidentally cross tenant boundaries.
+
+### 7.4. Rollout Scenarios Under the PaaS Model
+
+| Scenario                                           | How it's handled                                                                                                                                                                                                         |
+| :------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core bug fix affecting all customers               | Redeploy each customer project from the same updated `main` branch — sequentially, verifying health after each, since each is an independent database (a failed migration on one customer's DB cannot affect another's). |
+| Feature rollout to one customer only               | Toggle that customer's feature flag(s) (Section 6.2) and redeploy only that project; other customers' projects and databases are untouched.                                                                              |
+| Core data correction (e.g. a `wards` boundary fix) | Apply as a new forward-only Flyway migration in `db/migration/core/`; it runs identically across every customer's database on their next redeploy — there is no per-customer core data divergence to reconcile.          |
+| New customer onboarding                            | Per `DEPLOYMENT & FLEET STRATEGY.md` Section 6.3.                                                                                                                                                                        |
+| Emergency rollback for one customer                | Redeploy that project's previous image tag; unaffected customers need no action, since there is no shared release train.                                                                                                 |
+
+### 7.5. Operational Detail Lives Elsewhere
+
+This section defines the decisions; it deliberately does not duplicate command-line steps, `.env` templates, or backup scripts. See `DEPLOYMENT & FLEET STRATEGY.md` for those, kept in one place to avoid the two documents drifting out of sync.
