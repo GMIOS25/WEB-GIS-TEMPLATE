@@ -83,7 +83,7 @@ EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-> **Implementation note:** as of this writing, `BE/pom.xml` has no frontend-embedding wiring yet, and `application.properties` is not committed (it's gitignored — see `DEVELOPMENT_SETUP.md`). Wiring this Dockerfile in is a **Phase 2 prerequisite task**, not yet done. Track it alongside the Docker Compose rollout below.
+> **Implementation note (2026-07):** `Dockerfile`, `docker-compose.yml`, `Caddyfile`, and `.env.example` matching Sections 3–4 below are now committed at the repository root. The frontend-embedding wiring happens inside the Dockerfile's multi-stage build (copying `FE/dist` into `src/main/resources/static` before the Maven package step), so `BE/pom.xml` itself needed no changes. `application.properties` remains intentionally uncommitted/gitignored for local dev (see `DEVELOPMENT_SETUP.md`); the containerized deployment path instead relies entirely on the environment variables in `.env` (Section 4.3), which Spring Boot's relaxed binding maps onto the equivalent properties — no `application.properties` file exists inside the built image.
 
 ---
 

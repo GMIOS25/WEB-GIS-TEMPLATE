@@ -3,9 +3,19 @@
 
 ---
 
+> [!IMPORTANT]
+> **Trạng thái tài liệu (cập nhật 2026-07-14): Giai đoạn 1 đã hoàn thành đầy đủ 5/5 task**, bao gồm cả TSK-5 (Docker) vừa được bổ sung. File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở Giai đoạn 1, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
+> - Schema DB thật + quy ước bảng tương lai: `DATA_MODEL.md`
+> - Kiến trúc modular, package `core/` vs `features/`: `ARCHITECTURE SPECIFICATION.md`
+> - Setup máy dev (không cần chạy SQL tay): `DEVELOPMENT_SETUP.md`
+> - Vận hành/deploy thật (Docker, Caddy, backup, fleet): `DEPLOYMENT & FLEET STRATEGY.md`
+> - API hiện có + quy ước API module tương lai: `API_CONTRACT.md`
+>
+> Tên module Khoa học Công nghệ đã được thống nhất là **`science`** (không dùng `khcn`) trong toàn bộ code và tài liệu — xem ghi chú tại `ARCHITECTURE SPECIFICATION.md` mục 6.4.
+
 > [!TIP]
 > **Triết lý tối giản tối đa:**
-> Hệ thống chỉ có hai vai trò: **ADMIN** (Quản trị hệ thống, quản lý tài khoản) và **VIEWER** (Xem và tra cứu bản đồ). Mọi tính năng chỉnh sửa dữ liệu hay thay đổi địa giới hành chính đều được lược bỏ (bạn sẽ sửa trực tiếp trong PostgreSQL khi cần thiết). Không sử dụng Nginx hay các cấu hình phức tạp.
+> Hệ thống chỉ có hai vai trò: **ADMIN** (Quản trị hệ thống, quản lý tài khoản) và **VIEWER** (Xem và tra cứu bản đồ). Mọi tính năng chỉnh sửa dữ liệu hay thay đổi địa giới hành chính đều được lược bỏ (bạn sẽ sửa trực tiếp trong PostgreSQL khi cần thiết). Không dùng Nginx (dùng Caddy — xem TSK-5 bên dưới) hay các cấu hình phức tạp khác.
 
 ---
 
@@ -22,34 +32,12 @@
 
 ---
 
-## 2. Thiết lập Database (Chạy thủ công)
-Chạy script này một lần trong PostgreSQL để tạo bảng quản lý người dùng và bảng tham chiếu lãnh đạo địa phương:
+## 2. Thiết lập Database
 
-```sql
--- 1. Bảng lưu người dùng
-CREATE TABLE users (
-    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    username varchar(50) UNIQUE NOT NULL,
-    password varchar(100) NOT NULL, -- Mật khẩu mã hóa bcrypt
-    full_name varchar(100),
-    role varchar(20) NOT NULL CHECK (role IN ('ADMIN', 'VIEWER'))
-);
-
--- 2. Bảng tham chiếu Lãnh đạo (Chỉ định nghĩa cấu trúc bảng để dùng sau này)
-CREATE TABLE local_leaders (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    full_name varchar(255) NOT NULL,
-    position varchar(100) NOT NULL,
-    phone_number varchar(20),
-    ward_code varchar(20) REFERENCES wards(code)
-);
-
--- 3. Seed sẵn 2 tài khoản mẫu (Mật khẩu mặc định: 123456)
--- Hash bcrypt của '123456' là: $2a$10$tZ2E7H4H4f4V4jH7/Oa9NuF2g2pMh1B7F7G2K.Lz4j2w7n/wz9i1O
-INSERT INTO users (username, password, full_name, role) VALUES 
-('admin', '$2a$10$tZ2E7H4H4f4V4jH7/Oa9NuF2g2pMh1B7F7G2K.Lz4j2w7n/wz9i1O', 'Quản trị viên Gia Lai', 'ADMIN'),
-('viewer', '$2a$10$tZ2E7H4H4f4V4jH7/Oa9NuF2g2pMh1B7F7G2K.Lz4j2w7n/wz9i1O', 'Người xem bản đồ', 'VIEWER');
-```
+> [!WARNING]
+> **Mục này đã lỗi thời — không còn chạy tay nữa.** Bản kế hoạch gốc (07/07) yêu cầu tự chạy SQL tay để tạo bảng `users`/`local_leaders`. Từ commit "implement Flyway for database migrations" (13/07), toàn bộ schema (bao gồm `provinces`, `wards`, `gis_provinces`, `gis_wards`, `users`, và cả bảng `administrative_units`/`administrative_regions` không có trong bản kế hoạch gốc) được Flyway tự động migrate khi Spring Boot khởi động, đọc từ `BE/src/main/resources/db/migration/core/V1`→`V4`. Tài khoản `admin`/`viewer` mẫu cũng được seed tự động bởi `DatabaseSeeder`, không cần `INSERT` tay.
+>
+> **Xem hướng dẫn setup chính xác hiện tại tại `docs/en/DEVELOPMENT_SETUP.md` mục 2.** Không dùng script SQL cũ trong mục này nữa.
 
 ---
 
@@ -57,15 +45,16 @@ INSERT INTO users (username, password, full_name, role) VALUES
 
 ### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
 
-#### **TSK-1: Khai báo Entity & Cấu hình Security (JWT)**
+#### **TSK-1: Khai báo Entity & Cấu hình Security (JWT)** — ✅ Hoàn thành
 - **Nội dung:** 
   - Tạo các JPA Entity `Ward`, `Province`, `GisWard`, `User`, `LocalLeader` ánh xạ chính xác với dữ liệu sẵn có và 2 bảng mới tạo.
   - Thiết lập Spring Security + Filter xác thực JWT. CORS config cho phép FE gọi trực tiếp.
 - **Input:** Cơ sở dữ liệu hiện có.
 - **Output:** Khung bảo mật Spring Boot chạy thành công ở local port `8080`.
 - **Cách verify:** Gọi API bất kỳ khi chưa đăng nhập -> Trả về `401 Unauthorized`.
+- **Cập nhật thực tế:** các Entity/Repository/Security ở trên hiện nằm trong package `com.website.gis.core.*` (không phải package phẳng như bản kế hoạch gốc), theo đúng cấu trúc `core/` vs `features/` mô tả tại `ARCHITECTURE SPECIFICATION.md` mục 4.1 — chuẩn bị sẵn cho việc thêm module ở Giai đoạn 2.
 
-#### **TSK-2: Xây dựng REST APIs**
+#### **TSK-2: Xây dựng REST APIs** — ✅ Hoàn thành
 - **Nội dung:** Viết các endpoint RESTful sau:
   - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về Token JWT cùng thông tin vai trò.
   - **Nhóm quản lý User (Chỉ ADMIN được phép truy cập):**
@@ -80,12 +69,13 @@ INSERT INTO users (username, password, full_name, role) VALUES
 - **Input:** JPA Repositories và Spring Controllers.
 - **Output:** Các endpoint hoạt động chính xác.
 - **Cách verify:** Đăng nhập tài khoản `viewer`, gọi API tạo tài khoản `/api/admin/users` -> Trả về lỗi `403 Forbidden`. Đăng nhập tài khoản `admin` -> tạo thành công.
+- **Cập nhật thực tế (TSK-4):** khi làm map, đã bổ sung thêm 2 endpoint gộp không có trong danh sách gốc để tối ưu hiệu năng tải toàn bộ 135 xã một lần: `GET /api/wards/geojson` (FeatureCollection toàn tỉnh) và `GET /api/wards/province/geojson` (đường viền tỉnh). Danh sách API đầy đủ và chính xác nhất hiện nay nằm ở `docs/en/API_CONTRACT.md`, không phải danh sách trong mục này.
 
 ---
 
 ### 🔵 PHẦN 2: FRONTEND (REACT WEB MAP)
 
-#### **TSK-3: Khởi tạo React & Màn hình Đăng nhập**
+#### **TSK-3: Khởi tạo React & Màn hình Đăng nhập** — ✅ Hoàn thành
 - **Nội dung:**
   - Khởi tạo React + Vite + Tailwind CSS + Shadcn UI.
   - Tạo Router điều hướng và Auth Context lưu trạng thái đăng nhập. Cấu hình Axios đính kèm Bearer Token tự động.
@@ -94,7 +84,7 @@ INSERT INTO users (username, password, full_name, role) VALUES
 - **Output:** Ứng dụng login được, chuyển hướng về trang chủ và lưu Token vào LocalStorage.
 - **Cách verify:** Thử gõ bừa URL `/` khi chưa đăng nhập -> Tự động redirect về `/login`. Đăng nhập đúng `admin` hoặc `viewer` -> vào được bản đồ.
 
-#### **TSK-4: Bản đồ GIS tương tác & Giao diện Quản trị**
+#### **TSK-4: Bản đồ GIS tương tác & Giao diện Quản trị** — ✅ Hoàn thành
 - **Nội dung:**
   - **Trang chính bản đồ (Main Web Map):**
     - Render bản đồ nền OpenStreetMap bằng `react-leaflet`.
@@ -106,16 +96,19 @@ INSERT INTO users (username, password, full_name, role) VALUES
 - **Input:** Thư viện map, API BE.
 - **Output:** Giao diện trực quan, hoạt động hoàn hảo.
 - **Cách verify:** Đăng nhập vai trò `viewer` -> Sidebar chính không hiển thị phần "Quản lý người dùng". Đăng nhập vai trò `admin` -> hiển thị và thực hiện CRUD thành công.
+- **Ghi chú thực tế:** modal CRUD user được code tay bằng Tailwind (không dùng Radix UI/Shadcn dialog như dự kiến ban đầu) để nhẹ hơn. Layer "Huyện" trong Left Drawer đã được bỏ, chỉ giữ 2 toggle "Ranh giới cấp Tỉnh" và "Ranh giới cấp Xã". Xem chi tiết tại `docs/Phase 1/Task 4/walkthrough.md`.
 
 ---
 
 ### 📦 PHẦN 3: ĐÓNG GÓI & TRIỂN KHAI
 
-#### **TSK-5: Đóng gói tích hợp & Triển khai Docker đơn giản**
-- **Nội dung:**
-  - Cấu hình copy file build tĩnh của React FE sang thư mục `src/main/resources/static` của BE khi build.
-  - Viết `Dockerfile` để đóng gói toàn bộ ứng dụng JAR tích hợp này.
-  - Viết `docker-compose.yml` gồm 2 dịch vụ duy nhất: `db` (Postgres + PostGIS) và `app` (Spring Boot chạy cổng `8080`).
-- **Input:** Các file cấu hình Docker.
-- **Output:** Toàn bộ hệ thống chạy chỉ bằng lệnh `docker-compose up -d`.
-- **Cách verify:** Máy chủ triển khai sạch chạy lệnh và truy cập được vào cổng 8080 hiển thị đầy đủ giao diện hoạt động.
+#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ Hoàn thành (2026-07-14)
+- **Nội dung (đã cập nhật so với bản gốc):**
+  - Multi-stage `Dockerfile` ở root repo: build FE (`node:20-alpine` + pnpm) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước khi `mvnw package`) → runtime (`eclipse-temurin:17-jre-alpine`, chạy user không phải root).
+  - `docker-compose.yml` gồm **3 dịch vụ** (khác với bản kế hoạch gốc chỉ dự tính 2 dịch vụ `db`+`app`): `app` (Spring Boot, không public port ra ngoài), `db` (`postgis/postgis:15-3.4-alpine`, không public port 5432 ra ngoài), và **`caddy`** (reverse proxy TLS tự động cấp chứng chỉ Let's Encrypt, expose port 80/443 — vẫn giữ đúng triết lý "không dùng Nginx" ở đầu file, chỉ là thay bằng Caddy thay vì bỏ hẳn reverse proxy).
+  - `Caddyfile` cấu hình domain trỏ vào `app:8080`.
+  - `.env.example` mẫu biến môi trường (DB credentials, JWT secret, feature flags `ENABLE_OCOP`/`ENABLE_SCIENCE`/`ENABLE_AGRICULTURE` — mặc định `false` cho Giai đoạn 1).
+- **Input:** Các file cấu hình Docker (đã có sẵn tại root repo: `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `.env.example`).
+- **Output:** Toàn bộ hệ thống chạy chỉ bằng lệnh `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
+- **Cách verify:** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
+- **Chi tiết vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.

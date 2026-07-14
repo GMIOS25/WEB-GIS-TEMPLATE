@@ -359,9 +359,11 @@ Because the differences are entirely configuration-driven, onboarding a new cust
 
 ### 6.4. Geometry Type Convention Across Feature Modules
 
+> **Naming note (2026-07):** this section originally used the Vietnamese abbreviation `khcn` for the "Khoa học Công nghệ" (Science & Technology) module. That has been standardized back to `science` everywhere in this document and across `DATA_MODEL.md`/`API_CONTRACT.md`/`CODING_CONVENTIONS.md`, to match the property name already used in real code (`features.science.enabled` in `DynamicFlywayConfig.java` and `application.properties.example`) and in Sections 3–5 of this same document. Use `science` as the single canonical module key going forward; do not reintroduce `khcn` in code, config, or docs.
+
 Per `DATA_MODEL.md` Section 4, feature modules are not geometrically uniform, and the isolation/rollout mechanics above must accommodate both shapes:
 
-- **Point-type modules** (`ocop`, `khcn`): one row per point of interest, `geometry(Point, 4326)` column. Rendered on the frontend as Leaflet markers (`ARCHITECTURE SPECIFICATION.md` Section 3.3 pattern — `OcopMarkers`, etc.).
+- **Point-type modules** (`ocop`, `science`): one row per point of interest, `geometry(Point, 4326)` column. Rendered on the frontend as Leaflet markers (`ARCHITECTURE SPECIFICATION.md` Section 3.3 pattern — `OcopMarkers`, etc.).
 - **Zone/polygon-type modules** (`nonglam`): optionally split business/spatial tables (mirroring the core `wards`/`gis_wards` pattern), `geometry(MultiPolygon, 4326)`. Rendered as `<GeoJSON>` polygon overlays, not markers.
 
 A customer's feature flag combination may mix both shapes (e.g. Customer C running both `ocop` and `nonglam`); the isolation model in Section 6.1 treats this no differently — it's still one database per customer, just with more Flyway feature folders scanned (Section 5.2).

@@ -319,15 +319,15 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 
 ---
 
-### 4.4. Convention for Future Feature Modules (`ocop`, `khcn`, `nonglam`)
+### 4.4. Convention for Future Feature Modules (`ocop`, `science`, `nonglam`)
 
 These modules are not yet implemented (Core phase only covers auth + administrative units). When building them, follow the same shape established above rather than inventing a new one:
 
-- **Base path:** `/api/{feature}` — e.g. `/api/ocop`, `/api/khcn`, `/api/nonglam`. Each is only registered when its `@ConditionalOnProperty` flag is enabled (`ARCHITECTURE SPECIFICATION.md` Section 4.2); when disabled, the path returns `404` because the controller bean simply doesn't exist.
-- **List endpoint:** `GET /api/{feature}` — unlike `/api/wards` (unpaginated, since only 135 rows), feature module lists **should** use the pagination standard from Section 3, since the number of OCOP products/KHCN units/nông lâm zones can grow arbitrarily.
+- **Base path:** `/api/{feature}` — e.g. `/api/ocop`, `/api/science`, `/api/nonglam`. Each is only registered when its `@ConditionalOnProperty` flag is enabled (`ARCHITECTURE SPECIFICATION.md` Section 4.2); when disabled, the path returns `404` because the controller bean simply doesn't exist.
+- **List endpoint:** `GET /api/{feature}` — unlike `/api/wards` (unpaginated, since only 135 rows), feature module lists **should** use the pagination standard from Section 3, since the number of OCOP products/Science units/nông lâm zones can grow arbitrarily.
 - **Detail endpoint:** `GET /api/{feature}/{id}`.
 - **GeoJSON endpoint:** `GET /api/{feature}/geojson` — returns a `FeatureCollection`, same shape as `/api/wards/geojson`, for direct Leaflet layer consumption.
 - **Write endpoints** (`POST`/`PUT`/`DELETE`) — restricted to `ADMIN` only, same role pattern as Section 4.2.
-- **Geometry type differs by module:** `ocop`/`khcn` return `Point` geometries; `nonglam` returns `Polygon`/`MultiPolygon` — the frontend must render these via different Leaflet primitives (markers vs. `<GeoJSON>` polygon overlay), per `ARCHITECTURE SPECIFICATION.md` Section 6.4. Do not assume all feature modules are point-based.
+- **Geometry type differs by module:** `ocop`/`science` return `Point` geometries; `nonglam` returns `Polygon`/`MultiPolygon` — the frontend must render these via different Leaflet primitives (markers vs. `<GeoJSON>` polygon overlay), per `ARCHITECTURE SPECIFICATION.md` Section 6.4. Do not assume all feature modules are point-based.
 
 See `DATA_MODEL.md` Section 4 for the corresponding table schema convention these endpoints will query.
