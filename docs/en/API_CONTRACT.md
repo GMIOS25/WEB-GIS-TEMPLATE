@@ -227,6 +227,20 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 - **Response Body (`WardDetailDto`):**
   - Status `200 OK`
   - Note: `leaders` is populated from the `local_leaders` table (joined on `ward_code`), not an inline column on `wards` — see `DATA_MODEL.md` Section 3.7. A ward may have zero or more leaders.
+    **Current respone**
+
+  ```json
+  {
+    "code": "21112",
+    "name": "Ia Kring",
+    "fullName": "Phường Ia Kring",
+    "provinceName": "Tỉnh Gia Lai",
+    "areaKm2": 6.84
+  }
+  ```
+
+  **Planned shape**
+
   ```json
   {
     "code": "21112",
