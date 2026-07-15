@@ -1,10 +1,12 @@
 # KẾ HOẠCH TỐI GIẢN (CẬP NHẬT) - GIAI ĐOẠN 1: NỀN TẢNG HÀNH CHÍNH
+
 ## DỰ ÁN: HỆ THỐNG QUẢN LÝ VÀ TRA CỨU THÔNG TIN HÀNH CHÍNH TỈNH GIA LAI
 
 ---
 
 > [!IMPORTANT]
 > **Trạng thái tài liệu (cập nhật 2026-07-14): Giai đoạn 1 đã hoàn thành 4/5 task (TSK-1 → TSK-4). TSK-5 (Docker) hiện MỚI CHỈ Ở DẠNG ĐẶC TẢ/KẾ HOẠCH trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, KHÔNG có file `Dockerfile`/`docker-compose.yml`/`Caddyfile`/`.env.example` thực tế nào trong repo** (đã kiểm tra cả working tree lẫn toàn bộ lịch sử git — chưa từng có commit nào tạo các file này). Xem ghi chú chi tiết ở mục TSK-5 bên dưới. File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở TSK-1 → TSK-4, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
+>
 > - Schema DB thật + quy ước bảng tương lai: `DATA_MODEL.md`
 > - Kiến trúc modular, package `core/` vs `features/`: `ARCHITECTURE SPECIFICATION.md`
 > - Setup máy dev (không cần chạy SQL tay): `DEVELOPMENT_SETUP.md`
@@ -22,11 +24,12 @@
 ---
 
 ## 1. Vai trò người dùng (Roles Matrix)
-* **ADMIN**: 
+
+- **ADMIN**:
   - Đăng nhập hệ thống.
   - Quản lý tài khoản người dùng khác (Xem danh sách, Tạo mới, Sửa thông tin/đổi mật khẩu, Xóa tài khoản `VIEWER`).
   - Xem và tra cứu thông tin bản đồ tương tự như Viewer.
-* **VIEWER**:
+- **VIEWER**:
   - Đăng nhập hệ thống.
   - Xem bản đồ ranh giới hành chính Gia Lai.
   - Tra cứu thông tin chi tiết từng xã/phường (Diện tích, v.v.).
@@ -48,7 +51,8 @@
 ### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
 
 #### **TSK-1: Khai báo Entity & Cấu hình Security (JWT)** — ✅ Hoàn thành
-- **Nội dung:** 
+
+- **Nội dung:**
   - Tạo các JPA Entity `Ward`, `Province`, `GisWard`, `User`, `LocalLeader` ánh xạ chính xác với dữ liệu sẵn có và 2 bảng mới tạo.
   - Thiết lập Spring Security + Filter xác thực JWT. CORS config cho phép FE gọi trực tiếp.
 - **Input:** Cơ sở dữ liệu hiện có.
@@ -57,8 +61,9 @@
 - **Cập nhật thực tế:** các Entity/Repository/Security ở trên hiện nằm trong package `com.website.gis.core.*` (không phải package phẳng như bản kế hoạch gốc), theo đúng cấu trúc `core/` vs `features/` mô tả tại `ARCHITECTURE SPECIFICATION.md` mục 4.1 — chuẩn bị sẵn cho việc thêm module ở Giai đoạn 2.
 
 #### **TSK-2: Xây dựng REST APIs** — ✅ Hoàn thành
+
 - **Nội dung:** Viết các endpoint RESTful sau:
-  - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về thông tin vai trò. ~~Trả về Token JWT~~ *(đã lỗi thời, xem ghi chú thực tế bên dưới)*.
+  - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về thông tin vai trò. ~~Trả về Token JWT~~ _(đã lỗi thời, xem ghi chú thực tế bên dưới)_.
   - **Nhóm quản lý User (Chỉ ADMIN được phép truy cập):**
     - `GET /api/admin/users`: Lấy danh sách tài khoản.
     - `POST /api/admin/users`: Tạo mới tài khoản VIEWER.
@@ -79,16 +84,18 @@
 ### 🔵 PHẦN 2: FRONTEND (REACT WEB MAP)
 
 #### **TSK-3: Khởi tạo React & Màn hình Đăng nhập** — ✅ Hoàn thành
+
 - **Nội dung:**
   - Khởi tạo React + Vite + Tailwind CSS + Shadcn UI.
   - Tạo Router điều hướng và Auth Context lưu trạng thái đăng nhập. Cấu hình Axios đính kèm Bearer Token tự động.
   - Thiết kế trang Đăng nhập đơn giản, sang trọng.
 - **Input:** Khởi chạy project FE sạch.
-- **Output:** Ứng dụng login được, chuyển hướng về trang chủ. ~~Lưu Token vào LocalStorage~~ *(đã lỗi thời, xem ghi chú thực tế bên dưới)*.
+- **Output:** Ứng dụng login được, chuyển hướng về trang chủ. ~~Lưu Token vào LocalStorage~~ _(đã lỗi thời, xem ghi chú thực tế bên dưới)_.
 - **Cách verify:** Thử gõ bừa URL `/` khi chưa đăng nhập -> Tự động redirect về `/login`. Đăng nhập đúng `admin` hoặc `viewer` -> vào được bản đồ.
 - **Cập nhật thực tế (bảo mật JWT):** FE không còn lưu token ở LocalStorage và Axios không còn tự gắn header `Authorization` như mô tả gốc. Token nằm trong cookie `HttpOnly` do BE set (JS không đọc được), Axios chỉ cần bật `withCredentials: true` để trình duyệt tự đính kèm cookie. `AuthContext` khôi phục phiên đăng nhập bằng cách gọi `GET /api/auth/me` mỗi khi app khởi động, thay vì đọc token đã lưu.
 
 #### **TSK-4: Bản đồ GIS tương tác & Giao diện Quản trị** — ✅ Hoàn thành
+
 - **Nội dung:**
   - **Trang chính bản đồ (Main Web Map):**
     - Render bản đồ nền OpenStreetMap bằng `react-leaflet`.
@@ -108,8 +115,7 @@
 
 #### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ⚠️ Mới ở dạng đặc tả, CHƯA triển khai thành file thật
 
-> [!WARNING]
-> **Mục này trước đây ghi "✅ Hoàn thành" là sai.** Đã kiểm tra toàn bộ working tree và lịch sử git của repo (`git log --all -- Dockerfile docker-compose.yml Caddyfile .env.example` không trả về commit nào) — repo **không có** file `Dockerfile`, `docker-compose.yml`, `Caddyfile`, hay `.env.example` nào, ở root hay bất kỳ đâu khác. Nội dung mô tả dưới đây là **thiết kế/kế hoạch** được viết trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md` (mục 2–4, dưới dạng code block minh hoạ trong tài liệu Markdown), chứ không phải file cấu hình thực thi được. Muốn `docker compose up` chạy được, các file này cần được tạo ra trước.
+>
 
 - **Nội dung (kế hoạch, ghi trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, đã cập nhật so với bản gốc):**
   - Multi-stage `Dockerfile` dự kiến đặt ở root repo: build FE (`node:20-alpine` + pnpm) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước khi `mvnw package`) → runtime (`eclipse-temurin:17-jre-alpine`, chạy user không phải root).
