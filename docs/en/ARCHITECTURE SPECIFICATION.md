@@ -168,6 +168,7 @@ Core administrative capabilities are separated from feature packages. This struc
 
 ```
 BE/src/main/java/com/website/gis/
+|── config/
 ├── core/                         # Core administrative packages
 │   ├── controller/               # Administrative Unit Controllers
 │   ├── dto/                      # Data Transfer Objects

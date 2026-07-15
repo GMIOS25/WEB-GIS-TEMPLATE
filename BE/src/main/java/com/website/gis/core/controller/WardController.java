@@ -5,6 +5,7 @@ import com.website.gis.core.dto.WardDto;
 import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.exception.ResourceNotFoundException;
+import com.website.gis.core.mapper.WardMapper;
 import com.website.gis.core.repository.GisWardRepository;
 import com.website.gis.core.repository.WardRepository;
 
@@ -24,10 +25,12 @@ public class WardController {
 
     private final WardRepository wardRepository;
     private final GisWardRepository gisWardRepository;
+    private final WardMapper wardMapper;
 
-    public WardController(WardRepository wardRepository, GisWardRepository gisWardRepository) {
+    public WardController(WardRepository wardRepository, GisWardRepository gisWardRepository, WardMapper wardMapper) {
         this.wardRepository = wardRepository;
         this.gisWardRepository = gisWardRepository;
+        this.wardMapper = wardMapper;
     }
 
     @GetMapping
@@ -40,12 +43,7 @@ public class WardController {
         }
 
         List<WardDto> dtos = wards.stream()
-                .map(ward -> WardDto.builder()
-                        .code(ward.getCode())
-                        .name(ward.getName())
-                        .fullName(ward.getFullName())
-                        .provinceName(ward.getProvince() != null ? ward.getProvince().getFullName() : null)
-                        .build())
+                .map(wardMapper::toDto)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
@@ -58,13 +56,7 @@ public class WardController {
 
         GisWard gisWard = gisWardRepository.findByWardCode(code).orElse(null);
 
-        WardDetailDto dto = WardDetailDto.builder()
-                .code(ward.getCode())
-                .name(ward.getName())
-                .fullName(ward.getFullName())
-                .provinceName(ward.getProvince() != null ? ward.getProvince().getFullName() : null)
-                .areaKm2(gisWard != null ? gisWard.getAreaKm2() : null)
-                .build();
+        WardDetailDto dto = wardMapper.toDetailDto(ward, gisWard);
 
         return ResponseEntity.ok(dto);
     }
