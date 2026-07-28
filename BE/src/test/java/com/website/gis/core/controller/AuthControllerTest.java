@@ -5,6 +5,7 @@ import com.website.gis.config.SecurityConfig;
 import com.website.gis.core.controller.AuthController;
 import com.website.gis.core.dto.LoginRequest;
 import com.website.gis.core.entity.User;
+import com.website.gis.core.mapper.UserMapperImpl;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.security.CustomUserDetailsService;
 import com.website.gis.core.security.JwtAuthenticationFilter;
@@ -32,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class })
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class })
 class AuthControllerTest {
 
         @Autowired

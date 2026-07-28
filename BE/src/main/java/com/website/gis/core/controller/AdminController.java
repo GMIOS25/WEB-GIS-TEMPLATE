@@ -6,6 +6,7 @@ import com.website.gis.core.dto.UserUpdateRequest;
 import com.website.gis.core.entity.User;
 import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.exception.ResourceNotFoundException;
+import com.website.gis.core.mapper.UserMapper;
 import com.website.gis.core.repository.UserRepository;
 
 import jakarta.validation.Valid;
@@ -25,21 +26,18 @@ public class AdminController {
 
         private final UserRepository userRepository;
         private final PasswordEncoder passwordEncoder;
+        private final UserMapper userMapper;
 
-        public AdminController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        public AdminController(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
                 this.userRepository = userRepository;
                 this.passwordEncoder = passwordEncoder;
+                this.userMapper = userMapper;
         }
 
         @GetMapping
         public ResponseEntity<List<UserDto>> getAllUsers() {
                 List<UserDto> users = userRepository.findAll().stream()
-                                .map(user -> UserDto.builder()
-                                                .id(user.getId())
-                                                .username(user.getUsername())
-                                                .fullName(user.getFullName())
-                                                .role(user.getRole())
-                                                .build())
+                                .map(userMapper::toDto)
                                 .collect(Collectors.toList());
                 return ResponseEntity.ok(users);
         }
@@ -50,23 +48,13 @@ public class AdminController {
                         throw new BadRequestException("Username already exists");
                 }
 
-                User user = User.builder()
-                                .username(request.getUsername())
-                                .password(passwordEncoder.encode(request.getPassword()))
-                                .fullName(request.getFullName())
-                                .role("VIEWER") // Only allow creating VIEWER accounts via this admin endpoint as per
-                                                // requirements
-                                .build();
+                User user = userMapper.toEntity(request);
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
 
                 User savedUser = userRepository.save(user);
 
                 return ResponseEntity.status(HttpStatus.CREATED)
-                                .body(UserDto.builder()
-                                                .id(savedUser.getId())
-                                                .username(savedUser.getUsername())
-                                                .fullName(savedUser.getFullName())
-                                                .role(savedUser.getRole())
-                                                .build());
+                                .body(userMapper.toDto(savedUser));
         }
 
         @PutMapping("/{id}")
@@ -75,7 +63,7 @@ public class AdminController {
                 User user = userRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-                user.setFullName(request.getFullName());
+                userMapper.updateEntityFromRequest(request, user);
 
                 if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
                         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -83,12 +71,7 @@ public class AdminController {
 
                 User updatedUser = userRepository.save(user);
 
-                return ResponseEntity.ok(UserDto.builder()
-                                .id(updatedUser.getId())
-                                .username(updatedUser.getUsername())
-                                .fullName(updatedUser.getFullName())
-                                .role(updatedUser.getRole())
-                                .build());
+                return ResponseEntity.ok(userMapper.toDto(updatedUser));
         }
 
         @DeleteMapping("/{id}")
