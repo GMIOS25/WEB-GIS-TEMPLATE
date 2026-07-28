@@ -5,6 +5,7 @@ import com.website.gis.core.controller.WardController;
 import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.Province;
 import com.website.gis.core.entity.Ward;
+import com.website.gis.core.mapper.WardMapperImpl;
 import com.website.gis.core.repository.GisWardRepository;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.repository.WardRepository;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(WardController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class })
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, WardMapperImpl.class })
 class WardControllerTest {
 
     @Autowired

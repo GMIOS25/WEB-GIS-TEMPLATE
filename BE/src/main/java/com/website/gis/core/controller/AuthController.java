@@ -3,6 +3,7 @@ package com.website.gis.core.controller;
 import com.website.gis.core.dto.LoginRequest;
 import com.website.gis.core.dto.LoginResponse;
 import com.website.gis.core.entity.User;
+import com.website.gis.core.mapper.UserMapper;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.security.JwtTokenProvider;
 
@@ -26,6 +27,7 @@ public class AuthController {
         private final AuthenticationManager authenticationManager;
         private final JwtTokenProvider tokenProvider;
         private final UserRepository userRepository;
+        private final UserMapper userMapper;
 
         /**
          * Bảo mật JWT: token KHÔNG còn được lưu ở localStorage/JS phía FE
@@ -47,10 +49,12 @@ public class AuthController {
 
         public AuthController(AuthenticationManager authenticationManager,
                         JwtTokenProvider tokenProvider,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        UserMapper userMapper) {
                 this.authenticationManager = authenticationManager;
                 this.tokenProvider = tokenProvider;
                 this.userRepository = userRepository;
+                this.userMapper = userMapper;
         }
 
         @PostMapping("/login")
@@ -70,11 +74,7 @@ public class AuthController {
 
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
-                                .body(LoginResponse.builder()
-                                                .username(user.getUsername())
-                                                .fullName(user.getFullName())
-                                                .role(user.getRole())
-                                                .build());
+                                .body(userMapper.toLoginResponse(user));
         }
 
         /**
@@ -97,11 +97,10 @@ public class AuthController {
                                 .findFirst()
                                 .orElse(user.getRole());
 
-                return ResponseEntity.ok(LoginResponse.builder()
-                                .username(user.getUsername())
-                                .fullName(user.getFullName())
-                                .role(role)
-                                .build());
+                LoginResponse response = userMapper.toLoginResponse(user);
+                response.setRole(role); // Authoritative role comes from the authenticated principal, not just the row
+
+                return ResponseEntity.ok(response);
         }
 
         /**

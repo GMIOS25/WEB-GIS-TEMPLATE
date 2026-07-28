@@ -10,9 +10,10 @@ All developers must adhere to these standards to ensure codebase consistency, ma
 
 ### 1.1. Java (Spring Boot Backend)
 
-- **Packages:** All lowercase, singular, flat where possible.
-  - _Example:_ `com.website.gis.controller`, `com.website.gis.dto`, `com.website.gis.entity`, `com.website.gis.repository`
-  - _Rule:_ Package names are always lowercase, no exceptions — e.g. `com.website.gis.entity`, never `com.website.gis.Entity`.
+- **Packages:** All lowercase, singular, flat where possible within their module.
+  - _Example:_ `com.website.gis.core.controller`, `com.website.gis.core.dto`, `com.website.gis.core.entity`, `com.website.gis.core.repository`, `com.website.gis.core.mapper`
+  - _Rule:_ Package names are always lowercase, no exceptions — e.g. `com.website.gis.core.entity`, never `com.website.gis.core.Entity`.
+  - _Rule:_ Administrative/core capabilities live under `com.website.gis.core.*` (Section 4.1 of `ARCHITECTURE SPECIFICATION.md`). Pluggable feature modules live under their own `com.website.gis.features.<module>.*` tree (Section 6 below) — never inside `core`.
 - **Classes & Interfaces:** `PascalCase`.
   - _Example:_ `GisWard`, `GisWardRepository`, `GlobalExceptionHandler`
 - **Methods & Variables:** `camelCase`.
@@ -46,7 +47,7 @@ To maintain clean controllers and return readable, consistent error payloads to 
 All API errors return a consistent JSON structure using an `ErrorResponse` model:
 
 ```java
-package com.website.gis.exception;
+package com.website.gis.core.exception;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -67,7 +68,7 @@ public class ErrorResponse {
 
 ### 2.2. Custom Base Exceptions
 
-Exceptions should convey specific HTTP semantics. Create a hierarchy under `com.website.gis.exception`:
+Exceptions should convey specific HTTP semantics. Create a hierarchy under `com.website.gis.core.exception`:
 
 - **`ResourceNotFoundException`** (Maps to `404 Not Found`):
   ```java
@@ -91,7 +92,7 @@ Exceptions should convey specific HTTP semantics. Create a hierarchy under `com.
 Implement a centralized handler class to map exceptions to their respective HTTP status codes:
 
 ```java
-package com.website.gis.exception;
+package com.website.gis.core.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -157,25 +158,25 @@ MapStruct is used for automatic, compile-time mapping between Database Entities 
 
 ### 3.1. General Rules
 
-- **Package Location:** All mappers must reside in `com.website.gis.mapper`.
+- **Package Location:** Mappers for core administrative entities reside in `com.website.gis.core.mapper` (see `WardMapper.java` for the reference implementation). Mappers belonging to a pluggable feature module reside inside that module's own package, `com.website.gis.features.<module>.mapper` — **not** in a shared top-level location. This keeps each feature module self-contained, matching the "safely modified, omitted, or skipped" goal in `ARCHITECTURE SPECIFICATION.md` Section 4.1: deleting a feature module's package deletes its mapper along with it, with nothing left behind elsewhere.
 - **Spring Integration:** Explicitly define the component model as Spring:
   ```java
   @Mapper(componentModel = "spring")
   ```
-  _(Note: This is also configured globally in [pom.xml](file:///d:/Work/WEB%20GIS%20TEMPLATE/BE/pom.xml#L169) as a default fallback)._
+  _(This is also configured globally in `BE/pom.xml`, under the `maven-compiler-plugin` annotation processor args (`-Amapstruct.defaultComponentModel=spring`), as a default fallback.)_
 - **Class Naming:** Use suffix `Mapper`.
   - _Example:_ `UserMapper.java`, `WardMapper.java`
 
 ### 3.2. Mapping Methods Pattern
 
-Define clean interfaces for conversion. Avoid manual loops inside service classes:
+Define clean interfaces for conversion. Avoid manual `.builder()` chains inside controllers or service classes:
 
 ```java
-package com.website.gis.mapper;
+package com.website.gis.core.mapper;
 
-import com.website.gis.entity.User;
-import com.website.gis.dto.UserDto;
-import com.website.gis.dto.UserCreateRequest;
+import com.website.gis.core.entity.User;
+import com.website.gis.core.dto.UserDto;
+import com.website.gis.core.dto.UserCreateRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -186,31 +187,40 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "role", constant = "VIEWER")
-    @Mapping(target = "password", ignore = true) // Handled in Service class using Encoder
+    @Mapping(target = "password", ignore = true) // Handled by the caller using PasswordEncoder
     User toEntity(UserCreateRequest request);
 }
 ```
 
-Inject mappers using constructor injection:
+**Injection:** this project currently has no dedicated `@Service` layer — controllers call repositories (and now mappers) directly. Inject mappers straight into the controller via constructor injection, the same way repositories already are:
 
 ```java
-@Service
-public class UserService {
+@RestController
+@RequestMapping("/api/admin/users")
+public class AdminController {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public AdminController(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }
 }
 ```
 
+If a `@Service` layer is introduced later, mappers move with the logic they support — inject them into the service instead, following the same constructor-injection pattern.
+
+### 3.3. What MapStruct Does *Not* Replace
+
+Not every controller method is a pure mapping. Where a field's value depends on conditional business logic — e.g. `AdminController.updateUser()` only re-hashing `password` when the request actually supplies one, or `AuthController.getCurrentUser()` overriding `role` from the authenticated `Authentication`'s granted authorities — keep that logic explicit in the controller after calling the mapper, rather than forcing it into a `@Mapping` expression. MapStruct removes repetitive field-copying; it does not replace conditionals that only make sense to a human reading the endpoint's business rules.
+
 ---
 
-## 4. React Query will be use in phase 2 (TanStack Query) Key Conventions
+## 4. React Query (TanStack Query) Key Conventions — Planned for Phase 2
 
-To prevent bugs related to cache invalidation, typo errors, and inconsistent querying, the frontend uses a **Query Key Factory** pattern.
+> **Status:** not yet installed or used in `FE/`. No code in the repository calls `useQuery`/`useMutation` today. This section documents the convention to follow **once TanStack Query is adopted** (data-fetching for feature modules in Phase 2), so the pattern is agreed before the first hook is written — it is not a description of current frontend code.
+
+To prevent bugs related to cache invalidation, typo errors, and inconsistent querying, the frontend will use a **Query Key Factory** pattern.
 
 ### 4.1. Factory Strategy
 
@@ -288,9 +298,9 @@ The React project is structured cleanly, prioritizing component co-location (gro
 FE/
 ├── public/                 # Static assets (favicons, manifest, etc.)
 └── src/
-    ├── api/                # Core HTTP configurations & TanStack query key configurations
-    │   ├── axiosInstance.ts # Shared Axios instance with JWT interceptors
-    │   └── queryKeys.ts     # Query key factories
+    ├── api/                # Core HTTP configurations
+    │   └── axiosInstance.ts # Shared Axios instance with JWT interceptors
+    │   # queryKeys.ts is planned here once TanStack Query is adopted (Section 4) — not present yet
     ├── assets/             # Shared static media, styles, and logo assets
     ├── context/            # App-wide React contexts
     │   └── AuthContext.tsx # Context for holding auth state, login, and logout functions
@@ -331,7 +341,7 @@ When implementing a pluggable feature module (`ocop`, `science`, `nonglam`), the
 - Service: `<Module>Service`, Repository: `<Module>Repository`.
 - Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `nonglam` → entity `NongLamZone`.
 - DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `NongLamZoneDto`).
-- Mappers live in the shared `com.website.gis.mapper` package (per Section 3), not nested under `features/<module>/`, to keep mapper discovery consistent.
+- Mappers live inside the module's own package, `com.website.gis.features.<module>.mapper` (per Section 3.1) — kept self-contained within the module, not in a shared top-level package, so the module stays independently removable.
 
 ## 7. Cross-References
 
