@@ -10,6 +10,7 @@ import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.security.CustomUserDetailsService;
 import com.website.gis.core.security.JwtAuthenticationFilter;
 import com.website.gis.core.security.JwtTokenProvider;
+import com.website.gis.core.security.LoginAttemptService;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -53,6 +54,9 @@ class AuthControllerTest {
 
         @MockitoBean
         private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private LoginAttemptService loginAttemptService;
 
         @Test
         void whenLoginWithValidCredentials_thenReturnTokenAndInfo() throws Exception {

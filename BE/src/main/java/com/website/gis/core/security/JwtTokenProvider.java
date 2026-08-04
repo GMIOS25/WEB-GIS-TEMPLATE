@@ -40,11 +40,23 @@ public class JwtTokenProvider {
     public void init() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            byte[] padded = new byte[32];
-            System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, 32));
-            keyBytes = padded;
+            // TRƯỚC ĐÂY: tự động pad thêm byte 0x00 cho đủ 32 byte khi secret
+            // ngắn hơn yêu cầu của thuật toán HS256 (256 bit). Việc này ÂM
+            // THẦM làm yếu key (phần đệm 0x00 không thêm entropy) mà không có
+            // bất kỳ log/exception nào cảnh báo - nếu ai đó lỡ set JWT_SECRET
+            // ngắn ở production, ứng dụng vẫn khởi động bình thường với một
+            // khoá ký JWT yếu hơn nhiều so với tưởng tượng.
+            //
+            // Fail-fast: từ chối khởi động ngay lập tức thay vì tự vá, buộc
+            // phải cấu hình JWT_SECRET đủ mạnh (>= 32 byte / 256 bit) trước
+            // khi lên bất kỳ môi trường nào.
+            throw new IllegalStateException(
+                    "app.jwt.secret (JWT_SECRET) phải dài tối thiểu 32 byte (256 bit) để dùng với thuật toán ký "
+                            + "HS256, nhưng giá trị hiện tại chỉ có " + keyBytes.length + " byte. "
+                            + "Hãy đặt JWT_SECRET là một chuỗi ngẫu nhiên đủ dài (khuyến nghị >= 64 ký tự).");
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        logger.info("JwtTokenProvider initialized with a {}-byte signing key.", keyBytes.length);
     }
 
     public String generateToken(Authentication authentication) {

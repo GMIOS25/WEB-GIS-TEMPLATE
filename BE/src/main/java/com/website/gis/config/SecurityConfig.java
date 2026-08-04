@@ -1,5 +1,6 @@
 package com.website.gis.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +23,8 @@ import com.website.gis.core.security.JwtAuthenticationFilter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +33,15 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AccessDeniedHandler accessDeniedHandler;
     private final AuthenticationEntryPoint authenticationEntryPoint;
+
+    // TRƯỚC ĐÂY: danh sách origin được hardcode thẳng trong code, bao gồm cả
+    // IP LAN của máy dev cá nhân (http://192.168.123.117:...) bị commit vào
+    // Git. Đổi máy dev hoặc mở rộng domain production đều cần sửa code + build
+    // lại. Giờ đọc từ property app.cors.allowed-origins (env
+    // CORS_ALLOWED_ORIGINS), danh sách origin phân tách bằng dấu phẩy - đổi
+    // môi trường chỉ cần đổi biến môi trường, không cần build lại.
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}")
+    private String allowedOriginsProperty;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler,
             AuthenticationEntryPoint authenticationEntryPoint) {
@@ -94,8 +106,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174",
-                "http://127.0.0.1:5173", "http://192.168.123.117:5173", "http://192.168.123.117:5174"));
+        List<String> allowedOrigins = Arrays.stream(allowedOriginsProperty.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .collect(Collectors.toList());
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(
                 Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));

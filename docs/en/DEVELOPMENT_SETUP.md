@@ -53,7 +53,15 @@ When you start the Spring Boot application (described in [Section 3](#3-backend-
 4. **`V4__import_gis_data_gialai.sql`**
    - _Description:_ Imports coordinates, boundary borders (`MULTIPOLYGON`), and GIS spatial points specifically for Gia Lai province (Administrative Code: **52**).
 
-> **Note** : Default administrator and viewer accounts are defined to be automatically created by the `DatabaseSeeder` upon the initial startup of the backend (no separate SQL execution required).
+> **Note** : Default administrator and viewer accounts can be created automatically by the `DatabaseSeeder` on backend startup (no separate SQL execution required) — but this is **opt-in and disabled by default**, including in production. To seed them for local development, set the following environment variables before starting the backend (see [Section 5](#5-development-credentials)):
+>
+> ```env
+> SEED_DEFAULT_ACCOUNTS=true
+> SEED_ADMIN_PASSWORD=choose-a-local-dev-password
+> SEED_VIEWER_PASSWORD=choose-a-local-dev-password
+> ```
+>
+> `DatabaseSeeder` will refuse to start (fail-fast) if `SEED_DEFAULT_ACCOUNTS=true` but a password is missing or shorter than 6 characters, instead of silently seeding a weak/empty password.
 
 ---
 
@@ -116,12 +124,14 @@ The Vite dev server will start (usually on **`http://localhost:5173`** or simila
 
 ## 5. Development Credentials
 
-Use the following seeded accounts to log in during local testing:
+Once you've set `SEED_DEFAULT_ACCOUNTS=true` and the `SEED_ADMIN_PASSWORD` / `SEED_VIEWER_PASSWORD` environment variables described in [Section 2.2](#step-22-automatic-schema-migration--seeding), log in locally with:
 
-| Username     | Password | Role     | Access Level / Privileges                                 |
-| :----------- | :------- | :------- | :-------------------------------------------------------- |
-| **`admin`**  | `123456` | `ADMIN`  | Manage user accounts (Create, Edit, Delete), View GIS map |
-| **`viewer`** | `123456` | `VIEWER` | View-only GIS map & look up commune boundaries            |
+| Username     | Password                | Role     | Access Level / Privileges                                 |
+| :----------- | :----------------------- | :------- | :-------------------------------------------------------- |
+| **`admin`**  | value of `SEED_ADMIN_PASSWORD`  | `ADMIN`  | Manage user accounts (Create, Edit, Delete), View GIS map |
+| **`viewer`** | value of `SEED_VIEWER_PASSWORD` | `VIEWER` | View-only GIS map & look up commune boundaries            |
+
+Do **not** set `SEED_DEFAULT_ACCOUNTS` in production/staging environments.
 
 ---
 

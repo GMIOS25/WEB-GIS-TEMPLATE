@@ -38,6 +38,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       onError('Họ và tên không được để trống.');
       return;
     }
+    if (password && password.length < 6) {
+      onError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      return;
+    }
     if (password && password !== confirmPassword) {
       onError('Mật khẩu nhập lại không khớp.');
       return;
@@ -105,6 +109,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
               placeholder="Mật khẩu mới ít nhất 6 ký tự"
               className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-950 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               disabled={loading}

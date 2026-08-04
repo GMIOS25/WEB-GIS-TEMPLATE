@@ -54,3 +54,20 @@ app.jwt.expiration-ms=86400000
 app.jwt.cookie-name=gis_token
 app.jwt.cookie-secure=${JWT_COOKIE_SECURE:true}
 app.jwt.cookie-same-site=${JWT_COOKIE_SAME_SITE:Strict}
+
+# 4. CORS - danh sách origin (FE) được phép gọi API, phân tách bằng dấu phẩy.
+# KHÔNG hardcode IP máy dev cá nhân/domain production vào code (SecurityConfig.java).
+# Đổi máy dev hoặc mở rộng domain production chỉ cần đổi biến môi trường này,
+# không cần sửa code + build lại.
+app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}
+
+# 5. Seed tài khoản mặc định (admin/viewer) - CHỈ dùng cho dev/test local.
+# Mặc định TẮT (an toàn theo mặc định): nếu không set gì, DatabaseSeeder sẽ
+# KHÔNG chạy dù bảng users rỗng, kể cả ở production. Chỉ bật ở máy dev local
+# bằng SEED_DEFAULT_ACCOUNTS=true và LUÔN cấp mật khẩu qua biến môi trường
+# (>= 6 ký tự) - không có mật khẩu mặc định hardcode trong code.
+app.seed.enabled=${SEED_DEFAULT_ACCOUNTS:false}
+app.seed.admin-username=${SEED_ADMIN_USERNAME:admin}
+app.seed.admin-password=${SEED_ADMIN_PASSWORD:}
+app.seed.viewer-username=${SEED_VIEWER_USERNAME:viewer}
+app.seed.viewer-password=${SEED_VIEWER_PASSWORD:}
