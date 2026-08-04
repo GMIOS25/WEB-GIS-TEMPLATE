@@ -11,6 +11,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -26,9 +27,11 @@ import java.util.Collections;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -44,7 +47,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> response
-                                .sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
+                                .sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                        // Đăng ký AccessDeniedHandler tùy chỉnh để lỗi 403 (user đã xác thực
+                        // nhưng không đủ quyền, vd VIEWER gọi /api/admin/**) cũng trả về
+                        // đúng payload ErrorResponse chuẩn thay vì whitelabel/BasicErrorController
+                        // mặc định — đồng bộ với cam kết tại CODING_CONVENTIONS.md (Mục 2) và
+                        // API_CONTRACT.md (Mục 2).
+                        .accessDeniedHandler(accessDeniedHandler))
                 .headers(headers -> headers
                         // CSP làm lớp phòng thủ bổ sung (defense-in-depth) chống XSS:
                         // ngay cả khi có lỗ XSS (kể cả từ thư viện bên thứ ba), CSP chặt

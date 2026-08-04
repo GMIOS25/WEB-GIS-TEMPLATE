@@ -8,13 +8,17 @@ This document defines the API endpoints, data models (DTOs), authentication head
 
 Secure API endpoints require JSON Web Token (JWT) authentication.
 
-- **Header Name:** `Authorization`
-- **Format:** `Bearer <JWT_TOKEN>`
-- **Example:**
-  ```http
-  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MT...
-  ```
-- **Error Behavior:** Missing, invalid, or expired tokens result in a `401 Unauthorized` response.
+- **Primary mechanism — HttpOnly cookie:** On successful login, the server sets the JWT via the `Set-Cookie` response header. The cookie is not readable by client-side JavaScript.
+  - **Cookie name:** `gis_token` (default; configurable via `app.jwt.cookie-name`).
+  - **Attributes:** `HttpOnly`, `Secure` (configurable via `app.jwt.cookie-secure`; should stay `true` in production, which requires HTTPS — may be set to `false` for local HTTP-only dev), `SameSite=Strict` (configurable via `app.jwt.cookie-same-site`).
+  - The frontend must send requests with credentials included (e.g. Axios `withCredentials: true`) so the browser attaches the cookie automatically. This is what the web frontend uses — it does not read or store the token itself.
+- **Fallback mechanism — `Authorization` header:** Still accepted by `JwtAuthenticationFilter` for clients that call the API directly and can't rely on cookies (Swagger UI, Postman, service-to-service calls). **Not used by the web frontend.**
+  - **Format:** `Bearer <JWT_TOKEN>`
+  - **Example:**
+    ```http
+    Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MT...
+    ```
+- **Error Behavior:** Missing, invalid, or expired tokens (via either mechanism) result in a `401 Unauthorized` response.
 
 ---
 
@@ -108,19 +112,34 @@ For list endpoints that support pagination, the server uses standard Spring Boot
   ```
 - **Response Body (`LoginResponse`):**
   - Status `200 OK`
+  - The JWT is **not** included in the response body — it is set via the `Set-Cookie` response header (see [§1. Authentication Standard](#1-authentication-standard-jwt)).
   ```json
   {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "username": "admin",
     "fullName": "Quản trị viên Gia Lai",
     "role": "ADMIN"
   }
   ```
 
+#### `GET /api/auth/me`
+
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Behavior:** Returns the currently authenticated user, resolved from the JWT cookie (or `Authorization: Bearer` header, see §1) attached to the request. Since the JWT cookie is `HttpOnly` and unreadable by JS, the frontend calls this endpoint on app startup (`AuthContext`) to restore the session after a page reload, instead of reading a stored token.
+- **Response Body (`LoginResponse`):**
+  - Status `200 OK`
+  ```json
+  {
+    "username": "admin",
+    "fullName": "Quản trị viên Gia Lai",
+    "role": "ADMIN"
+  }
+  ```
+- **Error Behavior:** `401 Unauthorized` if no valid cookie/token is present.
+
 #### `POST /api/auth/logout`
 
 - **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
-- **Behavior:** The JWT scheme in this system is **stateless** (no server-side session/token store). This endpoint is a convenience no-op for the client's flow — the client is responsible for discarding the token locally (e.g. clearing the auth context / storage).
+- **Behavior:** Clears the JWT cookie by re-issuing it with the same name/path/attributes and `Max-Age=0`. The JWT scheme itself remains **stateless** (no server-side session/token store), so there is nothing to invalidate server-side beyond expiring the cookie.
 - **Response:** Status `200 OK`, empty body.
 - **Note for implementers:** If a real token-invalidation requirement emerges later (e.g. "force logout a compromised account"), this will require introducing a token blocklist (e.g. a short-lived Redis set of invalidated JTIs) — that is a deliberate architectural addition, not something to improvise ad hoc inside this endpoint.
 
