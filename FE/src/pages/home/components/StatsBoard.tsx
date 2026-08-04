@@ -45,7 +45,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ geoJsonData }) => {
         <div className="flex justify-between items-center text-sm pb-1">
           <span className="text-neutral-500">Tổng diện tích</span>
           <span className="font-bold text-neutral-900">
-            {totalArea > 0 ? totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '15.548,43'} km²
+            {totalArea > 0 ? totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '21.576,56'} km²
           </span>
         </div>
       </div>
