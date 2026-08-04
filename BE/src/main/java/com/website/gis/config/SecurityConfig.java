@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -28,10 +29,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AccessDeniedHandler accessDeniedHandler;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler,
+            AuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     @Bean
@@ -45,14 +49,13 @@ public class SecurityConfig {
                 // SameSite=Strict/Lax cấu hình ở AuthController/application.properties.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Đăng ký AuthenticationEntryPoint (401 - chưa xác thực) và AccessDeniedHandler
+                // (403 - không đủ quyền, vd VIEWER gọi /api/admin/**) tùy chỉnh để CẢ HAI
+                // loại lỗi bảo mật đều trả về đúng payload ErrorResponse chuẩn thay vì
+                // whitelabel/BasicErrorController mặc định — khớp 100% cam kết tại
+                // CODING_CONVENTIONS.md (Mục 2) và API_CONTRACT.md (Mục 2).
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> response
-                                .sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
-                        // Đăng ký AccessDeniedHandler tùy chỉnh để lỗi 403 (user đã xác thực
-                        // nhưng không đủ quyền, vd VIEWER gọi /api/admin/**) cũng trả về
-                        // đúng payload ErrorResponse chuẩn thay vì whitelabel/BasicErrorController
-                        // mặc định — đồng bộ với cam kết tại CODING_CONVENTIONS.md (Mục 2) và
-                        // API_CONTRACT.md (Mục 2).
+                        .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .headers(headers -> headers
                         // CSP làm lớp phòng thủ bổ sung (defense-in-depth) chống XSS:
