@@ -107,7 +107,7 @@
 - **Input:** Thư viện map, API BE.
 - **Output:** Giao diện trực quan, hoạt động hoàn hảo.
 - **Cách verify:** Đăng nhập vai trò `viewer` -> Sidebar chính không hiển thị phần "Quản lý người dùng". Đăng nhập vai trò `admin` -> hiển thị và thực hiện CRUD thành công.
-- **Ghi chú thực tế:** modal CRUD user được code tay bằng Tailwind (không dùng Radix UI/Shadcn dialog như dự kiến ban đầu) để nhẹ hơn. Layer "Huyện" trong Left Drawer đã được bỏ, chỉ giữ 2 toggle "Ranh giới cấp Tỉnh" và "Ranh giới cấp Xã". Xem chi tiết tại `docs/Phase 1/Task 4/walkthrough.md`.
+- **Ghi chú thực tế:** modal CRUD user được code tay bằng Tailwind (không dùng Radix UI/Shadcn dialog như dự kiến ban đầu) để nhẹ hơn. Layer "Huyện" trong Left Drawer đã được bỏ, chỉ giữ 2 toggle "Ranh giới cấp Tỉnh" và "Ranh giới cấp Xã".
 
 ---
 
