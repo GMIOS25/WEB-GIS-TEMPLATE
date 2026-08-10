@@ -1,0 +1,62 @@
+# CI cơ bản: build + test cho cả BE và FE trên mỗi push/PR vào main. Đây KHÔNG phải
+# CD (không build/push Docker image, không deploy) - việc deploy vẫn theo đúng quy
+# trình thủ công đã mô tả trong docs/en/DEPLOYMENT & FLEET STRATEGY.md Section 5.1;
+# workflow này chỉ nhằm bắt lỗi biên dịch/test sớm trước khi merge.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BE
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: BE/pom.xml
+
+      - name: Run tests
+        # Test dùng Testcontainers (postgis/postgis) - xem TestcontainersConfiguration.java
+        # - cần Docker, vốn có sẵn trên GitHub-hosted ubuntu-latest runner.
+        run: ./mvnw -B verify
+
+  frontend:
+    name: Frontend (pnpm)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FE
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: FE/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check + build
+        run: pnpm build

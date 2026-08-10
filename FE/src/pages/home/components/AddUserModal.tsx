@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import api from '../../../api/axiosInstance';
+import { extractErrorMessage } from '../../../api/errorUtils';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -43,11 +44,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      // Sửa cả AddUserModal.tsx và DeleteUserModal.tsx
-    const errorMsg = err && typeof err === 'object' && 'response' in err
-      ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message)
-      : null;
-      onError(errorMsg || 'Có lỗi xảy ra khi tạo tài khoản.');
+      onError(extractErrorMessage(err, 'Có lỗi xảy ra khi tạo tài khoản.'));
     } finally {
       setLoading(false);
     }

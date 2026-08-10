@@ -91,14 +91,29 @@ public class JwtTokenProvider {
         try {
             Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken);
             return true;
-        } catch (MalformedJwtException ex) {
-            logger.error("Invalid JWT token");
-        } catch (ExpiredJwtException ex) {
-            logger.error("Expired JWT token");
-        } catch (UnsupportedJwtException ex) {
-            logger.error("Unsupported JWT token");
+        } catch (JwtException ex) {
+            // TRƯỚC ĐÂY: liệt kê riêng từng subclass cụ thể (MalformedJwtException,
+            // ExpiredJwtException, UnsupportedJwtException) nhưng THIẾU
+            // io.jsonwebtoken.security.SignatureException - exception này được ném ra
+            // khi chữ ký JWT không khớp key hiện tại (token bị giả mạo, hoặc JWT_SECRET
+            // vừa bị xoay trong khi cookie cũ của người dùng vẫn còn hiệu lực). Vì
+            // SignatureException KHÔNG phải là subclass của 3 loại trên, nó sẽ thoát
+            // khỏi phương thức này thay vì trả về false như hợp đồng của hàm.
+            //
+            // Blast radius trên thực tế được chặn lại bởi lớp catch-all
+            // (catch (Exception ex)) ở JwtAuthenticationFilter#doFilterInternal - nên
+            // người dùng vẫn chỉ thấy 401 như bình thường - nhưng dựa vào một lớp
+            // phòng thủ Ở NƠI KHÁC để che một lỗi logic ngay tại đây là mong manh: nếu
+            // sau này validateToken() được gọi từ chỗ khác không có try-catch bao
+            // ngoài, lỗi sẽ lộ ra thành 500 thay vì 401.
+            //
+            // Bắt theo JwtException (lớp cha chung của MỌI exception mà jjwt tự ném ra
+            // khi parse/verify: SignatureException, MalformedJwtException,
+            // ExpiredJwtException, UnsupportedJwtException, WeakKeyException...) loại
+            // bỏ hẳn rủi ro "quên liệt kê" một subclass mới về sau.
+            logger.warn("Invalid JWT token ({}): {}", ex.getClass().getSimpleName(), ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            logger.error("JWT claims string is empty.");
+            logger.warn("JWT claims string is empty.");
         }
         return false;
     }

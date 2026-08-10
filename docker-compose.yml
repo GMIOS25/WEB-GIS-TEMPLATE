@@ -1,0 +1,66 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gialai-gis-app:latest
+    container_name: gialai-gis-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - gis-net
+    # No published port on the host — only Caddy talks to this container.
+
+  db:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: gialai-gis-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gialai}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-gialai}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gis-net
+    # No published port on the host — only the app container reaches Postgres,
+    # over the internal Docker network. Use `docker compose exec db psql ...`
+    # for manual access instead of exposing 5432 publicly.
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: gialai-gis-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    networks:
+      - gis-net
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  gis-net:
+    driver: bridge

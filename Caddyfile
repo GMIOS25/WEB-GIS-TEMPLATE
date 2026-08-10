@@ -1,0 +1,5 @@
+# Thay bằng domain thật khi có (xem docs/en/DEPLOYMENT & FLEET STRATEGY.md Section 4.2).
+# Caddy tự lo ACME/Let's Encrypt - không cần bước certbot thủ công.
+gis.gialai.gov.vn {
+    reverse_proxy app:8080
+}

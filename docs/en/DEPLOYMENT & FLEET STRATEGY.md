@@ -186,14 +186,37 @@ SPRING_DATASOURCE_PASSWORD=CHANGE_ME_STRONG_PASSWORD
 # --- JWT ---
 JWT_SECRET=CHANGE_ME_LONG_RANDOM_STRING
 JWT_EXPIRATION_MS=86400000
+JWT_COOKIE_SECURE=true
+JWT_COOKIE_SAME_SITE=Strict
+
+# --- Reverse proxy trust (required — see Section 2 for why Caddy always sits in
+#     front) — without this, per-IP login rate limiting (LoginAttemptService)
+#     sees every request as coming from Caddy's own IP ---
+SERVER_FORWARD_HEADERS_STRATEGY=framework
+
+# --- JPA ---
+SPRING_JPA_OPEN_IN_VIEW=false
+
+# --- Seed default accounts — leave SEED_DEFAULT_ACCOUNTS unset/false except for the
+#     one-time bootstrap described in the checklist below (Section 5.4) ---
+SEED_DEFAULT_ACCOUNTS=false
+SEED_ADMIN_USERNAME=admin
+SEED_ADMIN_PASSWORD=
+SEED_VIEWER_USERNAME=viewer
+SEED_VIEWER_PASSWORD=
 
 # --- Feature flags (all false for Phase 1 — see ARCHITECTURE SPECIFICATION.md Section 4.3) ---
-ENABLE_OCOP=false
-ENABLE_SCIENCE=false
-ENABLE_AGRICULTURE=false
+# Names must match the actual @Value("${features.ocop.enabled}") properties read in
+# DynamicFlywayConfig.java via Spring's relaxed binding (dots → underscores, upper-
+# cased): FEATURES_OCOP_ENABLED, not ENABLE_OCOP — an earlier draft of this file used
+# the ENABLE_* names, which silently do nothing (relaxed binding has no notion of
+# "alias", so setting ENABLE_OCOP never touches features.ocop.enabled).
+FEATURES_OCOP_ENABLED=false
+FEATURES_SCIENCE_ENABLED=false
+FEATURES_AGRICULTURE_ENABLED=false
 ```
 
-A `.env.example` (with placeholder values, no real secrets) should be committed to the repo so a fresh VPS setup has something to copy from — this closes the same gap flagged for local dev's missing `application.properties` template.
+A `.env.example` (with placeholder values, no real secrets) is committed at the repo root so a fresh VPS setup has something to copy from — this closes the same gap flagged for local dev's missing `application.properties` template (`BE/src/main/resources/application.properties.example`, a separate file used only when running the backend directly with `./mvnw`, not through Docker).
 
 ---
 
@@ -224,16 +247,19 @@ If the previous release included a Flyway migration that must also be reverted, 
 
 ### 5.3. Database Backup
 
-Daily `pg_dump`, run from the host via cron (kept outside the app container so it survives app redeploys):
+Daily `pg_dump`, run from the host via cron (kept outside the app container so it survives app redeploys). The actual script is committed at [`scripts/backup-db.sh`](../../scripts/backup-db.sh) — shown here for reference, but treat the file in the repo as the source of truth rather than this copy:
 
 ```bash
 #!/usr/bin/env bash
 # /opt/gialai-gis/scripts/backup-db.sh
 set -euo pipefail
+
+COMPOSE_DIR="${COMPOSE_DIR:-/opt/gialai-gis}"
 STAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR=/opt/gialai-gis/backups
+BACKUP_DIR="${COMPOSE_DIR}/backups"
 mkdir -p "$BACKUP_DIR"
 
+cd "$COMPOSE_DIR"
 docker compose exec -T db pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" \
     > "$BACKUP_DIR/gialai_${STAMP}.dump"
 
@@ -241,9 +267,11 @@ docker compose exec -T db pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" \
 find "$BACKUP_DIR" -name "gialai_*.dump" -mtime +7 ! -name "*_Sun_*" -delete
 ```
 
+`$POSTGRES_USER` / `$POSTGRES_DB` must be present in the environment cron invokes the script with — e.g. `env $(cat /opt/gialai-gis/.env | grep -v '^#' | xargs) /opt/gialai-gis/scripts/backup-db.sh` in the crontab entry below, rather than assuming cron inherits `.env`.
+
 ```cron
 # crontab -e
-0 2 * * * /opt/gialai-gis/scripts/backup-db.sh >> /var/log/gialai-backup.log 2>&1
+0 2 * * * env $(cat /opt/gialai-gis/.env | grep -v '^#' | xargs) /opt/gialai-gis/scripts/backup-db.sh >> /var/log/gialai-backup.log 2>&1
 ```
 
 **Restore:**
@@ -262,8 +290,9 @@ Off-VPS copies of backups (e.g. synced to a separate object storage bucket or a 
 - [ ] `git clone` the repo to `/opt/gialai-gis`.
 - [ ] Copy `.env.example` → `.env`, fill in real secrets (generate `JWT_SECRET` with e.g. `openssl rand -hex 32`).
 - [ ] Point the domain's DNS at the VPS; confirm ports 80/443 are open in the VPS firewall/security group.
+- [ ] For the very first deploy only (no `users` rows exist yet), temporarily set `SEED_DEFAULT_ACCOUNTS=true` plus a real `SEED_ADMIN_PASSWORD` (≥ 6 chars — `DatabaseSeeder` fails fast otherwise) in `.env`.
 - [ ] `docker compose up -d --build`; confirm Caddy issues a certificate and `/actuator/health` responds `UP` through HTTPS.
-- [ ] Log in with the seeded `admin` account and **change its password immediately** (the seeded `123456` password from `DatabaseSeeder` is for local dev only — never leave it active on a public deployment).
+- [ ] Log in with the seeded `admin` account, then immediately: (a) change its password from the UI, and (b) set `SEED_DEFAULT_ACCOUNTS=false` in `.env` and redeploy (Section 5.1) so the seeding path is disabled again — leaving it `true` means anyone who wipes the `users` table (or a fresh install pointed at the same `.env`) gets a working admin account back.
 - [ ] Install the cron job from Section 5.3.
 
 ---

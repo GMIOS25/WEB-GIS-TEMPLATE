@@ -71,7 +71,14 @@ The Backend code is located in the [/BE](../../BE) directory.
 
 ### Step 3.1: Configure Connection Settings
 
-Open [BE/src/main/resources/application.properties](../../BE/src/main/resources/application.properties) and update the database credentials to match your local PostgreSQL configuration:
+`BE/src/main/resources/application.properties` is **not** committed to the repo (it's git-ignored, since it ends up holding real local secrets like your DB password and JWT secret). Create your own copy from the template first:
+
+```bash
+cd BE/src/main/resources
+cp application.properties.example application.properties
+```
+
+Then open the new [BE/src/main/resources/application.properties](../../BE/src/main/resources/application.properties) and update the database credentials to match your local PostgreSQL configuration:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/gialai

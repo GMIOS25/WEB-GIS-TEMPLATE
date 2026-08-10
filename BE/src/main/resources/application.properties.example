@@ -30,10 +30,15 @@ spring.jpa.properties.hibernate.format_sql=true
 # - Chọn 'none' nếu không muốn kiểm tra.
 spring.jpa.hibernate.ddl-auto=validate
 
+# open-in-view=false: tắt Open Session In View (Spring Boot mặc định BẬT nếu không
+# khai báo dòng này). OSIV giữ Hibernate session mở suốt vòng đời request để lazy-load
+# quan hệ (vd. Ward.province) ở bất kỳ đâu, kể cả ngoài transaction - tiện nhưng che
+# giấu N+1 query và bị chính Spring Boot khuyến cáo tắt. Tắt ở đây bắt buộc phải fetch
+# tường minh các quan hệ LAZY cần dùng (xem @EntityGraph trong WardRepository).
+spring.jpa.open-in-view=false
+
 # Lưu ý: Từ Hibernate 6 (Spring Boot 3.x), Hibernate tự động nhận diện tính năng Spatial 
 # của PostgreSQL nên bạn không cần chỉ định cứng PostgisDialect nữa.
-spring.security.user.name=${SECURITY_USER_NAME:admin}
-spring.security.user.password=${SECURITY_USER_PASSWORD:your_admin_password}
 
 # 2b. Bật nén gzip cho response JSON (GeoJSON trả về rất lớn -> giảm mạnh thời gian tải)
 server.compression.enabled=true
@@ -60,6 +65,17 @@ app.jwt.cookie-same-site=${JWT_COOKIE_SAME_SITE:Strict}
 # Đổi máy dev hoặc mở rộng domain production chỉ cần đổi biến môi trường này,
 # không cần sửa code + build lại.
 app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}
+
+# 4b. Tin tưởng header X-Forwarded-* do reverse proxy (Caddy - xem DEPLOYMENT & FLEET
+# STRATEGY.md) gắn vào request. KHÔNG có dòng này, HttpServletRequest#getRemoteAddr()
+# ở production sẽ luôn trả về IP của container Caddy (vì Caddy là process duy nhất
+# gọi thẳng vào app container - "no published port on the host"), khiến MỌI request
+# trông như đến từ cùng 1 IP. Hậu quả cụ thể: LoginAttemptService (rate-limit đăng
+# nhập theo IP) sẽ gộp toàn bộ người dùng vào chung 1 "IP" - 1 người cố tình đăng
+# nhập sai 5 lần có thể khoá đăng nhập của TẤT CẢ mọi người trong 15 phút. An toàn
+# để luôn bật (không chỉ khi có proxy) vì kiến trúc deploy của dự án này đảm bảo app
+# container không bao giờ bị lộ trực tiếp ra ngoài (chỉ Caddy được expose port 80/443).
+server.forward-headers-strategy=framework
 
 # 5. Seed tài khoản mặc định (admin/viewer) - CHỈ dùng cho dev/test local.
 # Mặc định TẮT (an toàn theo mặc định): nếu không set gì, DatabaseSeeder sẽ

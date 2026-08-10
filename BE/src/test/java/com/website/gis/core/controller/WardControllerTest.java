@@ -99,4 +99,46 @@ class WardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("Polygon"));
     }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetAllWardsGeoJson_thenReturnFeatureCollection() throws Exception {
+        Object[] row = new Object[] {
+                "24124", "Xã An Phú", "Xã An Phú",
+                new BigDecimal("12.34"),
+                "{\"type\":\"Polygon\",\"coordinates\":[]}"
+        };
+        Mockito.when(gisWardRepository.findAllWardsGeoJsonData())
+                .thenReturn(Collections.singletonList(row));
+
+        mockMvc.perform(get("/api/wards/geojson"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features[0].type").value("Feature"))
+                .andExpect(jsonPath("$.features[0].geometry.type").value("Polygon"))
+                .andExpect(jsonPath("$.features[0].properties.code").value("24124"))
+                .andExpect(jsonPath("$.features[0].properties.fullName").value("Xã An Phú"))
+                .andExpect(jsonPath("$.features[0].properties.areaKm2").value(12.34));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetAllWardsGeoJson_thenSkipRowWithMalformedGeometry() throws Exception {
+        // Trước bản refactor sang Jackson, geomJson lỗi cú pháp sẽ được nối thẳng vào
+        // chuỗi JSON output qua StringBuilder -> làm hỏng luôn cả FeatureCollection.
+        // Sau khi parse qua ObjectMapper#readTree, hàng lỗi phải bị bỏ qua một cách an
+        // toàn thay vì làm hỏng toàn bộ response.
+        Object[] badRow = new Object[] {
+                "99999", "Xã Lỗi Dữ Liệu", "Xã Lỗi Dữ Liệu",
+                new BigDecimal("1.00"),
+                "{not-valid-geojson"
+        };
+        Mockito.when(gisWardRepository.findAllWardsGeoJsonData())
+                .thenReturn(Collections.singletonList(badRow));
+
+        mockMvc.perform(get("/api/wards/geojson"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features").isEmpty());
+    }
 }

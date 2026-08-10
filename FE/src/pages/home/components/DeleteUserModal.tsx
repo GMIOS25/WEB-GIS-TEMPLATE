@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import api from '../../../api/axiosInstance';
+import { extractErrorMessage } from '../../../api/errorUtils';
 import type { AdminUser } from './EditUserModal';
 
 interface DeleteUserModalProps {
@@ -30,10 +31,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      const errorMsg = err && typeof err === 'object' && 'response' in err
-        ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message)
-        : null;
-      onError(errorMsg || 'Không thể xóa tài khoản này.');
+      onError(extractErrorMessage(err, 'Không thể xóa tài khoản này.'));
     } finally {
       setLoading(false);
     }

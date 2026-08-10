@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Key } from 'lucide-react';
 import api from '../../../api/axiosInstance';
+import { extractErrorMessage } from '../../../api/errorUtils';
 
 export interface AdminUser {
   id: number;
@@ -57,10 +58,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       onClose();
     } catch (err: unknown) {
       console.error(err);
-      const errorMsg = err && typeof err === 'object' && 'response' in err
-        ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message)
-        : null;
-      onError(errorMsg || 'Có lỗi xảy ra khi cập nhật.');
+      onError(extractErrorMessage(err, 'Có lỗi xảy ra khi cập nhật.'));
     } finally {
       setLoading(false);
     }
