@@ -45,7 +45,17 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ geoJsonData }) => {
         <div className="flex justify-between items-center text-sm pb-1">
           <span className="text-neutral-500">Tổng diện tích</span>
           <span className="font-bold text-neutral-900">
-            {totalArea > 0 ? totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '21.576,56'} km²
+            {/*
+              BUG FIX: was a hardcoded '21.576,56' fallback whenever totalArea was 0
+              (i.e. while geoJsonData is still loading). A fallback like that reads
+              as real data, not a loading state — and DEPLOYMENT & FLEET
+              STRATEGY.md Section 7.4 explicitly plans for core boundary-data
+              corrections via forward-only Flyway migrations, so this hardcoded
+              number would silently drift from the real total the next time that
+              happens, with nothing to catch it. Show an honest loading state
+              instead of a number that might be wrong.
+            */}
+            {totalArea > 0 ? `${totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} km²` : 'Đang tải...'}
           </span>
         </div>
       </div>

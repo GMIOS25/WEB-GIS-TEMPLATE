@@ -117,13 +117,7 @@ public class AuthController {
                 User user = userRepository.findByUsername(authentication.getName())
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-                String role = authentication.getAuthorities().stream()
-                                .map(GrantedAuthority::getAuthority)
-                                .findFirst()
-                                .orElse(user.getRole());
-
                 LoginResponse response = userMapper.toLoginResponse(user);
-                response.setRole(role); // Authoritative role comes from the authenticated principal, not just the row
 
                 return ResponseEntity.ok(response);
         }

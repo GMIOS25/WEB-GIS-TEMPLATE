@@ -5,12 +5,12 @@
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (cập nhật 2026-07-14): Giai đoạn 1 đã hoàn thành 4/5 task (TSK-1 → TSK-4). TSK-5 (Docker) hiện MỚI CHỈ Ở DẠNG ĐẶC TẢ/KẾ HOẠCH trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, KHÔNG có file `Dockerfile`/`docker-compose.yml`/`Caddyfile`/`.env.example` thực tế nào trong repo** (đã kiểm tra cả working tree lẫn toàn bộ lịch sử git — chưa từng có commit nào tạo các file này). Xem ghi chú chi tiết ở mục TSK-5 bên dưới. File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở TSK-1 → TSK-4, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
+> **Trạng thái tài liệu (cập nhật 2026-08-11): Giai đoạn 1 đã hoàn thành 5/5 task (TSK-1 → TSK-5).** TSK-5 (Docker) — trước đây mục này từng ghi là "mới ở dạng đặc tả, chưa có file thật"; điều đó không còn đúng: `Dockerfile`, `docker-compose.yml`, `Caddyfile` và `.env.example` đã tồn tại thật ở root repo, đối chiếu khớp với đặc tả trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`. Xem ghi chú chi tiết ở mục TSK-5 bên dưới, bao gồm phần **CHƯA verify được** (chưa chạy `docker compose up -d --build` thật trên VPS sạch). File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở TSK-1 → TSK-5, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
 >
 > - Schema DB thật + quy ước bảng tương lai: `DATA_MODEL.md`
 > - Kiến trúc modular, package `core/` vs `features/`: `ARCHITECTURE SPECIFICATION.md`
 > - Setup máy dev (không cần chạy SQL tay): `DEVELOPMENT_SETUP.md`
-> - Kế hoạch vận hành/deploy (Docker, Caddy, backup, fleet) — **là đặc tả, chưa triển khai thành file thật**: `DEPLOYMENT & FLEET STRATEGY.md`
+> - Kế hoạch vận hành/deploy (Docker, Caddy, backup, fleet) — Dockerfile/docker-compose.yml/Caddyfile/.env.example **đã tồn tại thật ở root repo** (xem TSK-5), tài liệu này vẫn là nguồn tham chiếu đầy đủ nhất cho phần vận hành (backup, rollback, checklist VPS, kế hoạch fleet): `DEPLOYMENT & FLEET STRATEGY.md`
 > - API hiện có + quy ước API module tương lai: `API_CONTRACT.md`
 >
 > Tên module Khoa học Công nghệ đã được thống nhất là **`science`** (không dùng `khcn`) trong toàn bộ code và tài liệu — xem ghi chú tại `ARCHITECTURE SPECIFICATION.md` mục 6.4.
@@ -46,7 +46,7 @@
 
 ---
 
-## 3. Danh sách 5 Tasks phát triển cốt lõi (4/5 đã hoàn thành thật; TSK-5 còn ở dạng đặc tả)
+## 3. Danh sách 5 Tasks phát triển cốt lõi (5/5 đã hoàn thành thật)
 
 ### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
 
@@ -113,16 +113,18 @@
 
 ### 📦 PHẦN 3: ĐÓNG GÓI & TRIỂN KHAI
 
-#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ⚠️ Mới ở dạng đặc tả, CHƯA triển khai thành file thật
+#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ File thật đã tồn tại trong repo; xem mục "Còn thiếu để verify" bên dưới trước khi coi là đóng hẳn
 
->
-
-- **Nội dung (kế hoạch, ghi trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`, đã cập nhật so với bản gốc):**
-  - Multi-stage `Dockerfile` dự kiến đặt ở root repo: build FE (`node:20-alpine` + pnpm) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước khi `mvnw package`) → runtime (`eclipse-temurin:17-jre-alpine`, chạy user không phải root).
-  - `docker-compose.yml` dự kiến gồm **3 dịch vụ** (khác với bản kế hoạch gốc chỉ dự tính 2 dịch vụ `db`+`app`): `app` (Spring Boot, không public port ra ngoài), `db` (`postgis/postgis:15-3.4-alpine`, không public port 5432 ra ngoài), và **`caddy`** (reverse proxy TLS tự động cấp chứng chỉ Let's Encrypt, expose port 80/443 — vẫn giữ đúng triết lý "không dùng Nginx" ở đầu file, chỉ là thay bằng Caddy thay vì bỏ hẳn reverse proxy).
-  - `Caddyfile` dự kiến cấu hình domain trỏ vào `app:8080`.
-  - `.env.example` dự kiến mẫu biến môi trường (DB credentials, JWT secret, feature flags `ENABLE_OCOP`/`ENABLE_SCIENCE`/`ENABLE_AGRICULTURE` — mặc định `false` cho Giai đoạn 1).
-- **Input:** Chưa có file cấu hình Docker nào trong repo — cần tạo mới dựa theo đặc tả ở `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
-- **Output mong muốn (chưa đạt được):** Toàn bộ hệ thống chạy chỉ bằng lệnh `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
-- **Cách verify (sau khi tạo file thật):** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
+- **Nội dung thực tế (khớp với đặc tả gốc trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`):**
+  - `Dockerfile` (root repo) — multi-stage đúng như dự kiến: build FE (`node:20-alpine`, pin `pnpm@9` qua corepack) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước `mvnw package`, có thêm `chmod +x mvnw` phòng vệ) → runtime (`eclipse-temurin:17-jre-alpine`, user không phải root). Sát hơn bản kế hoạch gốc một chút (thêm bước pin version pnpm để khớp lockfile).
+  - `docker-compose.yml` (root repo) — đúng 3 dịch vụ `app`/`db`/`caddy` như đặc tả, `app`/`db` không public port, chỉ `caddy` expose 80/443.
+  - `Caddyfile` (root repo) — đúng domain placeholder `gis.gialai.gov.vn`, reverse proxy vào `app:8080`.
+  - `.env.example` (root repo) — đúng tên biến `FEATURES_OCOP_ENABLED`/`FEATURES_SCIENCE_ENABLED`/`FEATURES_AGRICULTURE_ENABLED` (không phải `ENABLE_OCOP` như bản nháp cũ mà chính `DEPLOYMENT & FLEET STRATEGY.md` đã cảnh báo là sai).
+  - `scripts/backup-db.sh` — khớp với script mô tả ở Section 5.3 của tài liệu trên.
+- **Output:** Về mặt file, đủ điều kiện chạy `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
+- **Còn thiếu để verify (chưa làm, ghi lại để không quên):**
+  - Chưa từng chạy `docker compose up -d --build` thật trên một máy/VPS sạch để xác nhận toàn bộ pipeline build (FE → BE → runtime image) chạy trót lọt từ đầu đến cuối.
+  - Chưa xác nhận `/actuator/health` trả `UP` qua Caddy trên một lần deploy thật (bug chặn việc này — endpoint yêu cầu đăng nhập — đã được phát hiện và sửa ở `SecurityConfig.java`, xem Section 4.3 `API_CONTRACT.md`/ghi chú bảo mật trong code, nhưng vẫn nên xác nhận lại bằng một lần deploy thật thay vì chỉ tin vào test).
+  - `BE/mvnw` từng bị mất execute bit trong git (100644 thay vì 100755) dù comment trong `Dockerfile` khẳng định đã fix — đã sửa lại đúng 100755, nhưng đây là ví dụ cho thấy nên chạy thử `docker compose build` thật ít nhất 1 lần trên máy khác thay vì chỉ tin comment trong code.
+- **Cách verify:** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
 - **Chi tiết đặc tả vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
