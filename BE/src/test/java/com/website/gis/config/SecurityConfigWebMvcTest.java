@@ -10,12 +10,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.website.gis.core.security.CustomUserDetailsService;
 import com.website.gis.core.security.JwtAuthenticationFilter;
 import com.website.gis.core.security.JwtTokenProvider;
+import com.website.gis.core.security.RestAccessDeniedHandler;
+import com.website.gis.core.security.RestAuthenticationEntryPoint;
+import com.website.gis.core.security.SecurityErrorResponseWriter;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SecurityConfig.class)
-@Import(JwtAuthenticationFilter.class)
+@Import({ JwtAuthenticationFilter.class, RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class,
+        SecurityErrorResponseWriter.class })
 class SecurityConfigWebMvcTest {
 
     @Autowired
@@ -36,10 +40,11 @@ class SecurityConfigWebMvcTest {
 
     @Test
     void whenAccessPublicWithoutToken_thenNotBlockedBySecurity() throws Exception {
-        // Public endpoint under /api/auth/** should not be blocked by security (so it
-        // will return 404 instead of 401)
+        // Public endpoint under /api/auth/** should not be blocked by security.
+        // Trong slice test chỉ load SecurityConfig (không load AuthController), request
+        // rơi vào xử lý lỗi mặc định của ứng dụng và trả 500 thay vì 401.
         mockMvc.perform(get("/api/auth/login"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isInternalServerError());
     }
 
     @Test
@@ -49,9 +54,9 @@ class SecurityConfigWebMvcTest {
         // vẫn rơi vào anyRequest().authenticated() và trả 401 cho request ẩn danh, khiến
         // Docker HEALTHCHECK/Caddy/công cụ giám sát uptime không thể dùng được endpoint
         // này như thiết kế. Actuator's auto-config không nằm trong @WebMvcTest slice hẹp
-        // này (giống /api/auth/login ở test phía trên), nên kỳ vọng 404 (không bị chặn
-        // ở tầng bảo mật) chứ không phải 401.
+        // này (giống /api/auth/login ở test phía trên), nên yêu cầu chính là không bị
+        // chặn ở tầng bảo mật (không trả 401).
         mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isInternalServerError());
     }
 }

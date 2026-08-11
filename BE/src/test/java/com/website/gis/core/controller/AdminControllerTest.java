@@ -11,6 +11,9 @@ import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.security.CustomUserDetailsService;
 import com.website.gis.core.security.JwtAuthenticationFilter;
 import com.website.gis.core.security.JwtTokenProvider;
+import com.website.gis.core.security.RestAccessDeniedHandler;
+import com.website.gis.core.security.RestAuthenticationEntryPoint;
+import com.website.gis.core.security.SecurityErrorResponseWriter;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -31,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class })
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class, RestAccessDeniedHandler.class,
+        RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class AdminControllerTest {
 
     @Autowired
