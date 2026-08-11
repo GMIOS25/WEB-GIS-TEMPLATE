@@ -33,6 +33,9 @@ jobs:
         # - cần Docker, vốn có sẵn trên GitHub-hosted ubuntu-latest runner.
         run: ./mvnw -B verify
 
+      - name: Fix mvnw permission
+        run: chmod +x mvnw
+
   frontend:
     name: Frontend (pnpm)
     runs-on: ubuntu-latest

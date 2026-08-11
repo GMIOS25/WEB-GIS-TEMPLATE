@@ -41,4 +41,17 @@ class SecurityConfigWebMvcTest {
         mockMvc.perform(get("/api/auth/login"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void whenAccessActuatorHealthWithoutToken_thenNotBlockedBySecurity() throws Exception {
+        // Regression test: Phase1-task.md từng ghi nhầm là endpoint này "đã được phát
+        // hiện và sửa" nhưng SecurityConfig thực tế chưa hề có thay đổi - /actuator/health
+        // vẫn rơi vào anyRequest().authenticated() và trả 401 cho request ẩn danh, khiến
+        // Docker HEALTHCHECK/Caddy/công cụ giám sát uptime không thể dùng được endpoint
+        // này như thiết kế. Actuator's auto-config không nằm trong @WebMvcTest slice hẹp
+        // này (giống /api/auth/login ở test phía trên), nên kỳ vọng 404 (không bị chặn
+        // ở tầng bảo mật) chứ không phải 401.
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isNotFound());
+    }
 }

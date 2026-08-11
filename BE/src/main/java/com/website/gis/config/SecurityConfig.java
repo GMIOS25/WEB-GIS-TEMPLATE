@@ -84,6 +84,16 @@ public class SecurityConfig {
                                         "form-action 'self'")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
+                        // /actuator/health phải cho phép truy cập ẩn danh: Docker
+                        // HEALTHCHECK, Caddy, hay bất kỳ công cụ giám sát uptime nào
+                        // đều gọi endpoint này KHÔNG kèm cookie/token đăng nhập. Chỉ
+                        // permitAll đúng "/actuator/health" (không phải toàn bộ
+                        // "/actuator/**"), vì mặc định Spring Boot chỉ show
+                        // {"status":"UP"} cho request ẩn danh (management.endpoint.
+                        // health.show-details mặc định "never") - các endpoint
+                        // actuator khác (env, beans, ...) nếu sau này được bật lên thì
+                        // vẫn nằm dưới anyRequest().authenticated() như bình thường.
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
