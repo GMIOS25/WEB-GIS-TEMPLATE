@@ -28,13 +28,13 @@ jobs:
           cache: maven
           cache-dependency-path: BE/pom.xml
 
+      - name: Fix mvnw permission
+        run: chmod +x mvnw
+
       - name: Run tests
         # Test dùng Testcontainers (postgis/postgis) - xem TestcontainersConfiguration.java
         # - cần Docker, vốn có sẵn trên GitHub-hosted ubuntu-latest runner.
         run: ./mvnw -B verify
-
-      - name: Fix mvnw permission
-        run: chmod +x mvnw
 
   frontend:
     name: Frontend (pnpm)

@@ -3,20 +3,24 @@ package com.website.gis.core.security;
 import com.website.gis.core.exception.TooManyRequestsException;
 
 import org.springframework.stereotype.Component;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate-limit / khoá tạm (lockout) số lần đăng nhập sai, theo username VÀ
- * theo IP nguồn, để chống brute-force mật khẩu qua {@code POST /api/auth/login}.
+ * theo IP nguồn, để chống brute-force mật khẩu qua
+ * {@code POST /api/auth/login}.
  *
  * TRƯỚC ĐÂY: endpoint login không có bất kỳ giới hạn nào (không Bucket4j,
  * không {@code @Retryable}/lockout logic), nên một tài khoản như "admin" có
  * thể bị thử mật khẩu không giới hạn số lần - đặc biệt nguy hiểm khi kết hợp
- * với rủi ro mật khẩu mặc định yếu ở {@link com.website.gis.config.DatabaseSeeder}.
+ * với rủi ro mật khẩu mặc định yếu ở
+ * {@link com.website.gis.config.DatabaseSeeder}.
  *
  * Cài đặt bằng bộ nhớ trong tiến trình ({@link ConcurrentHashMap}) - không
  * cần thêm dependency mới, đủ dùng cho một instance backend duy nhất. Nếu
@@ -58,7 +62,10 @@ public class LoginAttemptService {
         }
     }
 
-    /** Ghi nhận 1 lần đăng nhập thất bại; khoá tạm key này nếu vượt ngưỡng MAX_ATTEMPTS. */
+    /**
+     * Ghi nhận 1 lần đăng nhập thất bại; khoá tạm key này nếu vượt ngưỡng
+     * MAX_ATTEMPTS.
+     */
     public void recordFailure(String key) {
         Instant now = Instant.now();
         attemptsByKey.compute(key, (k, existing) -> {
@@ -80,5 +87,36 @@ public class LoginAttemptService {
     /** Đăng nhập thành công -> xoá lịch sử thất bại của key này. */
     public void recordSuccess(String key) {
         attemptsByKey.remove(key);
+    }
+
+    @Scheduled(fixedRate = 3600000) // Every hour
+    public void cleanupExpiredAttempts() {
+        Instant now = Instant.now();
+        AtomicInteger removedCount = new AtomicInteger(0);
+
+        attemptsByKey.entrySet().removeIf(entry -> {
+            Attempt attempt = entry.getValue();
+
+            // If still locked, keep it
+            if (attempt.lockedUntil != null && now.isBefore(attempt.lockedUntil)) {
+                return false;
+            }
+
+            // If window has expired, remove it
+            if (attempt.windowStartedAt != null) {
+                Duration age = Duration.between(attempt.windowStartedAt, now);
+                Duration maxAge = ATTEMPT_WINDOW.plus(LOCK_DURATION);
+                if (age.compareTo(maxAge) > 0) {
+                    removedCount.incrementAndGet();
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        if (removedCount.get() > 0) {
+            System.out.println("Cleaned up " + removedCount.get() + " expired login attempt entries");
+        }
     }
 }

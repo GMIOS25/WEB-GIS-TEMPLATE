@@ -30,109 +30,119 @@ import java.util.stream.Collectors;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final AccessDeniedHandler accessDeniedHandler;
-    private final AuthenticationEntryPoint authenticationEntryPoint;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final AccessDeniedHandler accessDeniedHandler;
+        private final AuthenticationEntryPoint authenticationEntryPoint;
 
-    // TRƯỚC ĐÂY: danh sách origin được hardcode thẳng trong code, bao gồm cả
-    // IP LAN của máy dev cá nhân (http://192.168.123.117:...) bị commit vào
-    // Git. Đổi máy dev hoặc mở rộng domain production đều cần sửa code + build
-    // lại. Giờ đọc từ property app.cors.allowed-origins (env
-    // CORS_ALLOWED_ORIGINS), danh sách origin phân tách bằng dấu phẩy - đổi
-    // môi trường chỉ cần đổi biến môi trường, không cần build lại.
-    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}")
-    private String allowedOriginsProperty;
+        // TRƯỚC ĐÂY: danh sách origin được hardcode thẳng trong code, bao gồm cả
+        // IP LAN của máy dev cá nhân (http://192.168.123.117:...) bị commit vào
+        // Git. Đổi máy dev hoặc mở rộng domain production đều cần sửa code + build
+        // lại. Giờ đọc từ property app.cors.allowed-origins (env
+        // CORS_ALLOWED_ORIGINS), danh sách origin phân tách bằng dấu phẩy - đổi
+        // môi trường chỉ cần đổi biến môi trường, không cần build lại.
+        @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173}")
+        private String allowedOriginsProperty;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler,
-            AuthenticationEntryPoint authenticationEntryPoint) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.accessDeniedHandler = accessDeniedHandler;
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
+        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler,
+                        AuthenticationEntryPoint authenticationEntryPoint) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.accessDeniedHandler = accessDeniedHandler;
+                this.authenticationEntryPoint = authenticationEntryPoint;
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // JWT giờ được truyền qua cookie HttpOnly thay vì header do FE tự gắn,
-                // nên cookie có thể bị đính kèm tự động trong request cross-site.
-                // CSRF token vẫn để tắt (API stateless, không dùng session cookie của
-                // Spring), nhưng rủi ro CSRF cho cookie JWT được giảm thiểu bằng
-                // SameSite=Strict/Lax cấu hình ở AuthController/application.properties.
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Đăng ký AuthenticationEntryPoint (401 - chưa xác thực) và AccessDeniedHandler
-                // (403 - không đủ quyền, vd VIEWER gọi /api/admin/**) tùy chỉnh để CẢ HAI
-                // loại lỗi bảo mật đều trả về đúng payload ErrorResponse chuẩn thay vì
-                // whitelabel/BasicErrorController mặc định — khớp 100% cam kết tại
-                // CODING_CONVENTIONS.md (Mục 2) và API_CONTRACT.md (Mục 2).
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(authenticationEntryPoint)
-                        .accessDeniedHandler(accessDeniedHandler))
-                .headers(headers -> headers
-                        // CSP làm lớp phòng thủ bổ sung (defense-in-depth) chống XSS:
-                        // ngay cả khi có lỗ XSS (kể cả từ thư viện bên thứ ba), CSP chặt
-                        // giúp hạn chế việc load/thực thi script từ nguồn không tin cậy.
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "default-src 'self'; " +
-                                        "script-src 'self'; " +
-                                        "style-src 'self' 'unsafe-inline'; " +
-                                        "img-src 'self' data: https:; " +
-                                        "connect-src 'self'; " +
-                                        "frame-ancestors 'self'; " +
-                                        "base-uri 'self'; " +
-                                        "form-action 'self'")))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login").permitAll()
-                        // /actuator/health phải cho phép truy cập ẩn danh: Docker
-                        // HEALTHCHECK, Caddy, hay bất kỳ công cụ giám sát uptime nào
-                        // đều gọi endpoint này KHÔNG kèm cookie/token đăng nhập. Chỉ
-                        // permitAll đúng "/actuator/health" (không phải toàn bộ
-                        // "/actuator/**"), vì mặc định Spring Boot chỉ show
-                        // {"status":"UP"} cho request ẩn danh (management.endpoint.
-                        // health.show-details mặc định "never") - các endpoint
-                        // actuator khác (env, beans, ...) nếu sau này được bật lên thì
-                        // vẫn nằm dưới anyRequest().authenticated() như bình thường.
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                // JWT giờ được truyền qua cookie HttpOnly thay vì header do FE tự gắn,
+                                // nên cookie có thể bị đính kèm tự động trong request cross-site.
+                                // CSRF token vẫn để tắt (API stateless, không dùng session cookie của
+                                // Spring), nhưng rủi ro CSRF cho cookie JWT được giảm thiểu bằng
+                                // SameSite=Strict/Lax cấu hình ở AuthController/application.properties.
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // Đăng ký AuthenticationEntryPoint (401 - chưa xác thực) và AccessDeniedHandler
+                                // (403 - không đủ quyền, vd VIEWER gọi /api/admin/**) tùy chỉnh để CẢ HAI
+                                // loại lỗi bảo mật đều trả về đúng payload ErrorResponse chuẩn thay vì
+                                // whitelabel/BasicErrorController mặc định — khớp 100% cam kết tại
+                                // CODING_CONVENTIONS.md (Mục 2) và API_CONTRACT.md (Mục 2).
+                                .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint(authenticationEntryPoint)
+                                                .accessDeniedHandler(accessDeniedHandler))
+                                .headers(headers -> headers
+                                                // CSP làm lớp phòng thủ bổ sung (defense-in-depth) chống XSS:
+                                                // ngay cả khi có lỗ XSS (kể cả từ thư viện bên thứ ba), CSP chặt
+                                                // giúp hạn chế việc load/thực thi script từ nguồn không tin cậy.
+                                                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                                                "default-src 'self'; " +
+                                                                                "script-src 'self'; " +
+                                                                                "style-src 'self' 'unsafe-inline'; " +
+                                                                                "img-src 'self' data: https:; " +
+                                                                                "connect-src 'self'; " +
+                                                                                "frame-ancestors 'self'; " +
+                                                                                "base-uri 'self'; " +
+                                                                                "form-action 'self'")))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/api/auth/login").permitAll()
+                                                // /actuator/health phải cho phép truy cập ẩn danh: Docker
+                                                // HEALTHCHECK, Caddy, hay bất kỳ công cụ giám sát uptime nào
+                                                // đều gọi endpoint này KHÔNG kèm cookie/token đăng nhập. Chỉ
+                                                // permitAll đúng "/actuator/health" (không phải toàn bộ
+                                                // "/actuator/**"), vì mặc định Spring Boot chỉ show
+                                                // {"status":"UP"} cho request ẩn danh (management.endpoint.
+                                                // health.show-details mặc định "never") - các endpoint
+                                                // actuator khác (env, beans, ...) nếu sau này được bật lên thì
+                                                // vẫn nằm dưới anyRequest().authenticated() như bình thường.
+                                                .requestMatchers("/actuator/health").permitAll()
+                                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
+                                                                "/swagger-ui.html")
+                                                .permitAll()
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                .anyRequest().authenticated())
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+                        throws Exception {
+                return authenticationConfiguration.getAuthenticationManager();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        List<String> allowedOrigins = Arrays.stream(allowedOriginsProperty.split(","))
-                .map(String::trim)
-                .filter(origin -> !origin.isEmpty())
-                .collect(Collectors.toList());
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(
-                Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
-        // Không còn cần expose header Authorization cho JS đọc: JWT giờ nằm
-        // trong cookie HttpOnly, FE không tự đọc/gắn token vào request nữa.
-        configuration.setExposedHeaders(Collections.emptyList());
-        // allowCredentials=true là bắt buộc để trình duyệt gửi kèm cookie JWT
-        // HttpOnly trong các request cross-origin từ FE (axios withCredentials: true).
-        configuration.setAllowCredentials(true);
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                List<String> allowedOrigins = Arrays.stream(allowedOriginsProperty.split(","))
+                                .map(String::trim)
+                                .filter(origin -> !origin.isEmpty())
+                                .collect(Collectors.toList());
+                if (allowedOrigins.isEmpty()) {
+                        throw new IllegalStateException(
+                                        "CORS_ALLOWED_ORIGINS cannot be empty. " +
+                                                        "Please set CORS_ALLOWED_ORIGINS environment variable with at least one origin "
+                                                        +
+                                                        "(e.g., 'http://localhost:5173,https://gis.gialai.gov.vn')");
+                }
+                configuration.setAllowedOrigins(allowedOrigins);
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                configuration.setAllowedHeaders(
+                                Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+                // Không còn cần expose header Authorization cho JS đọc: JWT giờ nằm
+                // trong cookie HttpOnly, FE không tự đọc/gắn token vào request nữa.
+                configuration.setExposedHeaders(Collections.emptyList());
+                // allowCredentials=true là bắt buộc để trình duyệt gửi kèm cookie JWT
+                // HttpOnly trong các request cross-origin từ FE (axios withCredentials: true).
+                configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }
