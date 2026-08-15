@@ -55,6 +55,7 @@ Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho 
 - 🏛️ **Quản Lý Đơn Vị Hành Chính & Cán Bộ:**
   - Tìm kiếm nhanh thông tin đơn vị hành chính theo tên hoặc mã định danh.
   - Quản lý danh sách cán bộ lãnh đạo địa phương (Chủ tịch UBND, Phó Chủ tịch...).
+    Note : Chưa triển khai data cán bộ.
 
 - 🔐 **Xác Thực & Phân Quyền Người Dùng (RBAC):**
   - Bảo mật bằng Spring Security + JWT đóng gói an toàn trong **HttpOnly Cookie** (`gis_token`).

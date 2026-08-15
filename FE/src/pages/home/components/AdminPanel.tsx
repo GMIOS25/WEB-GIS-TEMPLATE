@@ -81,7 +81,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ setActiveView }) => {
             <div>
               <h3 className="text-xl font-bold text-neutral-900">Quản lý người dùng</h3>
               <p className="text-xs text-neutral-400 mt-0.5">
-                Danh sách các tài khoản Viewer được phân quyền trong hệ thống
+                Danh sách các tài khoản người dùng được phân quyền trong hệ thống
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ setActiveView }) => {
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-10 text-center text-neutral-400 font-semibold">
-                    Chưa có tài khoản Viewer nào.
+                    Chưa có tài khoản nào trong hệ thống.
                   </td>
                 </tr>
               ) : (

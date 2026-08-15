@@ -27,7 +27,7 @@
 
 - **ADMIN**:
   - Đăng nhập hệ thống.
-  - Quản lý tài khoản người dùng khác (Xem danh sách, Tạo mới, Sửa thông tin/đổi mật khẩu, Xóa tài khoản `VIEWER`).
+  - Quản lý tài khoản người dùng (Xem danh sách, Tạo mới tài khoản `VIEWER`, Sửa thông tin/đổi mật khẩu, Xóa tài khoản ngoại trừ chính mình và ADMIN cuối cùng).
   - Xem và tra cứu thông tin bản đồ tương tự như Viewer.
 - **VIEWER**:
   - Đăng nhập hệ thống.

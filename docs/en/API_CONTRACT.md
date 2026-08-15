@@ -194,6 +194,7 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 #### `PUT /api/admin/users/{id}`
 
 - **Access:** Roles: `ADMIN`
+- **Behavior:** Updates a user's full name and optionally resets their password. Role is immutable via this endpoint to prevent unauthorized privilege escalation.
 - **Request Body (`UserUpdateRequest`):**
   ```json
   {
@@ -215,8 +216,13 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 #### `DELETE /api/admin/users/{id}`
 
 - **Access:** Roles: `ADMIN`
+- **Behavior & Guardrails:**
+  - Deletes the specified user account.
+  - **Self-deletion prevention:** Returns `400 Bad Request` ("You cannot delete your own account") if the authenticated admin attempts to delete themselves.
+  - **Last admin protection:** Returns `400 Bad Request` ("Cannot delete the last remaining ADMIN account") if attempting to delete the only remaining `ADMIN` in the system.
 - **Response:**
-  - Status `204 No Content` (Success with no content payload) OR Status `200 OK` (plain success message).
+  - Status `200 OK` (e.g. `"User deleted successfully"`).
+
 
 ---
 

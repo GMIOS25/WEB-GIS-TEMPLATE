@@ -33,8 +33,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.website.gis.core.security.RestAccessDeniedHandler;
+import com.website.gis.core.security.RestAuthenticationEntryPoint;
+import com.website.gis.core.security.SecurityErrorResponseWriter;
+
 @WebMvcTest(AuthController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class })
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class, RestAccessDeniedHandler.class,
+        RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class AuthControllerTest {
 
         @Autowired

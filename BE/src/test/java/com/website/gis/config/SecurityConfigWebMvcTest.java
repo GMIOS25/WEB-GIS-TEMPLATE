@@ -14,8 +14,14 @@ import com.website.gis.core.security.JwtTokenProvider;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.website.gis.core.exception.GlobalExceptionHandler;
+import com.website.gis.core.security.RestAccessDeniedHandler;
+import com.website.gis.core.security.RestAuthenticationEntryPoint;
+import com.website.gis.core.security.SecurityErrorResponseWriter;
+
 @WebMvcTest(SecurityConfig.class)
-@Import(JwtAuthenticationFilter.class)
+@Import({ JwtAuthenticationFilter.class, RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class,
+        SecurityErrorResponseWriter.class, GlobalExceptionHandler.class })
 class SecurityConfigWebMvcTest {
 
     @Autowired

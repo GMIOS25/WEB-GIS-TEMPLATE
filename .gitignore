@@ -58,3 +58,6 @@ out/
 
 # Testing API
 Bruno/
+
+#Agent
+.agents/

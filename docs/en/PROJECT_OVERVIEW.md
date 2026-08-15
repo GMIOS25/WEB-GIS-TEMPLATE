@@ -73,7 +73,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
   - Logout and token invalidation.
   - Account security management.
 - **Role Matrix:**
-  - `ADMIN`: Full system privileges, manages other user accounts (view list, create, edit info, delete `VIEWER` accounts).
+  - `ADMIN`: Full system privileges, manages user accounts (view list, create `VIEWER` accounts, edit user info/passwords, delete accounts except own account and the last remaining `ADMIN`).
   - `VIEWER`: Read-only map search and administrative boundary lookups.
 
 #### 4.2. Administrative Unit Management Module

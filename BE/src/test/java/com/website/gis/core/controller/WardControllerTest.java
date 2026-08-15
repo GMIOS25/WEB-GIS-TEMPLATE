@@ -30,8 +30,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.website.gis.core.security.RestAccessDeniedHandler;
+import com.website.gis.core.security.RestAuthenticationEntryPoint;
+import com.website.gis.core.security.SecurityErrorResponseWriter;
+
 @WebMvcTest(WardController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, WardMapperImpl.class })
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, WardMapperImpl.class, RestAccessDeniedHandler.class,
+        RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class WardControllerTest {
 
     @Autowired
