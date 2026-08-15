@@ -30,6 +30,19 @@ Thumbs.db
 .env.test.local
 .env.production.local
 *.env
+application.properties
+application-*.properties
+application.yml
+application-*.yml
+application.yaml
+application-*.yaml
+!application.properties.example
+!application-*.properties.example
+!application.yml.example
+!application-*.yml.example
+!application.yaml.example
+!application-*.yaml.example
+
 
 # Agent/Tooling directories
 .agent/

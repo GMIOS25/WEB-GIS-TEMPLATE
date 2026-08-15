@@ -11,7 +11,8 @@
 set -euo pipefail
 
 COMPOSE_DIR="${COMPOSE_DIR:-/opt/gialai-gis}"
-STAMP=$(date +%Y%m%d_%H%M%S)
+# Use the C locale so Sunday is consistently named "Sun" for retention below.
+STAMP=$(LC_TIME=C date +%Y%m%d_%a_%H%M%S)
 BACKUP_DIR="${COMPOSE_DIR}/backups"
 mkdir -p "$BACKUP_DIR"
 
@@ -21,3 +22,4 @@ docker compose exec -T db pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" \
 
 # Retention: keep 7 daily + 4 weekly (Sunday) backups
 find "$BACKUP_DIR" -name "gialai_*.dump" -mtime +7 ! -name "*_Sun_*" -delete
+find "$BACKUP_DIR" -name "gialai_*_Sun_*.dump" -mtime +27 -delete

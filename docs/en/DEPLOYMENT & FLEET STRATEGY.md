@@ -255,7 +255,7 @@ Daily `pg_dump`, run from the host via cron (kept outside the app container so i
 set -euo pipefail
 
 COMPOSE_DIR="${COMPOSE_DIR:-/opt/gialai-gis}"
-STAMP=$(date +%Y%m%d_%H%M%S)
+STAMP=$(LC_TIME=C date +%Y%m%d_%a_%H%M%S)
 BACKUP_DIR="${COMPOSE_DIR}/backups"
 mkdir -p "$BACKUP_DIR"
 
@@ -265,6 +265,7 @@ docker compose exec -T db pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB" \
 
 # Retention: keep 7 daily + 4 weekly (Sunday) backups
 find "$BACKUP_DIR" -name "gialai_*.dump" -mtime +7 ! -name "*_Sun_*" -delete
+find "$BACKUP_DIR" -name "gialai_*_Sun_*.dump" -mtime +27 -delete
 ```
 
 `$POSTGRES_USER` / `$POSTGRES_DB` must be present in the environment cron invokes the script with — e.g. `env $(cat /opt/gialai-gis/.env | grep -v '^#' | xargs) /opt/gialai-gis/scripts/backup-db.sh` in the crontab entry below, rather than assuming cron inherits `.env`.
