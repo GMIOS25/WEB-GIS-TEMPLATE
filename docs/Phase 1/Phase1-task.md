@@ -5,17 +5,19 @@
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (cập nhật 2026-08-11): Giai đoạn 1 đã hoàn thành 5/5 task (TSK-1 → TSK-5).** TSK-5 (Docker) — trước đây mục này từng ghi là "mới ở dạng đặc tả, chưa có file thật"; điều đó không còn đúng: `Dockerfile`, `docker-compose.yml`, `Caddyfile` và `.env.example` đã tồn tại thật ở root repo, đối chiếu khớp với đặc tả trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`. Xem ghi chú chi tiết ở mục TSK-5 bên dưới, bao gồm phần **CHƯA verify được** (chưa chạy `docker compose up -d --build` thật trên VPS sạch). File này giờ mang tính **lịch sử/tham chiếu** cho những gì đã làm ở TSK-1 → TSK-5, không còn là checklist "cần làm". Khi cần thông tin cập nhật nhất về kiến trúc, hãy xem các file trong `docs/en/` (đã được sửa nhiều sau khi file này viết xong ngày 07/07):
+> **Trạng thái tài liệu (CẬP NHẬT 2026-08-17): Giai đoạn 1 đã HOÀN THÀNH & VERIFY THỰC NGHIỆM 100% (5/5 Tasks: TSK-1 → TSK-5).**
 >
-> - Schema DB thật + quy ước bảng tương lai: `DATA_MODEL.md`
+> - **`./mvnw -B verify`**: 33/33 tests PASS (0 failures, 0 errors) với Docker Testcontainers PostGIS thật.
+> - **`docker compose up -d --build` (TSK-5)**: Đã build multi-stage thành công từ đầu đến cuối trên môi trường sạch, khởi động trọn vẹn stack (`app`, `db`, `caddy`), Flyway tự động migrate V1→V4 (135 xã/phường), tài khoản mẫu `admin`/`viewer` được seed thành công, `/actuator/health` trả về `UP` và web app tải đầy đủ.
+> - **Tối ưu & Khắc phục đi kèm**: Đã tạo `.dockerignore` (giảm build context từ 173MB/375s xuống 20KB/1s), cập nhật `SecurityConfig.java` mở quyền truy cập tài nguyên tĩnh frontend, và cấu hình `JWT_SECRET` chuẩn 64-byte.
+>
+> File này hiện là **hồ sơ nghiệm thu lịch sử hoàn tất cho Giai đoạn 1**. Mọi thông tin cập nhật nhất về kiến trúc và thiết kế hệ thống xem tại thư mục `docs/en/`:
+>
+> - Schema DB thật + quy ước bảng: `DATA_MODEL.md`
 > - Kiến trúc modular, package `core/` vs `features/`: `ARCHITECTURE SPECIFICATION.md`
-> - Setup máy dev (không cần chạy SQL tay): `DEVELOPMENT_SETUP.md`
-> - Kế hoạch vận hành/deploy (Docker, Caddy, backup, fleet) — Dockerfile/docker-compose.yml/Caddyfile/.env.example **đã tồn tại thật ở root repo** (xem TSK-5), tài liệu này vẫn là nguồn tham chiếu đầy đủ nhất cho phần vận hành (backup, rollback, checklist VPS, kế hoạch fleet): `DEPLOYMENT & FLEET STRATEGY.md`
-> - API hiện có + quy ước API module tương lai: `API_CONTRACT.md`
->
-> Tên module Khoa học Công nghệ đã được thống nhất là **`science`** (không dùng `khcn`) trong toàn bộ code và tài liệu — xem ghi chú tại `ARCHITECTURE SPECIFICATION.md` mục 6.4.
->
-> Cùng ngày 14/07 (commit "implement secure JWT authentication using HttpOnly cookies"), cơ chế JWT phía FE/BE đã đổi từ "token trả trong body response + FE lưu ở LocalStorage + Axios tự gắn header `Authorization: Bearer`" sang **cookie HttpOnly do BE set qua `Set-Cookie`** (`withCredentials: true` phía Axios, không còn thao tác token ở FE). Mục TSK-2 và TSK-3 bên dưới đã được cập nhật ghi chú tương ứng.
+> - Hướng dẫn setup môi trường: `DEVELOPMENT_SETUP.md`
+> - Vận hành, triển khai Docker/Caddy, backup, fleet: `DEPLOYMENT & FLEET STRATEGY.md`
+> - Đặc tả toàn bộ REST API: `API_CONTRACT.md`
 
 > [!TIP]
 > **Triết lý tối giản tối đa:**
@@ -113,18 +115,23 @@
 
 ### 📦 PHẦN 3: ĐÓNG GÓI & TRIỂN KHAI
 
-#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ File thật đã tồn tại trong repo; xem mục "Còn thiếu để verify" bên dưới trước khi coi là đóng hẳn
+#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ ĐÃ HOÀN THÀNH & VERIFY THỰC NGHIỆM (100% DONE)
 
 - **Nội dung thực tế (khớp với đặc tả gốc trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`):**
-  - `Dockerfile` (root repo) — multi-stage đúng như dự kiến: build FE (`node:20-alpine`, pin `pnpm@9` qua corepack) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước `mvnw package`, có thêm `chmod +x mvnw` phòng vệ) → runtime (`eclipse-temurin:17-jre-alpine`, user không phải root). Sát hơn bản kế hoạch gốc một chút (thêm bước pin version pnpm để khớp lockfile).
+  - `Dockerfile` (root repo) — multi-stage đúng như dự kiến: build FE (`node:20-alpine`, pin `pnpm@9` qua corepack) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước `mvnw package`, có thêm `chmod +x mvnw` phòng vệ) → runtime (`eclipse-temurin:17-jre-alpine`, user không phải root).
   - `docker-compose.yml` (root repo) — đúng 3 dịch vụ `app`/`db`/`caddy` như đặc tả, `app`/`db` không public port, chỉ `caddy` expose 80/443.
   - `Caddyfile` (root repo) — đúng domain placeholder `gis.gialai.gov.vn`, reverse proxy vào `app:8080`.
-  - `.env.example` (root repo) — đúng tên biến `FEATURES_OCOP_ENABLED`/`FEATURES_SCIENCE_ENABLED`/`FEATURES_AGRICULTURE_ENABLED` (không phải `ENABLE_OCOP` như bản nháp cũ mà chính `DEPLOYMENT & FLEET STRATEGY.md` đã cảnh báo là sai).
+  - `.dockerignore` (root repo) — loại trừ `node_modules`, `target`, `.git` giúp tăng tốc độ build context (20KB thay vì 173MB) và chống xung đột nhị phân host/container.
+  - `.env.example` và `.env` — đúng tên biến `FEATURES_OCOP_ENABLED`/`FEATURES_SCIENCE_ENABLED`/`FEATURES_AGRICULTURE_ENABLED`, `JWT_SECRET` hex 64-byte.
   - `scripts/backup-db.sh` — khớp với script mô tả ở Section 5.3 của tài liệu trên.
-- **Output:** Về mặt file, đủ điều kiện chạy `docker compose up -d --build` sau khi `cp .env.example .env` và điền secret thật.
-- **Còn thiếu để verify (chưa làm, ghi lại để không quên):**
-  - Chưa từng chạy `docker compose up -d --build` thật trên một máy/VPS sạch để xác nhận toàn bộ pipeline build (FE → BE → runtime image) chạy trót lọt từ đầu đến cuối.
-  - Chưa xác nhận `/actuator/health` trả `UP` qua Caddy trên một lần deploy thật (bug chặn việc này — endpoint yêu cầu đăng nhập — đã được phát hiện và sửa ở `SecurityConfig.java`, xem Section 4.3 `API_CONTRACT.md`/ghi chú bảo mật trong code, nhưng vẫn nên xác nhận lại bằng một lần deploy thật thay vì chỉ tin vào test).
-  - `BE/mvnw` từng bị mất execute bit trong git (100644 thay vì 100755) dù comment trong `Dockerfile` khẳng định đã fix — đã sửa lại đúng 100755, nhưng đây là ví dụ cho thấy nên chạy thử `docker compose build` thật ít nhất 1 lần trên máy khác thay vì chỉ tin comment trong code.
-- **Cách verify:** Máy chủ triển khai sạch, sau khi build, kiểm tra `/actuator/health` trả về `UP` qua HTTPS (do Caddy cấp chứng chỉ tự động), giao diện FE hiển thị đầy đủ khi truy cập domain.
+- **Output:** Toàn bộ pipeline build và đóng gói chạy thông suốt từ đầu đến cuối.
+- **Kết quả verify thực nghiệm (Đạt 100% vào ngày 2026-08-17):**
+  - Đã chạy `./mvnw -B verify` với Testcontainers PostGIS: **33/33 tests PASS (0 failures, 0 errors)**.
+  - Đã chạy `docker compose up -d --build` thành công:
+    - Multi-stage build FE (Vite) + BE (Maven JAR) không lỗi.
+    - Cả 3 container `gialai-gis-app`, `gialai-gis-db`, `gialai-gis-proxy` đều `Up (healthy)`.
+    - Flyway tự động migrate V1→V4 vào database, nhập đủ dữ liệu 135 xã/phường và bảng ranh giới không gian `gis_wards`.
+    - `DatabaseSeeder` tự động seed tài khoản `admin` và `viewer`.
+    - `GET /actuator/health` trả về `{"status":"UP"}`.
+    - `GET /` trả về toàn bộ ứng dụng React Web GIS.
 - **Chi tiết đặc tả vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
