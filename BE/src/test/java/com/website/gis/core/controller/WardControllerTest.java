@@ -1,7 +1,6 @@
 package com.website.gis.core.controller;
 
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.core.controller.WardController;
 import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.Province;
 import com.website.gis.core.entity.Ward;

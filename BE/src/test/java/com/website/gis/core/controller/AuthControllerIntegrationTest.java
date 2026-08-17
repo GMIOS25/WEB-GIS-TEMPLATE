@@ -21,7 +21,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
 
 import org.testcontainers.utility.DockerImageName;
 
@@ -108,13 +107,14 @@ class AuthControllerIntegrationTest {
         request.setUsername("admin");
         request.setPassword("password123");
 
-        String cookieValue = mockMvc.perform(post("/api/auth/login")
+        var cookie = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andReturn()
                 .getResponse()
-                .getCookie("gis_token")
-                .getValue();
+                .getCookie("gis_token");
+
+        String cookieValue = cookie != null ? cookie.getValue() : "";
 
         // Then call /me with cookie
         mockMvc.perform(get("/api/auth/me")

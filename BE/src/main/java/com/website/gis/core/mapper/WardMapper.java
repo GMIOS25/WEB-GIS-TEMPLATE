@@ -37,6 +37,9 @@ public interface WardMapper {
      * a null check for the whole gisWard.areaKm2 path automatically, so no
      * manual ternary is needed here (unlike the previous hand-written code).
      */
+    @Mapping(source = "ward.code", target = "code")
+    @Mapping(source = "ward.name", target = "name")
+    @Mapping(source = "ward.fullName", target = "fullName")
     @Mapping(source = "ward.province.fullName", target = "provinceName")
     @Mapping(source = "gisWard.areaKm2", target = "areaKm2")
     WardDetailDto toDetailDto(Ward ward, GisWard gisWard);

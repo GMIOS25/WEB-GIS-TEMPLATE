@@ -16,6 +16,7 @@ import com.website.gis.core.repository.WardRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -64,7 +65,7 @@ public class WardController {
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<WardDetailDto> getWardDetail(@PathVariable String code) {
+    public ResponseEntity<WardDetailDto> getWardDetail(@PathVariable @NonNull String code) {
         Ward ward = wardRepository.findById(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + code));
 

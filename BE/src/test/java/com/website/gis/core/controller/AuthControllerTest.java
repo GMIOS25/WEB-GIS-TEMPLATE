@@ -2,7 +2,6 @@ package com.website.gis.core.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
-import com.website.gis.core.controller.AuthController;
 import com.website.gis.core.dto.LoginRequest;
 import com.website.gis.core.entity.User;
 import com.website.gis.core.mapper.UserMapperImpl;

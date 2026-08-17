@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.website.gis.core.entity.Ward;
 
+import org.springframework.lang.NonNull;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -21,12 +23,14 @@ public interface WardRepository extends JpaRepository<Ward, String> {
     // JpaRepository (findAll/findById) để áp @EntityGraph, vì bản mặc định của
     // chúng không có.
     @Override
+    @NonNull
     @EntityGraph(attributePaths = "province")
     List<Ward> findAll();
 
     @Override
+    @NonNull
     @EntityGraph(attributePaths = "province")
-    Optional<Ward> findById(String code);
+    Optional<Ward> findById(@NonNull String code);
 
     // Trước đây chỉ search theo `name` (tên ngắn, vd. "Ia Kring"), bỏ sót
     // `full_name` (tên đầy đủ, vd. "Phường Ia Kring") - người dùng gõ nguyên tên

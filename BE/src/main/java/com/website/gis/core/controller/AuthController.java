@@ -19,7 +19,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -136,14 +135,16 @@ public class AuthController {
                                 .build();
         }
 
-        private ResponseCookie buildCookie(String value, long maxAgeSeconds) {
-                return ResponseCookie.from(cookieName, value)
-                                .httpOnly(true)
-                                .secure(cookieSecure)
-                                .sameSite(cookieSameSite)
-                                .path("/")
-                                .maxAge(maxAgeSeconds)
-                                .build();
-        }
+    private ResponseCookie buildCookie(String value, long maxAgeSeconds) {
+        String name = cookieName != null ? cookieName : "gis_token";
+        String sameSite = cookieSameSite != null ? cookieSameSite : "Strict";
+        return ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(sameSite)
+                .path("/")
+                .maxAge(maxAgeSeconds)
+                .build();
+    }
 
 }

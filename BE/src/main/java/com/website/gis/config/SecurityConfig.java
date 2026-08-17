@@ -7,7 +7,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -59,7 +58,7 @@ public class SecurityConfig {
                                 // CSRF token vẫn để tắt (API stateless, không dùng session cookie của
                                 // Spring), nhưng rủi ro CSRF cho cookie JWT được giảm thiểu bằng
                                 // SameSite=Strict/Lax cấu hình ở AuthController/application.properties.
-                                .csrf(AbstractHttpConfigurer::disable)
+                                .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 // Đăng ký AuthenticationEntryPoint (401 - chưa xác thực) và AccessDeniedHandler
@@ -125,7 +124,7 @@ public class SecurityConfig {
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
                 List<String> allowedOrigins = Arrays.stream(allowedOriginsProperty.split(","))
-                                .map(String::trim)
+                                .map(s -> s.trim())
                                 .filter(origin -> !origin.isEmpty())
                                 .collect(Collectors.toList());
                 if (allowedOrigins.isEmpty()) {

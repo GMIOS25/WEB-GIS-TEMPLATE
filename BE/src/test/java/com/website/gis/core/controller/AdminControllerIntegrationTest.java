@@ -92,13 +92,14 @@ class AdminControllerIntegrationTest {
         request.setUsername(username);
         request.setPassword(password);
 
-        return mockMvc.perform(post("/api/auth/login")
+        var cookie = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andReturn()
                 .getResponse()
-                .getCookie("gis_token")
-                .getValue();
+                .getCookie("gis_token");
+
+        return cookie != null ? cookie.getValue() : "";
     }
 
     @Test
