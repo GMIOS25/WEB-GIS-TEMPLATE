@@ -84,6 +84,10 @@ public class SecurityConfig {
                                                                                 "base-uri 'self'; " +
                                                                                 "form-action 'self'")))
                                 .authorizeHttpRequests(auth -> auth
+                                                // Frontend static assets & SPA routes (Single Page Application embedded in JAR)
+                                                .requestMatchers("/", "/index.html", "/favicon.ico", "/vite.svg",
+                                                                "/assets/**", "/*.ico", "/*.png", "/*.svg", "/*.js", "/*.css")
+                                                .permitAll()
                                                 .requestMatchers("/api/auth/login").permitAll()
                                                 // /actuator/health phải cho phép truy cập ẩn danh: Docker
                                                 // HEALTHCHECK, Caddy, hay bất kỳ công cụ giám sát uptime nào
@@ -99,7 +103,8 @@ public class SecurityConfig {
                                                                 "/swagger-ui.html")
                                                 .permitAll()
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                                                .anyRequest().authenticated())
+                                                .requestMatchers("/api/**").authenticated()
+                                                .anyRequest().permitAll())
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();

@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant Git as GitHub (1 Repo)
+    participant CI as GitHub Actions (CI)
+    participant Registry as Container Registry (GHCR / Docker Hub)
+    participant VPS as VPS Server (Viettel IDC)
+
+    Note over Git: Dev commit tính năng mới cho OCOP
+    Git->>CI: Trigger Build & Test (mvnw verify)
+    CI->>Registry: Push Docker Image: gialai-gis-app:v1.2.0
+    
+    Note over VPS: CD Deploy có chọn lọc:
+    VPS->>Registry: Pull image v1.2.0
+    Note over VPS: CHỈ Restart container OCOP sang v1.2.0
+    Note over VPS: Container Science & Agri VẪN CHẠY BÌNH THƯỜNG (v1.1.0)

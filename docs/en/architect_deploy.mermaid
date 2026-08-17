@@ -1,0 +1,13 @@
+graph TD
+    Internet[Internet / Người dùng] --> Caddy[Caddy Reverse Proxy trên VPS]
+    
+    subgraph "VPS Viettel IDC (1 Máy chủ vật lý / 1 VPS duy nhất)"
+        Caddy -->|ocop.gialai.gov.vn| AppOcop[Container App: OCOP]
+        AppOcop --> DbOcop[(DB: gialai_ocop)]
+        
+        Caddy -->|khcn.gialai.gov.vn| AppScience[Container App: Science]
+        AppScience --> DbScience[(DB: gialai_science)]
+        
+        Caddy -->|nongnghiep.gialai.gov.vn| AppAgri[Container App: Agriculture]
+        AppAgri --> DbAgri[(DB: gialai_agriculture)]
+    end

@@ -1,0 +1,27 @@
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Agent docs & context
+.agents
+docs
+
+# Node / Frontend
+**/node_modules
+FE/node_modules
+FE/dist
+FE/.env
+FE/.env.local
+
+# Java / Maven / Backend
+**/target
+BE/target
+
+# Logs & temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
