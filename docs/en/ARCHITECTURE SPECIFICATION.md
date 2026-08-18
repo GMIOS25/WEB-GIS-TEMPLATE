@@ -220,11 +220,11 @@ The main backend settings config:
 ```yaml
 features:
   science:
-    enabled: ${ENABLE_SCIENCE:false}
+    enabled: ${FEATURES_SCIENCE_ENABLED:false}
   ocop:
-    enabled: ${ENABLE_OCOP:false}
+    enabled: ${FEATURES_OCOP_ENABLED:false}
   agriculture:
-    enabled: ${ENABLE_AGRICULTURE:false}
+    enabled: ${FEATURES_AGRICULTURE_ENABLED:false}
 ```
 
 ---
@@ -241,9 +241,11 @@ BE/src/main/resources/db/migration/
 │   ├── V1__init_auth_schema.sql         # Base user authentication schema
 │   └── V2__init_admin_units_schema.sql  # Administrative boundaries
 ├── science/
-│   └── V3_1__create_science_table.sql   # Specific schema for science
-└── ocop/
-    └── V3_2__create_ocop_table.sql      # Specific schema for ocop
+│   └── V1__create_science_units.sql     # Specific schema for science
+├── ocop/
+│   └── V1__create_ocop_products.sql     # Specific schema for ocop
+└── agriculture/
+    └── V1__create_agriculture_units.sql # Specific schema for agriculture
 ```
 
 ### 5.2. Dynamic Flyway Scan Locations Configuration
@@ -303,7 +305,7 @@ This ensures that only database tables matching the active modules are initializ
 
 ## 6. Multi-Customer Deployment & Isolation Strategy
 
-> **Status note (2026-07):** the project currently has exactly **one** deployed tenant (Gia Lai, code `52`). This section documents the isolation model **decision** so it is fixed before a second customer exists — not a description of a fleet that is already running. Operational rollout mechanics live in `DEPLOYMENT & FLEET STRATEGY.md`.
+> **Deployment Architecture:** The system serves 3 distinct customer deployments for 3 specialized client requirements (OCOP, Science, Agriculture). All 3 deployments share the identical core foundation (commune/ward administrative boundaries `provinces`, `wards`, `gis_wards`), while each deployment activates its own custom feature module. All 3 are deployed on **1 physical VPS**, with **3 isolated application containers** connected to **3 separate databases** ("database-per-customer").
 
 ### 6.1. Isolation Model Decision: Database-per-Customer
 
@@ -311,16 +313,24 @@ Each customer runs as a **fully separate application container and a fully separ
 
 ```mermaid
 graph TD
-    subgraph CustomerA [Customer A Deployment]
-        AppA[App Container A]
-        DbA[(PostgreSQL/PostGIS A)]
-        AppA --> DbA
-    end
+    subgraph "VPS Viettel IDC (1 VPS Hosting 3 Customer Stacks)"
+        subgraph CustomerA [Customer A: OCOP]
+            AppA[App Container: OCOP]
+            DbA[(Database: gialai_ocop)]
+            AppA --> DbA
+        end
 
-    subgraph CustomerB [Customer B Deployment]
-        AppB[App Container B]
-        DbB[(PostgreSQL/PostGIS B)]
-        AppB --> DbB
+        subgraph CustomerB [Customer B: Science]
+            AppB[App Container: Science]
+            DbB[(Database: gialai_science)]
+            AppB --> DbB
+        end
+
+        subgraph CustomerC [Customer C: Agriculture]
+            AppC[App Container: Agriculture]
+            DbC[(Database: gialai_agriculture)]
+            AppC --> DbC
+        end
     end
 
     AppA -.->|No network path| AppB
@@ -345,29 +355,27 @@ Given the isolation model above, every customer runs the **same application arti
 | Layer    | What varies per customer                                                                      |
 | :------- | :-------------------------------------------------------------------------------------------- |
 | Frontend | `.env` build-time feature flags (`VITE_ENABLE_OCOP`, etc. — Section 3.1)                      |
-| Backend  | `application.properties`/env-var feature flags (`features.ocop.enabled`, etc. — Section 4.3)  |
+| Backend  | `application.properties`/env-var feature flags (`FEATURES_OCOP_ENABLED`, etc. — Section 4.3)  |
 | Database | Which Flyway feature folders get scanned (Section 5.2) — determines which tables exist at all |
 | Infra    | A dedicated database instance and, per Section 7, a dedicated deployment slot                 |
 
 Because the differences are entirely configuration-driven, onboarding a new customer never requires a source code branch or fork — only a new `.env` and a new empty database.
 
-### 6.3. Infrastructure Placement vs. Logical Isolation
+### 6.3. Infrastructure Placement: 1 VPS, 3 Containers, 3 Databases
 
-`PROJECT_OVERVIEW.md` Section 7.4 already draws this distinction; it is restated here as the authoritative version:
-
-- **Logical/data isolation** (Section 6.1) is a hard guarantee: separate app process, separate database, no shared network path.
-- **Physical infrastructure placement** is a cost decision, independent of the above: multiple customers' independent stacks (app + own DB, per Section 6.1) _may_ run on the same physical VPS for cost efficiency, provided each still gets its own containers, own database, own volumes, and no shared network between customer stacks. Co-locating on one VPS is purely about hosting cost; it must never become an excuse to share a database or add tenant-filtering code.
+- **Shared Core:** All 3 customer deployments share the same baseline geographical data (the 135 commune/ward boundaries of Gia Lai).
+- **Independent Stacks on 1 VPS:** Multiple customers' independent stacks (app + own DB, per Section 6.1) run on the same physical VPS for cost efficiency. Each gets its own containers, own database, own volumes, and isolated network namespaces.
+- **Logical/Data Isolation:** Hard guarantee with separate app processes and separate databases.
 
 ### 6.4. Geometry Type Convention Across Feature Modules
 
-> **Naming note (2026-07):** this section originally used the Vietnamese abbreviation `khcn` for the "Khoa học Công nghệ" (Science & Technology) module. That has been standardized back to `science` everywhere in this document and across `DATA_MODEL.md`/`API_CONTRACT.md`/`CODING_CONVENTIONS.md`, to match the property name already used in real code (`features.science.enabled` in `DynamicFlywayConfig.java` and `application.properties.example`) and in Sections 3–5 of this same document. Use `science` as the single canonical module key going forward; do not reintroduce `khcn` in code, config, or docs.
+> **Naming note:** Canonical module keys are standardized to `ocop`, `science`, and `agriculture` across code (`features.science.enabled`, `features.agriculture.enabled`), configuration, and documentation.
 
-Per `DATA_MODEL.md` Section 4, feature modules are not geometrically uniform, and the isolation/rollout mechanics above must accommodate both shapes:
+All 3 feature modules (`ocop`, `science`, `agriculture`) are **Point-type modules**:
 
-- **Point-type modules** (`ocop`, `science`): one row per point of interest, `geometry(Point, 4326)` column. Rendered on the frontend as Leaflet markers (`ARCHITECTURE SPECIFICATION.md` Section 3.3 pattern — `OcopMarkers`, etc.).
-- **Zone/polygon-type modules** (`nonglam`): optionally split business/spatial tables (mirroring the core `wards`/`gis_wards` pattern), `geometry(MultiPolygon, 4326)`. Rendered as `<GeoJSON>` polygon overlays, not markers.
-
-A customer's feature flag combination may mix both shapes (e.g. Customer C running both `ocop` and `nonglam`); the isolation model in Section 6.1 treats this no differently — it's still one database per customer, just with more Flyway feature folders scanned (Section 5.2).
+- Each record represents one point of interest (POI) with an inline `geometry(Point, 4326)` column.
+- Rendered on the frontend as interactive Leaflet markers with clustering at province zoom levels and unclustering at commune zoom levels (`OcopMarkers`, `ScienceMarkers`, `AgricultureMarkers`).
+- Styled using distinct, non-overlapping color palettes defined in `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Orange, Science: `#64748B` Slate Gray, Agriculture: `#6B7280` Cool Gray).
 
 ---
 

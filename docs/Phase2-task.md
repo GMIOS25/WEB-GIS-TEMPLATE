@@ -5,67 +5,27 @@
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (Soạn ngày 2026-08-17): Đây là kế hoạch DỰ KIẾN (prospective), CHƯA triển khai.**
+> **Trạng thái tài liệu:** Kế hoạch triển khai Giai đoạn 2 (Affiliated Unit Management), xây dựng trên nền tảng Giai đoạn 1 đã hoàn thành.
 >
-> Tài liệu này được soạn bởi AI (Claude) theo yêu cầu chủ dự án, dựa trên đối chiếu **7 tài liệu** đang có trong `docs/en/` + `docs/UI-UX/` với codebase thật tại commit `2f8eb24` (Giai đoạn 1 đã 100% xong, verify thực nghiệm bằng `./mvnw -B verify` + `docker compose up -d --build`). Phạm vi Giai đoạn 2 dưới đây **không phải suy đoán tuỳ tiện** — nó được rút thẳng từ bảng roadmap chính thức tại `docs/en/PROJECT_OVERVIEW.md` mục 2 ("Affiliated Unit Management"), đối chiếu chéo với `ARCHITECTURE SPECIFICATION.md`, `DATA_MODEL.md` mục 4, `API_CONTRACT.md` mục 4.4, và comment sẵn có trong chính `DynamicFlywayConfig.java` (đã tự ghi chú "Giai đoạn 2 - roadmap").
->
-> **Agent đọc file này cần đọc kèm (không đọc thì sẽ implement sai):**
->
-> - `docs/en/ARCHITECTURE SPECIFICATION.md` mục 2–6 — cơ chế Compile-time Modularity (feature flag → package → Flyway folder).
-> - `docs/en/DATA_MODEL.md` mục 4 — quy ước schema cho bảng module mới.
-> - `docs/en/API_CONTRACT.md` mục 4.4 — quy ước endpoint cho module mới.
-> - `docs/en/CODING_CONVENTIONS.md` mục 1, 3, 5, 6 — naming, MapStruct, cấu trúc thư mục FE.
-> - `docs/UI-UX/Design_rule.md` — bắt buộc cho mọi UI mới.
->
-> **Việc PHẢI làm trước khi viết bất kỳ dòng code nào:** đọc mục 0 và mục 1 bên dưới. Có 1 việc sửa file bắt buộc (TSK-6) phải làm **trước tiên**, và 1 quyết định (mục 1.2) chủ dự án cần chốt trước khi agent code module thứ 3.
+> **Tài liệu tham chiếu bắt buộc:**
+> - [ARCHITECTURE SPECIFICATION.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/ARCHITECTURE%20SPECIFICATION.md) — Cơ chế Compile-time Modularity (feature flag → package → Flyway folder).
+> - [DATA_MODEL.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/DATA_MODEL.md) — Quy ước schema cho bảng module mới.
+> - [API_CONTRACT.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/API_CONTRACT.md) — Quy ước endpoint cho module mới.
+> - [CODING_CONVENTIONS.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/CODING_CONVENTIONS.md) — Naming, MapStruct, cấu trúc thư mục FE.
+> - [Design_rule.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/UI-UX/Design_rule.md) — Quy tắc thiết kế UI/UX và màu sắc.
 
 > [!TIP]
-> **Triết lý Giai đoạn 2:** Giai đoạn 1 chứng minh nền tảng hành chính hoạt động đúng. Giai đoạn 2 chứng minh **kiến trúc modularity đã thiết kế trong Giai đoạn 1 thực sự "cắm là chạy"** — bằng cách xây module thật đầu tiên (OCOP) làm mẫu tham chiếu, rồi nhân bản cho 2 module còn lại. Giai đoạn 2 **CHƯA vẽ điểm/vùng lên bản đồ** (việc đó dời sang Giai đoạn 3 theo đúng bảng roadmap ở `PROJECT_OVERVIEW.md`) — Giai đoạn 2 chỉ xây "sổ đăng ký" (registry) CRUD + upload tài liệu/ảnh cho từng đơn vị trực thuộc.
+> **Triết lý Giai đoạn 2:** Giai đoạn 2 chứng minh **kiến trúc modularity "cắm là chạy"** — xây dựng module OCOP làm mẫu tham chiếu, sau đó nhân bản cho 2 module Science và Agriculture. Cả 3 module đều là dạng Điểm (**Point layer**). Giai đoạn 2 tập trung xây dựng "sổ đăng ký" (registry) CRUD + upload tài liệu/ảnh + nhập toạ độ (lat/lng) cho từng đơn vị trực thuộc (việc hiển thị điểm trên bản đồ thuộc Giai đoạn 3).
 
 ---
 
-## 0. Việc bắt buộc làm trước tiên: Dọn mâu thuẫn đặt tên module thứ 3
+## 1. Quy ước kỹ thuật cốt lõi
 
-### TSK-6: Chuẩn hoá tên module `agriculture` xuyên suốt tài liệu — 🔴 Bắt buộc, làm đầu tiên
-
-- **Vấn đề phát hiện được:** tài liệu hiện tại dùng **3 tên khác nhau** cho cùng một module (nông nghiệp):
-  | Nguồn | Tên dùng |
-  | :--- | :--- |
-  | `.env.example`, `application.properties.example`, `DynamicFlywayConfig.java` (code THẬT, đã chạy, đã verify) | `agriculture` |
-  | `Phase1-task.md` (hồ sơ nghiệm thu Giai đoạn 1) | `agriculture` |
-  | `ARCHITECTURE SPECIFICATION.md` mục 4.3, 5.2 (code mẫu) | `agriculture` |
-  | `ARCHITECTURE SPECIFICATION.md` mục 6.4 (đoạn văn xuôi) | `nonglam` |
-  | `DATA_MODEL.md` mục 1, 4 (toàn bộ) | `nonglam` |
-  | `CODING_CONVENTIONS.md` mục 6 | `nonglam` (`NonglamController`, `NongLamZone`) |
-  | `architect_deploy.mermaid` (tên subdomain) | `nongnghiep` (`nongnghiep.gialai.gov.vn`) |
-  | `DEPLOYMENT & FLEET STRATEGY.md` mục 6.3 | `ENABLE_AGRICULTURE` (tên biến env đã lỗi thời — xem cảnh báo ngay trong mục 4.1 của chính file đó) |
-
-- **Quyết định (đã chọn, không phải để bàn thêm):** dùng **`agriculture`** làm tên canonical duy nhất. Lý do: đây là tên đã **THẬT SỰ CHẠY** trong code đã qua `./mvnw -B verify` và `docker compose up -d --build` thành công — đổi tên lúc này nghĩa là sửa lại hạ tầng đã verify, rủi ro cao hơn nhiều so với sửa vài dòng doc. `agriculture` cũng là tiếng Anh thuần, nhất quán với `ocop`/`science` (không ai đọc `nonglam` mà đoán ra "nông lâm" nếu không biết tiếng Việt).
-- **Việc cần làm:**
-  1. `DATA_MODEL.md`: thay toàn bộ `nonglam` → `agriculture`, `nonglam_zones` → `agriculture_zones`, `gis_nonglam_zones` → `gis_agriculture_zones` (mục 1, 4.2, 4.3, và dòng giới thiệu đầu file).
-  2. `CODING_CONVENTIONS.md` mục 6: thay `nonglam` → `agriculture`, `NonglamController` → `AgricultureController`, `NongLamZone` → `AgricultureZone`, `NongLamZoneDto` → `AgricultureZoneDto`.
-  3. `ARCHITECTURE SPECIFICATION.md` mục 6.4: sửa câu đang dùng `nonglam` thành `agriculture`, đồng thời thêm 1 câu "Naming note" giống hệt cấu trúc câu đã sửa `khcn` → `science` ngay phía trên nó trong cùng mục, để lịch sử đổi tên được ghi lại nhất quán (đừng xoá âm thầm).
-  4. `DEPLOYMENT & FLEET STRATEGY.md` mục 6.3, bước 3: sửa `ENABLE_OCOP` / `ENABLE_SCIENCE` / `ENABLE_AGRICULTURE` thành `FEATURES_OCOP_ENABLED` / `FEATURES_SCIENCE_ENABLED` / `FEATURES_AGRICULTURE_ENABLED`, khớp với cảnh báo đã có sẵn ở mục 4.1 cùng file.
-  5. **Không đổi** `architect_deploy.mermaid` (`nongnghiep.gialai.gov.vn`) — đó là tên miền hiển thị cho người dùng cuối, không phải tên kỹ thuật, không liên quan đến quy ước code.
-- **Cách verify:** `grep -rn "nonglam\|Nonglam\|NongLam" docs/ BE/ FE/` chỉ còn ra kết quả trong chính đoạn "Naming note" giải thích lịch sử đổi tên (mục 4 ở trên), không còn chỗ nào dùng để đặc tả thật.
-
-### Mục 1: Quyết định cần chủ dự án chốt (KHÔNG tự ý quyết định thay)
-
-> [!WARNING]
-> 2 điểm dưới đây agent **không tự suy diễn** — nếu code đụng tới, dừng lại và hỏi chủ dự án.
-
-#### 1.1. "Tourist Spots" có phải module thứ 4 không?
-
-`PROJECT_OVERVIEW.md` mục 2 (dòng Phase 2) liệt kê: *"OCOP production units, Sci-Tech units, Agricultural production units, **Tourist Spots**, etc."* — nhưng `.env.example`/`DynamicFlywayConfig.java`/`ARCHITECTURE SPECIFICATION.md` chỉ có scaffolding cho **3** feature flag (`ocop`, `science`, `agriculture`), không có `tourism`. Kế hoạch này **chỉ code 3 module đã có flag**. Nếu chủ dự án muốn thêm `tourism` làm module thứ 4, việc đó lặp lại đúng pattern TSK-8/TSK-10/TSK-11 bên dưới (thêm 1 dòng flag vào `.env.example` + `DynamicFlywayConfig.java` + `application.properties.example`, rồi làm y hệt 1 module điểm), nhưng cần xác nhận trước vì nó phát sinh thêm ~2-3 ngày công.
-
-#### 1.2. "People's Committee" (UBND) có trùng với `local_leaders` không?
-
-`PROJECT_OVERVIEW.md` mục 4.3 liệt kê "People's Committee" như một **loại tổ chức** (Organization Type) cần quản lý trong Module Quản lý Tổ chức Trực thuộc — nhưng dự án đã có sẵn bảng `local_leaders` (đóng nốt ở TSK-7 bên dưới) lưu **con người** (Chủ tịch/Phó Chủ tịch UBND) theo từng xã. Đây là 2 khái niệm khác nhau về bản chất:
-
-- `local_leaders` = **cá nhân** lãnh đạo (tên người, chức vụ, SĐT) — đã có bảng, đã có entity, chỉ cần nối dây (TSK-7).
-- "People's Committee" theo mục 4.3 = **tổ chức/địa điểm** (trụ sở UBND xã, có địa chỉ, ảnh, mô tả) — nếu cần, đây sẽ là 1 loại "affiliated organization" riêng, có thể cần một bảng mới (không phải `local_leaders`).
-
-Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** tạo bảng "People's Committee organization" trong Giai đoạn 2 (không nằm trong 3 feature flag đã scaffold) — chỉ đóng nốt `local_leaders` (TSK-7). Nếu chủ dự án cần UBND-như-một-tổ-chức-có-địa-điểm, đó là quyết định phạm vi cần bàn riêng, không tự suy diễn vào 3 module OCOP/Science/Agriculture.
+1. **3 Feature Modules:** Hệ thống hỗ trợ 3 module chuyên đề độc lập: `ocop`, `science`, `agriculture`.
+2. **Hình học Point Layer:** Cả 3 module đều sử dụng dữ liệu không gian dạng **Điểm (`geom geometry(Point, 4326)`)**, toạ độ `[longitude, latitude]`.
+3. **Dữ liệu lãnh đạo (`local_leaders`):** Nối dây API backend với DTO `leaders: []` để tự động hiển thị ngay khi nạp dữ liệu.
+4. **Mô hình Triển khai:** 3 deployment độc lập với 3 container app và 3 database riêng biệt (`gialai_ocop`, `gialai_science`, `gialai_agriculture`), dùng chung dữ liệu ranh giới xã lõi.
+5. **Compile-time Modularity:** Kiểm soát qua biến môi trường backend `FEATURES_*_ENABLED` và frontend `VITE_ENABLE_*`.
 
 ---
 
@@ -73,12 +33,12 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
 
 | Thuộc phạm vi Giai đoạn 2 | KHÔNG thuộc phạm vi (dời sang Giai đoạn 3 — xem `Phase3-task.md`) |
 | :--- | :--- |
-| CRUD "sổ đăng ký" cho OCOP / Science / Agriculture (tạo, sửa, xoá, xem danh sách có phân trang) | Vẽ điểm/vùng của 3 module này lên bản đồ chính (Leaflet marker/polygon layer) |
+| CRUD "sổ đăng ký" cho OCOP / Science / Agriculture (tạo, sửa, xoá, xem danh sách có phân trang) | Vẽ điểm marker của 3 module này lên bản đồ chính (Leaflet marker layer) |
 | Module Resource/Media dùng chung (upload ảnh, PDF/DOCX) | Cụm điểm (clustering) khi zoom xa, popup trên bản đồ |
-| Nhập toạ độ Point (lat/lng) qua form nhập số tay cho OCOP/Science | Chọn vị trí bằng cách click lên bản đồ (map picker) |
-| Nối dây `local_leaders` vào `GET /api/wards/{code}` (đóng nốt việc dở từ Giai đoạn 1) | Tìm kiếm bán kính (radius search), lọc theo vùng hành chính trên bản đồ |
+| Nhập toạ độ Point (lat/lng) qua form nhập số tay cho cả 3 module | Chọn vị trí bằng cách click lên bản đồ (map picker) |
+| Nối dây `local_leaders` vào `GET /api/wards/{code}` (trả `leaders: []` khi DB rỗng) | Tìm kiếm bán kính (radius search), lọc theo vùng hành chính trên bản đồ |
 | Áp dụng TanStack Query cho toàn bộ data-fetching mới | Dashboard/Analytics trực quan trên bản đồ, xuất báo cáo PDF/Excel |
-| Sao lưu off-site (đã bị flag "Phase 2 hardening task" trong `DEPLOYMENT & FLEET STRATEGY.md` mục 5.3) | Tự động hoá fleet/multi-instance (Dokploy/Coolify) — vẫn đang bị deferred theo `ARCHITECTURE SPECIFICATION.md` mục 7 |
+| Sao lưu off-site | Tự động hoá fleet/multi-instance (Dokploy/Coolify) |
 
 ---
 
@@ -89,7 +49,7 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
 #### **TSK-7: Nối dây `local_leaders` vào `GET /api/wards/{code}`**
 
 - **Vì sao:** `LocalLeader` entity, `LocalLeaderRepository`, `LeaderDto` đã tồn tại từ Giai đoạn 1 nhưng chưa dùng (`API_CONTRACT.md` mục 4.3 gọi đây là "Planned shape"). Đây là việc nhỏ, an toàn, không phụ thuộc feature flag (nằm trong `core`, không phải `features/`), nên làm trước để "dọn sạch" trước khi mở rộng.
-- **Input xác nhận:** `Ward` entity **không** có quan hệ `@OneToMany` tới `LocalLeader` — `LocalLeaderRepository.findByWardCode(String)` là query độc lập, phải gọi riêng từ Controller (giống hệt cách `gisWardRepository.findByWardCode()` đang được gọi riêng trong `WardController.getWardDetail()` hiện tại).
+- **Cấu trúc quan hệ & Cách xử lý trong Code:** Trong Database, bảng `local_leaders` có khoá ngoại `ward_code REFERENCES wards(code)` (quan hệ 1 xã có nhiều cán bộ lãnh đạo: 1 Chủ tịch, 2 Phó chủ tịch...). Trong mã nguồn Java, entity `LocalLeader` đã có `@ManyToOne` về `Ward`, còn entity `Ward` không khai báo quan hệ 2 chiều `@OneToMany` (để giữ entity nhẹ, tránh nguy cơ N+1 query khi lấy danh sách 135 xã) — do đó danh sách cán bộ được truy vấn trực tiếp qua `LocalLeaderRepository.findByWardCode(String)` khi gọi endpoint chi tiết xã.
 - **Việc cần làm (theo đúng thứ tự):**
   1. `BE/src/main/java/com/website/gis/core/dto/WardDetailDto.java`: thêm field `private List<LeaderDto> leaders;` (nhớ thêm `import java.util.List;`).
   2. `BE/src/main/java/com/website/gis/core/dto/WardDto.java`: dòng `// private List<LeaderDto> leaders;` đang comment — **XOÁ hẳn dòng comment này** (không wire vào `WardDto`). Lý do: `API_CONTRACT.md` mục 4.3 chỉ định nghĩa `leaders` cho `WardDetailDto` (endpoint chi tiết 1 xã), không phải cho `WardDto` (endpoint danh sách 135 xã) — nhét mảng leaders vào response danh sách sẽ phình payload không cần thiết và không khớp API_CONTRACT.
@@ -105,7 +65,7 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
      - Inject thêm `LocalLeaderRepository localLeaderRepository` qua constructor (theo đúng pattern constructor injection đang dùng).
      - Trong `getWardDetail(String code)`, thêm dòng `List<LocalLeader> leaders = localLeaderRepository.findByWardCode(code);` trước khi gọi mapper, rồi đổi lời gọi thành `wardMapper.toDetailDto(ward, gisWard, leaders);`.
   5. `docs/en/API_CONTRACT.md` mục 4.3, endpoint `GET /api/wards/{code}`: xoá nhãn "Current response" / "Planned shape", gộp lại thành 1 response mẫu duy nhất (giờ đã đúng thực tế).
-- **Lưu ý dữ liệu:** `DATA_MODEL.md` mục 3.7 ghi *"For now, skip this step as there is no data"* — bảng `local_leaders` hiện **rỗng** (0 dòng). Sau khi nối dây xong, `leaders` sẽ trả về mảng rỗng `[]` cho mọi xã cho tới khi có dữ liệu thật được nhập (nhập tay qua SQL trực tiếp, đúng triết lý tối giản đã nêu ở `Phase1-task.md` mục `[!TIP]` — không cần UI riêng cho việc này ở Giai đoạn 2).
+- **Lưu ý dữ liệu:** Bảng `local_leaders` hiện **rỗng** (0 dòng). Sau khi nối dây xong, `leaders` sẽ trả về mảng rỗng `[]` cho mọi xã cho tới khi có dữ liệu thật được nạp.
 - **Cách verify:** Viết/sửa `WardControllerTest.java` (test slice `@WebMvcTest` sẵn có) thêm case mock `localLeaderRepository.findByWardCode(...)` trả về danh sách 1-2 leader giả, assert JSON response có field `leaders` đúng shape. Gọi `GET /api/wards/21112` qua Swagger/Postman thật, xác nhận trả `"leaders": []` (không lỗi 500) vì bảng đang rỗng.
 
 ---
@@ -191,29 +151,27 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
 - **Khác biệt duy nhất so với OCOP:** không cần lặp lại việc thiết kế `FileStorageService` (TSK-9 đã xong, tái sử dụng interface có sẵn) — chỉ cần gọi `POST /api/files` từ FE giống OCOP.
 - **Cách verify:** giống hệt TSK-8, đổi endpoint thành `/api/science`.
 
-#### **TSK-11: Module Agriculture (nhân bản có điều chỉnh — KHÔNG có hình học ở Giai đoạn 2)**
+#### **TSK-11: Module Agriculture (nhân bản từ OCOP — dạng Point POI)**
 
-> [!WARNING]
-> Agriculture **khác về bản chất hình học** so với OCOP/Science: `DATA_MODEL.md` mục 4.2 xác định đây là **zone/polygon-type** (MultiPolygon), không phải point-type. Một `MultiPolygon` không thể nhập qua vài ô số như lat/lng — cần công cụ vẽ trên bản đồ, và việc đó thuộc Giai đoạn 3 (`Phase3-task.md` TSK-17). Vì vậy Agriculture ở Giai đoạn 2 **chỉ có bảng thuộc tính nghiệp vụ, KHÔNG có cột hình học** — đây là điều chỉnh có chủ đích so với việc áp y hệt khuôn OCOP, không phải thiếu sót.
-
-- **Việc cần làm:**
-  1. Migration `db/migration/agriculture/V1__create_agriculture_zones.sql` — **chỉ bảng nghiệp vụ**, chưa có bảng `gis_agriculture_zones`:
+- **Việc cần làm:** lặp lại chính xác các bước ở TSK-8, đổi `ocop` → `agriculture`, `OcopProduct` → `AgricultureUnit`, bảng `agriculture_units` (cùng shape cột với `ocop_products`, theo đúng `DATA_MODEL.md` mục 4.1). Migration tại `db/migration/agriculture/V1__create_agriculture_units.sql`:
+  1. Migration `db/migration/agriculture/V1__create_agriculture_units.sql`:
      ```sql
-     CREATE TABLE agriculture_zones (
+     CREATE TABLE agriculture_units (
          id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-         zone_name varchar(255) NOT NULL,
-         zone_type varchar(100),
+         name varchar(255) NOT NULL,
+         unit_type varchar(100),
          description text,
          ward_code varchar(20) NOT NULL,
+         geom geometry(Point, 4326) NOT NULL,
          image_url varchar(500),
          PRIMARY KEY (id),
-         CONSTRAINT agriculture_zones_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
+         CONSTRAINT agriculture_units_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
      );
-     CREATE INDEX idx_agriculture_zones_ward_code ON public.agriculture_zones USING btree (ward_code);
+     CREATE INDEX idx_agriculture_units_ward_code ON public.agriculture_units USING btree (ward_code);
+     CREATE INDEX idx_agriculture_units_geom ON public.agriculture_units USING gist (geom);
      ```
-  2. Package `com.website.gis.features.agriculture` — entity `AgricultureZone`, repo, dto (`zoneName`, `zoneType`, `description`, `wardCode`, `imageUrl` — **không có `latitude`/`longitude`/`geom`**), mapper, `AgricultureController` với `@ConditionalOnProperty(name = "features.agriculture.enabled", ...)`, CRUD y hệt pattern TSK-8 nhưng không có toạ độ.
-  3. Ghi rõ trong Javadoc đầu `AgricultureController.java` lý do không có hình học ở giai đoạn này + trỏ tới `Phase3-task.md` TSK-17 (nơi cột `geom` sẽ được thêm bằng migration **forward-only mới**, không sửa lại `V1` này — đúng nguyên tắc Flyway đã nêu ở `CODING_CONVENTIONS.md`/`DEPLOYMENT & FLEET STRATEGY.md` mục 5.2: *"Flyway migrations are never edited or deleted once applied"*).
-- **Cách verify:** giống TSK-8 nhưng bỏ qua mọi bước liên quan toạ độ.
+  2. Package `com.website.gis.features.agriculture` — entity `AgricultureUnit`, repo `AgricultureUnitRepository`, DTOs (`AgricultureUnitDto`, `AgricultureUnitCreateRequest`, `AgricultureUnitUpdateRequest` có `latitude`/`longitude`), mapper `AgricultureUnitMapper`, `AgricultureController` với `@ConditionalOnProperty(name = "features.agriculture.enabled", havingValue = "true")`, CRUD y hệt pattern TSK-8.
+- **Cách verify:** giống hệt TSK-8, đổi endpoint thành `/api/agriculture`.
 
 ---
 
@@ -244,16 +202,16 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
   - `FE/src/pages/home/components/OcopPanel.tsx` — bảng danh sách (phân trang, dùng `useQuery` + `ocopKeys.list(...)`), nút "Thêm mới" mở modal form (đặt tại `FE/src/pages/home/components/OcopFormModal.tsx`, code tay bằng Tailwind, **không** dùng Radix/Shadcn dialog — giữ đúng quyết định đã chốt ở Giai đoạn 1 `Phase1-task.md` TSK-4: *"modal CRUD user được code tay bằng Tailwind... để nhẹ hơn"*, áp dụng nhất quán cho mọi modal mới).
   - Form gồm: tên, loại sản phẩm, mô tả, dropdown chọn xã (tái dùng dữ liệu `GET /api/wards` đã có), 2 ô số `latitude`/`longitude` (validate trong khoảng toạ độ hợp lý của Gia Lai — tỉnh nằm trong khoảng vĩ độ ~12.7°–15.3°N, kinh độ ~107.3°–109.4°E — validate mềm, chỉ cảnh báo không chặn cứng vì agent không nên tự đặt biên chính xác tuyệt đối), widget upload ảnh gọi `POST /api/files` (TSK-9) trước, nhận `publicUrl` rồi mới `POST /api/ocop`.
   - Thêm nút điều hướng "OCOP" vào `SidebarDrawer.tsx`, **chỉ hiển thị khi `FEATURE_FLAGS.ocop === true`** (import từ `src/config/features.ts`) — đúng cơ chế Compile-time Modularity, không phải role-based như "Quản lý người dùng".
-  - Áp dụng đúng bảng màu OCOP đã định nghĩa ở `Design_rule.md` mục 2 (`#F97316` light theme) cho mọi badge/icon liên quan tới OCOP trong UI quản trị này — dù bản đồ (nơi màu này chủ yếu dùng) thuộc Giai đoạn 3, dùng màu nhất quán ngay từ UI quản trị giúp người dùng liên kết thị giác sớm.
-- **Cách verify:** `viewer` đăng nhập → không thấy mục "OCOP" trong sidebar (khi cờ FE bật) nếu quyết định ẩn hoàn toàn với non-admin — **cần xác nhận:** VIEWER có được xem danh sách OCOP (read-only) hay chỉ ADMIN mới thấy mục này? `PROJECT_OVERVIEW.md` không nói rõ; theo đúng vai trò đã định nghĩa ("VIEWER: Read-only map search and administrative boundary lookups"), đề xuất VIEWER **có thể xem** danh sách/bản đồ OCOP (đọc) nhưng không thấy nút Thêm/Sửa/Xoá — khớp với pattern quyền hạn ADMIN/VIEWER đã áp dụng nhất quán trong toàn dự án.
+  - Áp dụng đúng bảng màu OCOP đã định nghĩa ở `Design_rule.md` mục 2 (`#F97316` light theme) cho mọi badge/icon liên quan tới OCOP trong UI quản trị này.
+- **Cách verify:** `viewer` đăng nhập → không thấy mục "OCOP" trong sidebar (khi cờ FE bật) nếu quyết định ẩn hoàn toàn với non-admin; hoặc hiển thị read-only (không có nút Thêm/Sửa/Xoá) nếu cho phép xem danh sách.
 
 #### **TSK-14: Giao diện Admin CRUD cho Science**
 
-- Nhân bản TSK-13, đổi `Ocop` → `Science`, dùng đúng field shape của `ScienceUnit` (TSK-10).
+- Nhân bản TSK-13, đổi `Ocop` → `Science`, dùng đúng field shape của `ScienceUnit` (TSK-10), áp dụng màu xám Slate `#64748B` theo `Design_rule.md`.
 
 #### **TSK-15: Giao diện Admin CRUD cho Agriculture**
 
-- Nhân bản TSK-13 nhưng **bỏ 2 ô `latitude`/`longitude`** (Agriculture Giai đoạn 2 không có toạ độ — xem cảnh báo ở TSK-11).
+- Nhân bản TSK-13, đổi `Ocop` → `Agriculture`, dùng đúng field shape của `AgricultureUnit` (TSK-11, có đầy đủ 2 ô `latitude`/`longitude`), áp dụng màu xám Cool Gray `#6B7280` theo `Design_rule.md`.
 
 ---
 
@@ -261,25 +219,22 @@ Kế hoạch này **giả định 2 khái niệm tách biệt** và **không** t
 
 #### **TSK-16: Sao lưu off-site (Off-VPS backup replication)**
 
-- **Vì sao:** `DEPLOYMENT & FLEET STRATEGY.md` mục 5.3 tự flag rõ: *"Off-VPS copies of backups... are a Phase 2 hardening task — not yet in place; flag this as an open risk until it is."* Đây là nợ kỹ thuật đã được chính tài liệu Giai đoạn 1 xác nhận, không phải việc tự phát sinh thêm.
-- **Việc cần làm:** mở rộng `scripts/backup-db.sh` (đã sửa đúng ở Giai đoạn 1 — xem lịch sử review trước) — sau dòng `pg_dump` thành công, đồng bộ file `.dump` vừa tạo sang 1 đích lưu trữ ngoài VPS. Đề xuất 2 phương án (cần chủ dự án chọn, không tự quyết vì liên quan chi phí/tài khoản bên thứ 3):
-  1. `rclone` tới object storage tương thích S3 của nhà cung cấp trong nước (khớp yêu cầu chủ quyền dữ liệu ở `PROJECT_OVERVIEW.md` mục 1 — **không** dùng AWS S3/GCS trực tiếp nếu yêu cầu này áp dụng cho cả backup, cần xác nhận).
-  2. `rsync` qua SSH tới 1 VPS phụ thứ hai.
-- **Cách verify:** giả lập backup, xác nhận file xuất hiện ở đích ngoài VPS, và restore thử từ bản sao off-site (không chỉ từ bản local) để chắc chắn bản sao không hỏng.
+- **Vì sao:** `DEPLOYMENT & FLEET STRATEGY.md` mục 5.3 tự flag rõ: *"Off-VPS copies of backups... are a Phase 2 hardening task — not yet in place; flag this as an open risk until it is."* Đây là nợ kỹ thuật đã được chính tài liệu Giai đoạn 1 xác nhận.
+- **Việc cần làm:** mở rộng `scripts/backup-db.sh` — sau dòng `pg_dump` thành công, đồng bộ file `.dump` vừa tạo sang 1 đích lưu trữ ngoài VPS (object storage tương thích S3 trong nước hoặc rsync SSH tới VPS phụ).
+- **Cách verify:** giả lập backup, xác nhận file xuất hiện ở đích ngoài VPS, và restore thử từ bản sao off-site.
 
 ---
 
 ## 4. Definition of Done — Giai đoạn 2
 
-- [ ] TSK-6 xong: `grep -rn "nonglam\|Nonglam\|NongLam"` trong `docs/`/`BE/`/`FE/` chỉ còn trong đoạn giải thích lịch sử đổi tên.
-- [ ] TSK-7 xong: `GET /api/wards/{code}` trả `leaders: []` (hoặc có dữ liệu nếu đã seed tay), `API_CONTRACT.md` không còn phân biệt "Current" / "Planned".
-- [ ] TSK-8, TSK-10, TSK-11 xong: `./mvnw -B verify` pass với **cả 3 feature flag `false` lẫn `true`** (chạy test 2 lần, hoặc dùng `@ActiveProfiles` riêng cho từng trường hợp).
+- [ ] TSK-7 xong: `GET /api/wards/{code}` trả `leaders: []` (hoặc có dữ liệu nếu nạp DB), `API_CONTRACT.md` nhất quán.
+- [ ] TSK-8, TSK-10, TSK-11 xong: `./mvnw -B verify` pass với **cả 3 feature flag `false` lẫn `true`** trên DB Testcontainers PostGIS thật.
 - [ ] TSK-9 xong: upload ảnh/PDF hoạt động, file giả mạo đuôi bị từ chối.
 - [ ] TSK-12–15 xong: `pnpm build && pnpm lint` sạch; bật lần lượt từng `VITE_ENABLE_*` xác nhận đúng module hiện/ẩn trên Sidebar.
 - [ ] TSK-16 xong: có bằng chứng restore thành công từ bản sao off-site.
-- [ ] Tất cả 3 module OCOP/Science/Agriculture khi **tắt flag** (mặc định khi bàn giao, vì Gia Lai hiện chưa mua module nào) đều trả `404` đúng như thiết kế, không rò rỉ endpoint nào.
-- [ ] Chạy lại `docker compose up -d --build` trên máy sạch một lần nữa (như đã làm cuối Giai đoạn 1) để xác nhận 3 Flyway feature-folder mới không phá vỡ luồng khởi động khi **toàn bộ 3 flag đều `false`** (trường hợp mặc định thật của Gia Lai).
+- [ ] Tất cả 3 module OCOP/Science/Agriculture khi **tắt flag** (mặc định) đều trả `404` đúng như thiết kế.
+- [ ] Chạy lại `docker compose up -d --build` trên máy sạch xác nhận 3 Flyway feature-folder mới không phá vỡ luồng khởi động khi toàn bộ flag `false`.
 
 ## 5. Bàn giao sang Giai đoạn 3
 
-Khi Definition of Done ở trên đạt 100%, entity + bảng dữ liệu của OCOP/Science đã có cột `geom`/toạ độ sẵn sàng (Agriculture thì chưa — xem TSK-17 đầu `Phase3-task.md`). Giai đoạn 3 sẽ **không** động vào CRUD registry đã xây ở đây — chỉ thêm lớp hiển thị bản đồ + spatial query lên trên. Xem `docs/Phase 3/Phase3-task.md`.
+Khi Definition of Done ở trên đạt 100%, entity + bảng dữ liệu của cả 3 module (OCOP, Science, Agriculture) đã có cột `geom`/toạ độ Point sẵn sàng. Giai đoạn 3 sẽ **không** động vào CRUD registry đã xây ở đây — chỉ thêm lớp hiển thị bản đồ + clustering + popup + spatial query lên trên. Xem `Phase3-task.md`.

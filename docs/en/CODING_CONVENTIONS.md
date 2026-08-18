@@ -334,13 +334,13 @@ FE/
 
 ## 6. Feature Module Naming (Backend `features/` packages)
 
-When implementing a pluggable feature module (`ocop`, `science`, `nonglam`), the package/class naming must follow the same conventions above, applied consistently per module:
+When implementing a pluggable feature module (`ocop`, `science`, `agriculture`), the package/class naming must follow the same conventions above, applied consistently per module:
 
-- Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.science`, `features.nonglam`).
-- Controller: `<Module>Controller` (e.g. `OcopController`, `ScienceController`, `NonglamController`).
+- Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.science`, `features.agriculture`).
+- Controller: `<Module>Controller` (e.g. `OcopController`, `ScienceController`, `AgricultureController`).
 - Service: `<Module>Service`, Repository: `<Module>Repository`.
-- Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `nonglam` → entity `NongLamZone`.
-- DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `NongLamZoneDto`).
+- Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `science` → entity `ScienceUnit`, module `agriculture` → entity `AgricultureUnit`.
+- DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `ScienceUnitDto`, `AgricultureUnitDto`).
 - Mappers live inside the module's own package, `com.website.gis.features.<module>.mapper` (per Section 3.1) — kept self-contained within the module, not in a shared top-level package, so the module stays independently removable.
 
 ## 7. Cross-References

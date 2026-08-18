@@ -17,12 +17,12 @@ The system allows managing, updating, and querying information of commune/ward/t
 
 ### 2. Implementation Roadmap (Phased Approach)
 
-The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture, etc.) based on each client's specific requirements at the package build time (Compile-time):
+The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture) based on each client's specific requirements at the package build time (Compile-time):
 
 | Phase       | Phase Name                     | Core Deliverables                                                                                                                                                                                                                                                                                                                              |
 | :---------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Phase 1** | **Administrative Foundation**  | - Commune-level administrative map: Display Gia Lai borders, select and view area details directly on the map.<br>- Administrative information lookup: Fast search of communes/wards.<br>- User roles (ADMIN: account administration, VIEWER: map lookup). Direct data or boundary editing via the web is not supported.                       |
-| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (OCOP production units, Sci-Tech units, Agricultural production units, Tourist Spots, etc.).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).       |
+| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (OCOP production units, Sci-Tech units, Agricultural production units).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).                         |
 | **Phase 3** | **GIS Map Integration**        | - Geopoint coordinate mapping (Point) and visualization of enabled modules' organizations on the map.<br>- Establish spatial relations between organizations and managing administrative units.<br>- Map-based queries (radius search, administrative area filter).<br>- Visual reporting and analytics on the map via toggleable data layers. |
 
 ---
@@ -83,7 +83,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
   - Unit Code (National administrative code).
   - Unit Name (Official name).
   - Unit Type (Commune, Ward, Township).
-  - Geographic Info: Area (km²), Head of unit (President of People's Committee, etc.).
+  - Geographic Info: Area (km²).
   - Additional resources: Representative images, attached documents, brief description.
   - Spatial Data: Boundary borders (`MULTIPOLYGON` stored in PostGIS), center point coordinates for zoom/pan.
 - **GIS Features:**
@@ -95,7 +95,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 #### 4.3. Affiliated Organization Management Module
 
-- **Types of Organizations:** People's Committee, OCOP Cooperatives, Sci-Tech Units, Agricultural Units, Tourist Spots, etc.
+- **Types of Organizations:** OCOP Cooperatives, Sci-Tech Units, Agricultural Units (3 independent modules).
 - **Detailed Attributes:**
   - Organization Name, Organization Type.
   - Contact Info: Address, Phone, Email.
@@ -104,7 +104,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 #### 4.4. Resource Management Module (Media & Storage)
 
-- **Role:** Developed and integrated starting from **Phase 2** to support media attachment for affiliated entities (OCOP, Science, Agriculture, etc.). These assets will be displayed within map popups when users click on points (Points of Interest).
+- **Role:** Developed and integrated starting from **Phase 2** to support media attachment for affiliated entities (OCOP, Science, Agriculture). These assets will be displayed within map popups when users click on points (Points of Interest).
 - **Features:**
   - Upload images (JPEG, PNG) as avatars or actual photos of the organization.
   - Upload related documents (PDF, DOCX) and support direct downloads.
@@ -116,14 +116,14 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 - **Features:**
   - Count of administrative units under the province.
   - Area distribution and administrative structure statistics.
-  - Count of affiliated organizations by category (OCOP, Science, Agriculture, Tourism...).
+  - Count of affiliated organizations by category (OCOP, Science, Agriculture).
   - Export analytical reports in PDF or Excel formats.
 
 #### 4.6. Advanced GIS Map Module (Phase 3)
 
 - _Note: Phase 1 focuses on basic administrative boundaries, Phase 3 expands to:_
   - Load and toggle between different map layers (Administrative borders, Organization locations, etc.).
-  - Render point markers for organizations (OCOP units, Science units, Agriculture units, People's Committees) on top of the commune boundary map layer.
+  - Render point markers for organizations (OCOP units, Science units, Agriculture units) on top of the commune boundary map layer.
   - Spatial query: Search organizations within a specific commune or within a custom radius from a chosen location.
 
 ---

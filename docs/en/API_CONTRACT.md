@@ -251,21 +251,7 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 - **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
 - **Response Body (`WardDetailDto`):**
   - Status `200 OK`
-  - Note: `leaders` is populated from the `local_leaders` table (joined on `ward_code`), not an inline column on `wards` — see `DATA_MODEL.md` Section 3.7. A ward may have zero or more leaders.
-    **Current respone**
-
-  ```json
-  {
-    "code": "21112",
-    "name": "Ia Kring",
-    "fullName": "Phường Ia Kring",
-    "provinceName": "Tỉnh Gia Lai",
-    "areaKm2": 6.84
-  }
-  ```
-
-  **Planned shape**
-
+  - Note: `leaders` is populated from the `local_leaders` table (joined on `ward_code`), not an inline column on `wards` — see `DATA_MODEL.md` Section 3.7. A ward may have zero or more leaders (returns an empty array `[]` when no leaders exist).
   ```json
   {
     "code": "21112",
@@ -358,15 +344,15 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 
 ---
 
-### 4.4. Convention for Future Feature Modules (`ocop`, `science`, `nonglam`)
+### 4.4. Convention for Future Feature Modules (`ocop`, `science`, `agriculture`)
 
-These modules are not yet implemented (Core phase only covers auth + administrative units). When building them, follow the same shape established above rather than inventing a new one:
+These modules are implemented as independent pluggable feature extensions. When building them, follow the standard shape established above:
 
-- **Base path:** `/api/{feature}` — e.g. `/api/ocop`, `/api/science`, `/api/nonglam`. Each is only registered when its `@ConditionalOnProperty` flag is enabled (`ARCHITECTURE SPECIFICATION.md` Section 4.2); when disabled, the path returns `404` because the controller bean simply doesn't exist.
-- **List endpoint:** `GET /api/{feature}` — unlike `/api/wards` (unpaginated, since only 135 rows), feature module lists **should** use the pagination standard from Section 3, since the number of OCOP products/Science units/nông lâm zones can grow arbitrarily.
+- **Base path:** `/api/{feature}` — e.g. `/api/ocop`, `/api/science`, `/api/agriculture`. Each is only registered when its `@ConditionalOnProperty` flag is enabled (`ARCHITECTURE SPECIFICATION.md` Section 4.2); when disabled, the path returns `404` because the controller bean simply doesn't exist.
+- **List endpoint:** `GET /api/{feature}` — unlike `/api/wards` (unpaginated, since only 135 rows), feature module lists use the pagination standard from Section 3, since the number of OCOP products / Science units / Agriculture units can grow arbitrarily.
 - **Detail endpoint:** `GET /api/{feature}/{id}`.
-- **GeoJSON endpoint:** `GET /api/{feature}/geojson` — returns a `FeatureCollection`, same shape as `/api/wards/geojson`, for direct Leaflet layer consumption.
+- **GeoJSON endpoint:** `GET /api/{feature}/geojson` — returns a `FeatureCollection` of Point features, for direct Leaflet marker layer consumption with clustering.
 - **Write endpoints** (`POST`/`PUT`/`DELETE`) — restricted to `ADMIN` only, same role pattern as Section 4.2.
-- **Geometry type differs by module:** `ocop`/`science` return `Point` geometries; `nonglam` returns `Polygon`/`MultiPolygon` — the frontend must render these via different Leaflet primitives (markers vs. `<GeoJSON>` polygon overlay), per `ARCHITECTURE SPECIFICATION.md` Section 6.4. Do not assume all feature modules are point-based.
+- **Geometry type:** All 3 feature modules (`ocop`, `science`, `agriculture`) return `Point` geometries (`geometry(Point, 4326)`), rendered on the frontend as interactive Leaflet markers with clustering, popup details, and distinctive color coding (OCOP: Orange, Science: Slate Gray, Agriculture: Cool Gray) per `docs/UI-UX/Design_rule.md`.
 
-See `DATA_MODEL.md` Section 4 for the corresponding table schema convention these endpoints will query.
+See `DATA_MODEL.md` Section 4 for the corresponding table schema convention these endpoints query.

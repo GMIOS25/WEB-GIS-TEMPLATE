@@ -1,24 +1,20 @@
 # Deployment & Fleet Strategy
 
-This document defines the operational deployment model for the **Provincial Administrative Information Management and GIS Lookup System**: how it is hosted today, and how hosting is expected to evolve as the number of deployed instances grows.
+This document defines the operational deployment model for the **Provincial Administrative Information Management and GIS Lookup System**: how it is hosted today, and how hosting is structured for multi-customer deployments.
 
 It complements `ARCHITECTURE SPECIFICATION.md` (Sections 6–7), which defines the **isolation model** (why each customer gets its own app + own database). This document defines the **operational runbook**: what actually runs on the server, how it's built, deployed, backed up, and rolled back.
 
-> **Status note (2026-07):** the project currently has exactly **one tenant** (Gia Lai province, code `52`). There is no live fleet yet. Sections 1–5 below describe the deployment that exists _now_. Section 6 describes the _trigger and plan_ for when a second instance is onboarded — it is a decision already made, not something already built.
-
 ---
 
-## 1. Current Deployment Model (Single Tenant)
+## 1. Current Deployment Model (Single VPS, Multi-Stack)
 
 | Aspect             | Decision                                                                                                                             |
 | :----------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Hosting**        | Rented VPS, domestic cloud provider — **Viettel IDC** (per `PROJECT_OVERVIEW.md` Section 1's data-sovereignty requirement).          |
 | **OS**             | Ubuntu Server (LTS).                                                                                                                 |
-| **Orchestration**  | Plain **Docker Compose**. No Kubernetes, no PaaS layer, no fleet automation — deliberately, since there is only one instance to run. |
-| **Process count**  | One `docker compose` stack: app container + PostgreSQL/PostGIS container + a lightweight reverse proxy for TLS.                      |
-| **Deploy trigger** | Manual: SSH in, `git pull`, rebuild, `docker compose up -d`. See Section 5.1.                                                        |
-
-This section intentionally does **not** introduce a fleet registry, multi-instance rollout scripts, or `tenant_id`-based multi-tenancy. Building that machinery now, for one customer, would be premature — see Section 6 for what actually happens when a second customer arrives.
+| **Orchestration**  | Plain **Docker Compose**.                                                                                                            |
+| **Architecture**   | 1 VPS hosting 3 isolated customer stacks (`gialai_ocop`, `gialai_science`, `gialai_agriculture`) + Caddy reverse proxy for TLS.     |
+| **Deploy trigger** | Git-based build / CI-CD or manual: SSH in, `git pull`, rebuild, `docker compose up -d`.                                               |
 
 ---
 
@@ -38,9 +34,9 @@ graph TD
     DB -.->|scheduled| Backup
 ```
 
-- **App container:** a single Spring Boot fat JAR that serves both the REST API (`/api/**`) and the built React static assets (per `PROJECT_OVERVIEW.md` Section 3.4 — "no separate Nginx required"). Built as a multi-stage Docker image (Section 4).
-- **DB container:** `postgis/postgis` image, one instance, one database (`gialai`), data on a named Docker volume.
-- **Reverse proxy:** **Caddy** (not Nginx), chosen for automatic Let's Encrypt certificate issuance/renewal with near-zero configuration — appropriate for a single-developer operational load. This is the one process that talks to the outside world; the app container is not exposed directly.
+- **App container:** a single Spring Boot fat JAR that serves both the REST API (`/api/**`) and the built React static assets (per `PROJECT_OVERVIEW.md` Section 3.4 — "no separate Nginx required"). Built as a multi-stage Docker image (Section 3).
+- **DB container:** `postgis/postgis` image, dedicated database per customer, data on a named Docker volume.
+- **Reverse proxy:** **Caddy** (not Nginx), chosen for automatic Let's Encrypt certificate issuance/renewal with near-zero configuration.
 
 ---
 
@@ -105,7 +101,6 @@ services:
         condition: service_healthy
     networks:
       - gis-net
-    # No published port on the host — only Caddy talks to this container.
 
   db:
     image: postgis/postgis:15-3.4-alpine
@@ -128,9 +123,6 @@ services:
       retries: 5
     networks:
       - gis-net
-    # No published port on the host — only the app container reaches Postgres,
-    # over the internal Docker network. Use `docker compose exec db psql ...`
-    # for manual access instead of exposing 5432 publicly.
 
   caddy:
     image: caddy:2-alpine
@@ -166,8 +158,6 @@ gis.gialai.gov.vn {
 }
 ```
 
-_(Replace with the real domain once assigned. Caddy handles ACME/Let's Encrypt automatically — no manual certbot step required.)_
-
 ### 4.3. `.env` (not committed — see `.env.example` below)
 
 ```env
@@ -176,9 +166,7 @@ POSTGRES_DB=gialai
 POSTGRES_USER=gis_admin
 POSTGRES_PASSWORD=CHANGE_ME_STRONG_PASSWORD
 
-# --- Spring datasource (Spring Boot relaxed-binding maps these
-#     env vars directly onto spring.datasource.* properties —
-#     no application.properties file is required inside the container) ---
+# --- Spring datasource ---
 SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/gialai
 SPRING_DATASOURCE_USERNAME=gis_admin
 SPRING_DATASOURCE_PASSWORD=CHANGE_ME_STRONG_PASSWORD
@@ -189,34 +177,25 @@ JWT_EXPIRATION_MS=86400000
 JWT_COOKIE_SECURE=true
 JWT_COOKIE_SAME_SITE=Strict
 
-# --- Reverse proxy trust (required — see Section 2 for why Caddy always sits in
-#     front) — without this, per-IP login rate limiting (LoginAttemptService)
-#     sees every request as coming from Caddy's own IP ---
+# --- Reverse proxy trust ---
 SERVER_FORWARD_HEADERS_STRATEGY=framework
 
 # --- JPA ---
 SPRING_JPA_OPEN_IN_VIEW=false
 
-# --- Seed default accounts — leave SEED_DEFAULT_ACCOUNTS unset/false except for the
-#     one-time bootstrap described in the checklist below (Section 5.4) ---
+# --- Seed default accounts ---
 SEED_DEFAULT_ACCOUNTS=false
 SEED_ADMIN_USERNAME=admin
 SEED_ADMIN_PASSWORD=
 SEED_VIEWER_USERNAME=viewer
 SEED_VIEWER_PASSWORD=
 
-# --- Feature flags (all false for Phase 1 — see ARCHITECTURE SPECIFICATION.md Section 4.3) ---
-# Names must match the actual @Value("${features.ocop.enabled}") properties read in
-# DynamicFlywayConfig.java via Spring's relaxed binding (dots → underscores, upper-
-# cased): FEATURES_OCOP_ENABLED, not ENABLE_OCOP — an earlier draft of this file used
-# the ENABLE_* names, which silently do nothing (relaxed binding has no notion of
-# "alias", so setting ENABLE_OCOP never touches features.ocop.enabled).
+# --- Feature flags (per customer deployment) ---
+# Names match the @Value("${features.<module>.enabled}") properties:
 FEATURES_OCOP_ENABLED=false
 FEATURES_SCIENCE_ENABLED=false
 FEATURES_AGRICULTURE_ENABLED=false
 ```
-
-A `.env.example` (with placeholder values, no real secrets) is committed at the repo root so a fresh VPS setup has something to copy from — this closes the same gap flagged for local dev's missing `application.properties` template (`BE/src/main/resources/application.properties.example`, a separate file used only when running the backend directly with `./mvnw`, not through Docker).
 
 ---
 
@@ -232,22 +211,17 @@ docker compose up -d app
 docker compose logs -f app   # confirm clean startup + Flyway migration success
 ```
 
-Expect a brief downtime (seconds) while the app container restarts; `db` and `caddy` are untouched. This is acceptable for the current single-tenant, low-traffic phase. Zero-downtime rollout is a Section 6 concern (PaaS-managed rolling deploys), not something to hand-build now.
-
 ### 5.2. Emergency Rollback
 
 ```bash
-# Previous image tags are retained locally (do not prune aggressively):
 docker images gialai-gis-app
 docker tag gialai-gis-app:<previous-good-tag> gialai-gis-app:latest
 docker compose up -d app
 ```
 
-If the previous release included a Flyway migration that must also be reverted, do **not** hand-edit the database — write and apply a new forward-only "undo" migration instead (Flyway migrations are never edited or deleted once applied to a database that has run them; see `CODING_CONVENTIONS.md`).
-
 ### 5.3. Database Backup
 
-Daily `pg_dump`, run from the host via cron (kept outside the app container so it survives app redeploys). The actual script is committed at [`scripts/backup-db.sh`](../../scripts/backup-db.sh) — shown here for reference, but treat the file in the repo as the source of truth rather than this copy:
+Daily `pg_dump` via host cron:
 
 ```bash
 #!/usr/bin/env bash
@@ -268,67 +242,40 @@ find "$BACKUP_DIR" -name "gialai_*.dump" -mtime +7 ! -name "*_Sun_*" -delete
 find "$BACKUP_DIR" -name "gialai_*_Sun_*.dump" -mtime +27 -delete
 ```
 
-`$POSTGRES_USER` / `$POSTGRES_DB` must be present in the environment cron invokes the script with — e.g. `env $(cat /opt/gialai-gis/.env | grep -v '^#' | xargs) /opt/gialai-gis/scripts/backup-db.sh` in the crontab entry below, rather than assuming cron inherits `.env`.
-
-```cron
-# crontab -e
-0 2 * * * env $(cat /opt/gialai-gis/.env | grep -v '^#' | xargs) /opt/gialai-gis/scripts/backup-db.sh >> /var/log/gialai-backup.log 2>&1
-```
-
-**Restore:**
-
-```bash
-docker compose exec -T db pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists \
-    < /opt/gialai-gis/backups/gialai_20260714_020000.dump
-```
-
-Off-VPS copies of backups (e.g. synced to a separate object storage bucket or a second VPS) are a Phase 2 hardening task — not yet in place; flag this as an open risk until it is.
-
 ### 5.4. First-Time VPS Setup Checklist
 
 - [ ] Provision Ubuntu Server VPS on Viettel IDC; assign static IP + DNS A record.
 - [ ] Install Docker Engine + Docker Compose plugin.
 - [ ] `git clone` the repo to `/opt/gialai-gis`.
-- [ ] Copy `.env.example` → `.env`, fill in real secrets (generate `JWT_SECRET` with e.g. `openssl rand -hex 32`).
-- [ ] Point the domain's DNS at the VPS; confirm ports 80/443 are open in the VPS firewall/security group.
-- [ ] For the very first deploy only (no `users` rows exist yet), temporarily set `SEED_DEFAULT_ACCOUNTS=true` plus a real `SEED_ADMIN_PASSWORD` (≥ 6 chars — `DatabaseSeeder` fails fast otherwise) in `.env`.
-- [ ] `docker compose up -d --build`; confirm Caddy issues a certificate and `/actuator/health` responds `UP` through HTTPS.
-- [ ] Log in with the seeded `admin` account, then immediately: (a) change its password from the UI, and (b) set `SEED_DEFAULT_ACCOUNTS=false` in `.env` and redeploy (Section 5.1) so the seeding path is disabled again — leaving it `true` means anyone who wipes the `users` table (or a fresh install pointed at the same `.env`) gets a working admin account back.
-- [ ] Install the cron job from Section 5.3.
+- [ ] Copy `.env.example` → `.env`, fill in real secrets.
+- [ ] Point the domain's DNS at the VPS; confirm ports 80/443 are open.
+- [ ] For the very first deploy only, temporarily set `SEED_DEFAULT_ACCOUNTS=true` plus a real `SEED_ADMIN_PASSWORD` (≥ 6 chars).
+- [ ] `docker compose up -d --build`; confirm Caddy issues a certificate and `/actuator/health` responds `UP`.
+- [ ] Log in with seeded `admin`, change password, set `SEED_DEFAULT_ACCOUNTS=false`, redeploy.
+- [ ] Install backup cron job.
 
 ---
 
-## 6. Future: Multi-Instance Scaling Path
+## 6. Multi-Customer Deployment Strategy & Fleet Scaling
 
-This section is **forward-looking policy**, agreed now so that the isolation model in `ARCHITECTURE SPECIFICATION.md` Section 6 isn't compromised later under time pressure. Nothing in this section is built yet.
+The project architecture natively supports running multiple customer deployments (e.g. OCOP, Science, Agriculture) while guaranteeing absolute data isolation.
 
-### 6.1. Trigger
+### 6.1. Deployment Topology: 1 VPS, 3 Containers, 3 Databases
 
-Re-evaluate hosting approach when a **second** paying customer/instance is onboarded (i.e. as soon as "single tenant" stops being true). Until then, Section 1–5 above is the entire operational model — do not build fleet tooling speculatively.
+For the 3 current modules/clients, all instances run on **1 physical VPS** (Viettel IDC) partitioned into independent stacks:
+- **Shared Base Data:** Administrative commune boundaries (`wards`, `gis_wards`) are identical across deployments.
+- **Isolated Applications & Databases:** Each customer runs in its own application container (`AppOcop`, `AppScience`, `AppAgri`) and connects to its own dedicated database (`gialai_ocop`, `gialai_science`, `gialai_agriculture`).
+- **No Shared Network/Data Path:** Enforces the "database-per-customer" principle with zero cross-tenant leakage.
 
-### 6.2. Decision: adopt a self-hosted PaaS, don't hand-roll fleet scripts
+### 6.2. Multi-Instance Management (Dokploy / Coolify or Multi-Compose)
 
-When that trigger is hit, the plan is to adopt an existing self-hosted PaaS — **Dokploy** or **Coolify** — rather than building custom fleet automation (a bespoke `ops/fleet.yaml` registry + hand-written `deploy.sh` rollout script). Rationale:
-
-- Both are open-source, self-hostable on the same class of VPS this project already targets (no dependency on a foreign paid cloud API, preserving the data-sovereignty requirement in `PROJECT_OVERVIEW.md` Section 1).
-- Both deploy **Docker Compose stacks directly** — the exact artifact this project already produces (Section 4.1) — so there is no rewrite of the app packaging to adopt one.
-- Both provide, out of the box, the operational pieces this document would otherwise have to hand-build per new customer: Git-push-to-deploy, per-app environment variable management, automatic reverse proxy + TLS (Traefik-based), and basic resource/log monitoring.
-- Both support running **multiple isolated projects on one or more servers** from a single control panel — which maps directly onto the database-per-customer model: **one Dokploy/Coolify "project" = one customer**, with its own Compose stack, its own `.env`, and its own PostgreSQL/PostGIS container. No shared database, no `tenant_id` column, no code change required to onboard a customer this way.
-- Multi-server fleet management (running several VPS hosts under one control panel) is supported by both tools if/when a single VPS is no longer enough — Dokploy via Docker Swarm, Coolify via its multi-server mode — so this decision also covers horizontal growth, not just "more customers on one box."
-
-**Choosing between Dokploy and Coolify is deferred** until the trigger is actually hit — both are moving fast and the better fit depends on the team's size and comfort with their respective stacks at that time. Re-check each project's current documentation before committing; do not rely on this document for their exact feature set.
-
-### 6.3. What onboarding a customer looks like under this plan
-
-1. Create a new project in the PaaS control panel.
-2. Point it at this repository, same as today's manual `git pull` (Section 5.1) — the PaaS handles the build via the same `Dockerfile`/`docker-compose.yml` in Sections 3–4.
-3. Configure that project's own `.env` — most importantly, that customer's own `ENABLE_OCOP` / `ENABLE_SCIENCE` / `ENABLE_AGRICULTURE` flags (`ARCHITECTURE SPECIFICATION.md` Section 4.3) and its own database credentials.
-4. The PaaS provisions/starts a **dedicated** database container for that project — satisfying the "database-per-customer" isolation decision in `ARCHITECTURE SPECIFICATION.md` Section 6 without any additional code.
-5. Assign the customer's subdomain/domain; the PaaS's built-in reverse proxy issues its own TLS certificate — Caddy (Section 4.2) is superseded by the PaaS's proxy at that point.
-
-### 6.4. What this section deliberately does _not_ commit to
-
-The earlier planning note in `PLAN-gis-modularity.md` (Task 4) sketched a bespoke `ops/fleet.yaml` registry and `ops/deploy.sh` rollout script. That plan is **superseded** by the decision in Section 6.2 above: adopt existing PaaS tooling instead of building and maintaining custom fleet scripts. `PLAN-gis-modularity.md` should be treated as historical planning context, not a current requirement.
+When managing multiple projects on the VPS via Docker Compose or PaaS (Dokploy / Coolify):
+1. **Repository:** All deployments build from the same unified repository code artifact.
+2. **Configuration (`.env`):** Each customer project specifies its active module via standard environment flags:
+   - Backend: `FEATURES_OCOP_ENABLED=true` / `FEATURES_SCIENCE_ENABLED=true` / `FEATURES_AGRICULTURE_ENABLED=true`
+   - Frontend: `VITE_ENABLE_OCOP=true` / `VITE_ENABLE_SCIENCE=true` / `VITE_ENABLE_AGRICULTURE=true`
+   - Database credentials: Pointing to that customer's own database container.
+3. **Routing:** Caddy (or the PaaS reverse proxy) routes incoming subdomains (`ocop.gialai.gov.vn`, `khcn.gialai.gov.vn`, `nongnghiep.gialai.gov.vn`) to the respective container port with automatic TLS termination.
 
 ---
 

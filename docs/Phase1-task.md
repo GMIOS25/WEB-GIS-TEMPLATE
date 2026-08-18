@@ -39,47 +39,38 @@
 
 ---
 
-## 2. Thiết lập Database
+## 2. Thiết lập Database (Tự động hoá qua Flyway)
 
-> [!WARNING]
-> **Mục này đã lỗi thời — không còn chạy tay nữa.** Bản kế hoạch gốc (07/07) yêu cầu tự chạy SQL tay để tạo bảng `users`/`local_leaders`. Từ commit "implement Flyway for database migrations" (13/07), toàn bộ schema (bao gồm `provinces`, `wards`, `gis_provinces`, `gis_wards`, `users`, và cả bảng `administrative_units`/`administrative_regions` không có trong bản kế hoạch gốc) được Flyway tự động migrate khi Spring Boot khởi động, đọc từ `BE/src/main/resources/db/migration/core/V1`→`V4`. Tài khoản `admin`/`viewer` mẫu cũng được seed tự động bởi `DatabaseSeeder`, không cần `INSERT` tay.
->
-> **Xem hướng dẫn setup chính xác hiện tại tại `docs/en/DEVELOPMENT_SETUP.md` mục 2.** Không dùng script SQL cũ trong mục này nữa.
+Toàn bộ cấu trúc cơ sở dữ liệu và dữ liệu ban đầu được tự động hoá hoàn toàn qua **Flyway migrations** (`BE/src/main/resources/db/migration/core/V1`→`V4`) và `DatabaseSeeder` khi Spring Boot khởi động:
+- `V1`: Khởi tạo bảng danh mục hành chính (`provinces`, `wards`).
+- `V2`: Nạp danh mục đơn vị hành chính chuẩn quốc gia.
+- `V3`: Khởi tạo bảng dữ liệu không gian PostGIS (`gis_provinces`, `gis_wards`).
+- `V4`: Nạp toạ độ, ranh giới địa giới hành chính (`MULTIPOLYGON`) 135 xã/phường tỉnh Gia Lai.
+- `DatabaseSeeder`: Tự động nạp tài khoản mẫu `admin`/`viewer` (kích hoạt qua cấu hình `SEED_DEFAULT_ACCOUNTS=true`).
+
+Chi tiết cài đặt môi trường xem tại [DEVELOPMENT_SETUP.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/DEVELOPMENT_SETUP.md).
 
 ---
 
-## 3. Danh sách 5 Tasks phát triển cốt lõi (5/5 đã hoàn thành thật)
+## 3. Danh sách 5 Tasks cốt lõi đã hoàn thành (100% DONE)
 
 ### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
 
 #### **TSK-1: Khai báo Entity & Cấu hình Security (JWT)** — ✅ Hoàn thành
 
 - **Nội dung:**
-  - Tạo các JPA Entity `Ward`, `Province`, `GisWard`, `User`, `LocalLeader` ánh xạ chính xác với dữ liệu sẵn có và 2 bảng mới tạo.
-  - Thiết lập Spring Security + Filter xác thực JWT. CORS config cho phép FE gọi trực tiếp.
-- **Input:** Cơ sở dữ liệu hiện có.
+  - Khai báo các JPA Entity trong package `com.website.gis.core.entity`: `Ward`, `Province`, `GisWard`, `User`, `LocalLeader`.
+  - Thiết lập Spring Security + Filter xác thực JWT. CORS config cho phép frontend kết nối.
 - **Output:** Khung bảo mật Spring Boot chạy thành công ở local port `8080`.
 - **Cách verify:** Gọi API bất kỳ khi chưa đăng nhập -> Trả về `401 Unauthorized`.
-- **Cập nhật thực tế:** các Entity/Repository/Security ở trên hiện nằm trong package `com.website.gis.core.*` (không phải package phẳng như bản kế hoạch gốc), theo đúng cấu trúc `core/` vs `features/` mô tả tại `ARCHITECTURE SPECIFICATION.md` mục 4.1 — chuẩn bị sẵn cho việc thêm module ở Giai đoạn 2.
 
 #### **TSK-2: Xây dựng REST APIs** — ✅ Hoàn thành
 
-- **Nội dung:** Viết các endpoint RESTful sau:
-  - `POST /api/auth/login`: Nhận Username/Password, xác thực và trả về thông tin vai trò. ~~Trả về Token JWT~~ _(đã lỗi thời, xem ghi chú thực tế bên dưới)_.
-  - **Nhóm quản lý User (Chỉ ADMIN được phép truy cập):**
-    - `GET /api/admin/users`: Lấy danh sách tài khoản.
-    - `POST /api/admin/users`: Tạo mới tài khoản VIEWER.
-    - `PUT /api/admin/users/{id}`: Cập nhật thông tin (Tên hiển thị, Mật khẩu mới).
-    - `DELETE /api/admin/users/{id}`: Xóa tài khoản người dùng.
-  - **Nhóm tra cứu bản đồ (Public hoặc bắt buộc Đăng nhập tùy nhu cầu, khuyên dùng bắt buộc Đăng nhập):**
-    - `GET /api/wards`: Lấy danh sách xã/phường (hỗ trợ tìm kiếm theo tên).
-    - `GET /api/wards/{code}`: Xem chi tiết thông số xã/phường (diện tích).
-    - `GET /api/wards/{code}/geojson`: Trả về dữ liệu tọa độ ranh giới địa giới hành chính xã/phường dưới dạng JSON chuẩn.
-- **Input:** JPA Repositories và Spring Controllers.
-- **Output:** Các endpoint hoạt động chính xác.
-- **Cách verify:** Đăng nhập tài khoản `viewer`, gọi API tạo tài khoản `/api/admin/users` -> Trả về lỗi `403 Forbidden`. Đăng nhập tài khoản `admin` -> tạo thành công.
-- **Cập nhật thực tế (TSK-4):** khi làm map, đã bổ sung thêm 2 endpoint gộp không có trong danh sách gốc để tối ưu hiệu năng tải toàn bộ 135 xã một lần: `GET /api/wards/geojson` (FeatureCollection toàn tỉnh) và `GET /api/wards/province/geojson` (đường viền tỉnh). Danh sách API đầy đủ và chính xác nhất hiện nay nằm ở `docs/en/API_CONTRACT.md`, không phải danh sách trong mục này.
-- **Cập nhật thực tế (bảo mật JWT):** `POST /api/auth/login` không còn trả JWT trong response body — token được set qua cookie `HttpOnly` + `Secure` + `SameSite` (tên cookie mặc định `gis_token`, cấu hình qua `app.jwt.cookie-*`). Đồng thời đã bổ sung 2 endpoint không có trong danh sách gốc: `GET /api/auth/me` (lấy thông tin user hiện tại từ cookie, dùng để khôi phục phiên khi FE reload) và `POST /api/auth/logout` (xoá cookie bằng `Max-Age=0`). `JwtAuthenticationFilter` vẫn chấp nhận header `Authorization: Bearer` như phương án dự phòng cho công cụ gọi API trực tiếp (Swagger/Postman), nhưng FE web không dùng cách này nữa.
+- **Nội dung:** Xây dựng hệ thống REST API theo chuẩn [API_CONTRACT.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/API_CONTRACT.md):
+  - **Xác thực:** `POST /api/auth/login` (cấp cookie `HttpOnly`), `GET /api/auth/me` (khôi phục phiên), `POST /api/auth/logout` (xoá cookie).
+  - **Quản lý User (Chỉ ADMIN):** `GET /api/admin/users`, `POST /api/admin/users`, `PUT /api/admin/users/{id}`, `DELETE /api/admin/users/{id}` (có chặn tự xoá và chặn xoá admin cuối cùng).
+  - **Tra cứu bản đồ:** `GET /api/wards` (danh sách xã), `GET /api/wards/{code}` (chi tiết xã), `GET /api/wards/{code}/geojson` (GeoJSON xã), `GET /api/wards/geojson` (FeatureCollection 135 xã), `GET /api/wards/province/geojson` (ranh giới tỉnh).
+- **Cách verify:** Đăng nhập tài khoản `viewer`, gọi API quản trị `/api/admin/users` -> Trả về `403 Forbidden`. Đăng nhập tài khoản `admin` -> thực hiện CRUD thành công.
 
 ---
 
@@ -88,50 +79,35 @@
 #### **TSK-3: Khởi tạo React & Màn hình Đăng nhập** — ✅ Hoàn thành
 
 - **Nội dung:**
-  - Khởi tạo React + Vite + Tailwind CSS + Shadcn UI.
-  - Tạo Router điều hướng và Auth Context lưu trạng thái đăng nhập. Cấu hình Axios đính kèm Bearer Token tự động.
-  - Thiết kế trang Đăng nhập đơn giản, sang trọng.
-- **Input:** Khởi chạy project FE sạch.
-- **Output:** Ứng dụng login được, chuyển hướng về trang chủ. ~~Lưu Token vào LocalStorage~~ _(đã lỗi thời, xem ghi chú thực tế bên dưới)_.
-- **Cách verify:** Thử gõ bừa URL `/` khi chưa đăng nhập -> Tự động redirect về `/login`. Đăng nhập đúng `admin` hoặc `viewer` -> vào được bản đồ.
-- **Cập nhật thực tế (bảo mật JWT):** FE không còn lưu token ở LocalStorage và Axios không còn tự gắn header `Authorization` như mô tả gốc. Token nằm trong cookie `HttpOnly` do BE set (JS không đọc được), Axios chỉ cần bật `withCredentials: true` để trình duyệt tự đính kèm cookie. `AuthContext` khôi phục phiên đăng nhập bằng cách gọi `GET /api/auth/me` mỗi khi app khởi động, thay vì đọc token đã lưu.
+  - Khởi tạo React + Vite + TypeScript + Tailwind CSS.
+  - Xây dựng Router điều hướng và `AuthContext` quản lý phiên đăng nhập. Axios bật `withCredentials: true` để tự động đính kèm cookie `HttpOnly`.
+  - Thiết kế trang Đăng nhập trực quan, sang trọng, tự động điều hướng về trang chủ khi đã đăng nhập.
+- **Cách verify:** Truy cập `/` khi chưa đăng nhập -> Tự động chuyển hướng về `/login`. Đăng nhập thành công -> chuyển tiếp vào bản đồ.
 
 #### **TSK-4: Bản đồ GIS tương tác & Giao diện Quản trị** — ✅ Hoàn thành
 
 - **Nội dung:**
   - **Trang chính bản đồ (Main Web Map):**
     - Render bản đồ nền OpenStreetMap bằng `react-leaflet`.
-    - Gọi API tải và vẽ ranh giới GeoJSON các xã của tỉnh Gia Lai. Hover highlight viền xã; click chọn xã hiển thị chi tiết (Diện tích, thông báo tên xã) bên Sidebar phải.
-    - Ô tìm kiếm nhanh xã/phường: Chọn xã từ kết quả tìm kiếm $\rightarrow$ Bản đồ tự bay đến (`flyTo`) và chọn xã đó.
-    - Panel thông tin nhỏ thống kê nhanh: Tổng số xã, tổng diện tích.
-  - **Giao diện quản lý Users (Chỉ hiển thị nút điều hướng cho ADMIN):**
-    - Một trang/màn hình danh sách người dùng cho phép ADMIN tạo mới tài khoản Viewer hoặc reset mật khẩu, xóa tài khoản thông qua các Form/Dialog của Shadcn UI.
-- **Input:** Thư viện map, API BE.
-- **Output:** Giao diện trực quan, hoạt động hoàn hảo.
-- **Cách verify:** Đăng nhập vai trò `viewer` -> Sidebar chính không hiển thị phần "Quản lý người dùng". Đăng nhập vai trò `admin` -> hiển thị và thực hiện CRUD thành công.
-- **Ghi chú thực tế:** modal CRUD user được code tay bằng Tailwind (không dùng Radix UI/Shadcn dialog như dự kiến ban đầu) để nhẹ hơn. Layer "Huyện" trong Left Drawer đã được bỏ, chỉ giữ 2 toggle "Ranh giới cấp Tỉnh" và "Ranh giới cấp Xã".
+    - Tải và hiển thị ranh giới GeoJSON toàn tỉnh và 135 xã/phường tỉnh Gia Lai.
+    - Hỗ trợ hover highlight viền xã, click chọn xã để hiển thị thông tin chi tiết (diện tích, trực thuộc) ở Sidebar.
+    - Thanh tìm kiếm nhanh xã/phường với hiệu ứng tự động di chuyển bản đồ (`flyTo`).
+    - Panel thống kê nhanh tổng số xã và tổng diện tích.
+  - **Giao diện quản lý Users (Chỉ ADMIN):**
+    - Panel danh sách người dùng cho phép ADMIN tạo mới tài khoản Viewer, đặt lại mật khẩu hoặc xoá tài khoản qua Modal code tay với Tailwind.
+- **Cách verify:** Đăng nhập vai trò `viewer` -> Sidebar không hiển thị mục "Quản lý người dùng". Đăng nhập vai trò `admin` -> hiển thị đầy đủ công cụ quản trị.
 
 ---
 
 ### 📦 PHẦN 3: ĐÓNG GÓI & TRIỂN KHAI
 
-#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ ĐÃ HOÀN THÀNH & VERIFY THỰC NGHIỆM (100% DONE)
+#### **TSK-5: Đóng gói tích hợp & Triển khai Docker** — ✅ Hoàn thành
 
-- **Nội dung thực tế (khớp với đặc tả gốc trong `docs/en/DEPLOYMENT & FLEET STRATEGY.md`):**
-  - `Dockerfile` (root repo) — multi-stage đúng như dự kiến: build FE (`node:20-alpine`, pin `pnpm@9` qua corepack) → build BE (`maven:3.9-eclipse-temurin-17`, copy `FE/dist` vào `src/main/resources/static` trước `mvnw package`, có thêm `chmod +x mvnw` phòng vệ) → runtime (`eclipse-temurin:17-jre-alpine`, user không phải root).
-  - `docker-compose.yml` (root repo) — đúng 3 dịch vụ `app`/`db`/`caddy` như đặc tả, `app`/`db` không public port, chỉ `caddy` expose 80/443.
-  - `Caddyfile` (root repo) — đúng domain placeholder `gis.gialai.gov.vn`, reverse proxy vào `app:8080`.
-  - `.dockerignore` (root repo) — loại trừ `node_modules`, `target`, `.git` giúp tăng tốc độ build context (20KB thay vì 173MB) và chống xung đột nhị phân host/container.
-  - `.env.example` và `.env` — đúng tên biến `FEATURES_OCOP_ENABLED`/`FEATURES_SCIENCE_ENABLED`/`FEATURES_AGRICULTURE_ENABLED`, `JWT_SECRET` hex 64-byte.
-  - `scripts/backup-db.sh` — khớp với script mô tả ở Section 5.3 của tài liệu trên.
-- **Output:** Toàn bộ pipeline build và đóng gói chạy thông suốt từ đầu đến cuối.
-- **Kết quả verify thực nghiệm (Đạt 100% vào ngày 2026-08-17):**
-  - Đã chạy `./mvnw -B verify` với Testcontainers PostGIS: **33/33 tests PASS (0 failures, 0 errors)**.
-  - Đã chạy `docker compose up -d --build` thành công:
-    - Multi-stage build FE (Vite) + BE (Maven JAR) không lỗi.
-    - Cả 3 container `gialai-gis-app`, `gialai-gis-db`, `gialai-gis-proxy` đều `Up (healthy)`.
-    - Flyway tự động migrate V1→V4 vào database, nhập đủ dữ liệu 135 xã/phường và bảng ranh giới không gian `gis_wards`.
-    - `DatabaseSeeder` tự động seed tài khoản `admin` và `viewer`.
-    - `GET /actuator/health` trả về `{"status":"UP"}`.
-    - `GET /` trả về toàn bộ ứng dụng React Web GIS.
-- **Chi tiết đặc tả vận hành đầy đủ** (backup, rollback, checklist VPS lần đầu, kế hoạch mở rộng nhiều khách hàng): xem `docs/en/DEPLOYMENT & FLEET STRATEGY.md`.
+- **Nội dung:**
+  - `Dockerfile` multi-stage: Build frontend (Vite/React) -> Đóng gói tài nguyên tĩnh vào Spring Boot JAR -> Chạy trên Alpine JRE 17 gọn nhẹ với non-root user.
+  - `docker-compose.yml`: Triển khai 3 service `app`, `db` (PostGIS), `caddy` (Reverse proxy tự động HTTPS).
+  - `.dockerignore` tối ưu build context (giảm từ 173MB xuống 20KB).
+  - `scripts/backup-db.sh`: Kịch bản sao lưu cơ sở dữ liệu tự động.
+- **Kết quả verify thực nghiệm:**
+  - `./mvnw -B verify`: 33/33 tests PASS trên DB Testcontainers PostGIS thật.
+  - `docker compose up -d --build`: Toàn bộ stack khởi động thành công, tự động migrate dữ liệu, `/actuator/health` đạt `UP`.

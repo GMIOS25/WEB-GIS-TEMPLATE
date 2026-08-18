@@ -2,7 +2,7 @@
 
 This document is the authoritative reference for the database schema of the **Provincial Administrative Information Management and GIS Lookup System**, reverse-documented from the actual schema as created by `postgres_CreateSchema_CreateTables_vn_units.sql` and `postgresql_CreateGISTables.sql`.
 
-It complements `ARCHITECTURE SPECIFICATION.md` (which describes _how_ modules are toggled) by defining exactly _what_ the core schema looks like, and establishes the pattern that future feature modules (`ocop`, `science`, `nonglam`) must follow.
+It complements `ARCHITECTURE SPECIFICATION.md` (which describes _how_ modules are toggled) by defining exactly _what_ the core schema looks like, and establishes the pattern that future feature modules (`ocop`, `science`, `agriculture`) must follow.
 
 ---
 
@@ -15,7 +15,7 @@ A key implementation decision — not explicit in the original architecture draf
 | `provinces`                              | `gis_provinces`               | `provinces.code = gis_provinces.province_code` |
 | `wards`                                  | `gis_wards`                   | `wards.code = gis_wards.ward_code`             |
 
-**Rationale to preserve going forward:** this allows administrative lookups (search, dropdowns, name display) to run against small, geometry-free tables, while spatial queries and GeoJSON serialization hit only the `gis_*` tables. When adding a new **zone/polygon-type** feature module (e.g. `nonglam`), follow this same split (`nonglam_zones` + `gis_nonglam_zones`) if the module needs frequent non-spatial listing/search separate from map rendering. For simple **point-type** POI modules (e.g. `ocop`, `science`) a single table with an inline `geom` column is sufficient — see Section 4.
+**Rationale to preserve going forward:** this allows administrative lookups (search, dropdowns, name display) to run against small, geometry-free tables, while spatial queries and GeoJSON serialization hit only the `gis_*` tables. For specialized feature modules (`ocop`, `science`, `agriculture`), which are all **point-type** POI modules, a single table with an inline `geom geometry(Point, 4326)` column is sufficient — see Section 4.
 
 ---
 
@@ -180,19 +180,19 @@ Indexes: `idx_gis_provinces_province_code` (btree), `idx_gis_provinces_bbox` (**
 
 Spatial data for wards, 1:1 with `wards` via `ward_code`. Same column shape and indexing pattern as `gis_provinces` (see above), FK to `wards.code`.
 
-### 3.7. `local_leaders`(For now, skip this step as there is no data.)
+### 3.7. `local_leaders`
 
-Leadership info per ward (e.g. Chủ tịch UBND) — implemented as its own table, **not** an inline attribute of `wards` as earlier high-level docs implied.
+Leadership info per ward (e.g. Chủ tịch UBND, Phó Chủ tịch). Implemented as its own table, **not** an inline attribute of `wards`.
 
 | Column         | Type               | Notes                          |
 | :------------- | :----------------- | :----------------------------- |
 | `id`           | `integer identity` | PK                             |
 | `full_name`    | `varchar(255)`     | Required                       |
-| `position`     | `varchar(100)`     | Required, e.g. "Chủ tịch UBND" |
+| `position`     | `varchar(100)`     | Required, e.g. "Chủ tịch"      |
 | `phone_number` | `varchar(20)`      | Optional                       |
 | `ward_code`    | `varchar(20)`      | FK → `wards.code`              |
 
-A ward may have 0..N `local_leaders` rows (e.g. Chairman + Vice Chairman). API/DTO layers exposing ward details should join this table explicitly (see `API_CONTRACT.md` — `WardDetailDto` should be extended to include a `leaders` array; it currently does not).
+> **Note on Data Ingestion:** The table structure and backend mapping are fully ready. Currently, no cadre data is populated (`local_leaders` has 0 rows, returning `[]` in `GET /api/wards/{code}`). Whenever data is inserted into `local_leaders`, the frontend will immediately display the leadership info without requiring any code modifications.
 
 ### 3.8. `users`
 
@@ -208,20 +208,18 @@ Application accounts. Only two roles exist for the Core phase.
 
 ### 3.9. `spatial_ref_sys`
 
-Standard PostGIS system table (spatial reference system definitions). Not application-specific — do not modify or treat as project schema; it is created automatically by `CREATE EXTENSION postgis`.
+Standard PostGIS system table (spatial reference system definitions). Created automatically by `CREATE EXTENSION postgis`.
 
 ---
 
 ## 4. Convention for Future Feature Module Tables
 
-When implementing `ocop`, `science`, or `nonglam` (per `ARCHITECTURE SPECIFICATION.md` Section 6.4), follow these patterns to stay consistent with the core schema above.
+All 3 feature modules (`ocop`, `science`, `agriculture`) are **point-type POI modules**. A single table with an inline PostGIS Point geometry (`geom geometry(Point, 4326)`) is used for each module, keeping the architecture clean and consistent:
 
-### 4.1. Point-type modules (`ocop`, `science`)
-
-A single table is sufficient — no need to split business/spatial data, since each row already represents one point of interest with a small attribute set.
+### 4.1. Point-type Module Pattern
 
 ```sql
--- Example pattern for features/ocop
+-- 1. Example schema for features/ocop
 CREATE TABLE ocop_products (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
     name varchar(255) NOT NULL,
@@ -233,44 +231,48 @@ CREATE TABLE ocop_products (
     PRIMARY KEY (id),
     CONSTRAINT ocop_products_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
 );
-
 CREATE INDEX idx_ocop_products_ward_code ON public.ocop_products USING btree (ward_code);
 CREATE INDEX idx_ocop_products_geom ON public.ocop_products USING gist (geom);
-```
 
-`science_units` should follow the identical shape (table/column names swapped for the domain).
-
-### 4.2. Zone/polygon-type modules (`nonglam`)
-
-Because zone data is more likely to need non-spatial listing (e.g. a table view of all zones with area, type, without a map), consider mirroring the core split pattern:
-
-```sql
-CREATE TABLE nonglam_zones (
+-- 2. Schema for features/science (identical shape)
+CREATE TABLE science_units (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-    zone_name varchar(255) NOT NULL,
-    zone_type varchar(100),
+    name varchar(255) NOT NULL,
+    unit_type varchar(100),
+    description text,
     ward_code varchar(20) NOT NULL,
+    geom geometry(Point, 4326) NOT NULL,
+    image_url varchar(500),
     PRIMARY KEY (id),
-    CONSTRAINT nonglam_zones_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
+    CONSTRAINT science_units_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
 );
+CREATE INDEX idx_science_units_ward_code ON public.science_units USING btree (ward_code);
+CREATE INDEX idx_science_units_geom ON public.science_units USING gist (geom);
 
-CREATE TABLE gis_nonglam_zones (
+-- 3. Schema for features/agriculture (identical shape)
+CREATE TABLE agriculture_units (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-    zone_id integer NOT NULL,
-    area_km2 numeric(12, 5),
-    geom geometry(MultiPolygon, 4326) NOT NULL,
+    name varchar(255) NOT NULL,
+    unit_type varchar(100),
+    description text,
+    ward_code varchar(20) NOT NULL,
+    geom geometry(Point, 4326) NOT NULL,
+    image_url varchar(500),
     PRIMARY KEY (id),
-    CONSTRAINT gis_nonglam_zones_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES nonglam_zones (id)
+    CONSTRAINT agriculture_units_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
 );
-
-CREATE INDEX idx_gis_nonglam_zones_geom ON public.gis_nonglam_zones USING gist (geom);
+CREATE INDEX idx_agriculture_units_ward_code ON public.agriculture_units USING btree (ward_code);
+CREATE INDEX idx_agriculture_units_geom ON public.agriculture_units USING gist (geom);
 ```
 
-This is a recommendation, not a hard requirement — if `nonglam` turns out to need only map display with no separate tabular view, a single table with an inline `geometry(MultiPolygon, 4326)` column (matching the `ocop_products` simplicity) is acceptable too. Pick the split only if a real non-spatial listing requirement exists; don't split preemptively.
+### 4.2. Migration Placement
 
-### 4.3. Migration placement
+All feature migrations belong to their dedicated folders:
+- `BE/src/main/resources/db/migration/ocop/`
+- `BE/src/main/resources/db/migration/science/`
+- `BE/src/main/resources/db/migration/agriculture/`
 
-All of the above are new **feature** migrations, not core migrations — they belong in `db/migration/ocop/`, `db/migration/science/`, `db/migration/nonglam/` respectively (per `ARCHITECTURE SPECIFICATION.md` Section 5.1), never in `db/migration/core/`.
+Never place feature tables into `db/migration/core/`.
 
 ---
 
