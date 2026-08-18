@@ -3,8 +3,9 @@ import { useAuth } from '../../../context/AuthContext';
 import api from '../../../api/axiosInstance';
 import { Users, Plus, AlertCircle, Info, Shield, Edit2, Trash2 } from 'lucide-react';
 import AddUserModal from './AddUserModal';
-import EditUserModal, { type AdminUser } from './EditUserModal';
+import EditUserModal from './EditUserModal';
 import DeleteUserModal from './DeleteUserModal';
+import type { AdminUser } from '../../../types/user';
 
 interface AdminPanelProps {
   setActiveView: (view: 'map' | 'admin') => void;
@@ -41,20 +42,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ setActiveView }) => {
     }
   }, [user]);
 
-  // Load users on mount (deferred to next tick to avoid eslint set-state-in-effect warnings)
   useEffect(() => {
-    let mounted = true;
-    const deferFetch = async () => {
-      await Promise.resolve();
-      if (mounted) {
-        fetchUsers();
-      }
-    };
-    deferFetch();
+    let active = true;
+    if (user?.role === 'ADMIN') {
+      api.get('/api/admin/users')
+        .then((res) => {
+          if (active) setUsers(res.data);
+        })
+        .catch((err) => {
+          console.error('Failed to load users list', err);
+          if (active) setAdminError('Không thể tải danh sách tài khoản từ máy chủ.');
+        });
+    }
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, [fetchUsers]);
+  }, [user]);
 
   // Alert callbacks passed to modals
   const handleSuccess = useCallback((message: string) => {

@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { X, Key } from 'lucide-react';
 import api from '../../../api/axiosInstance';
 import { extractErrorMessage } from '../../../api/errorUtils';
+import type { AdminUser } from '../../../types/user';
 
-export interface AdminUser {
-  id: number;
-  username: string;
-  fullName: string;
-  role: 'ADMIN' | 'VIEWER';
-}
+export type { AdminUser };
 
 interface EditUserModalProps {
   isOpen: boolean;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import api from '../../../api/axiosInstance';
 import { extractErrorMessage } from '../../../api/errorUtils';
-import type { AdminUser } from './EditUserModal';
+import type { AdminUser } from '../../../types/user';
 
 interface DeleteUserModalProps {
   isOpen: boolean;

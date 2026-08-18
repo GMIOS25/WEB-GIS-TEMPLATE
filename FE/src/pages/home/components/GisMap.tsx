@@ -2,24 +2,8 @@ import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-export interface GeoJsonFeature {
-  type: string;
-  properties: {
-    code: string;
-    name: string;
-    fullName?: string;
-    areaKm2?: string | number;
-  };
-  geometry: {
-    type: string;
-    coordinates: number[][][] | number[][][][];
-  };
-}
-
-export interface GeoJsonData {
-  type: string;
-  features: GeoJsonFeature[];
-}
+import type { GeoJsonFeature, GeoJsonData } from '../../../types/gis';
+export type { GeoJsonFeature, GeoJsonData };
 
 const DEFAULT_STYLE = {
   fillColor: '#10b981',

@@ -1,19 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
-
-export interface GeoJsonFeature {
-  type: string;
-  properties: {
-    code: string;
-    name: string;
-    fullName?: string;
-    areaKm2?: string | number;
-  };
-  geometry: {
-    type: string;
-    coordinates: number[][][] | number[][][][];
-  };
-}
+import type { GeoJsonFeature } from '../../../types/gis';
 
 interface DetailsPanelProps {
   selectedWard: GeoJsonFeature | null;

@@ -1,36 +1,25 @@
 package com.website.gis.core.security;
 
 import com.website.gis.core.exception.TooManyRequestsException;
-
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate-limit / khoá tạm (lockout) số lần đăng nhập sai, theo username VÀ
  * theo IP nguồn, để chống brute-force mật khẩu qua
  * {@code POST /api/auth/login}.
- *
- * TRƯỚC ĐÂY: endpoint login không có bất kỳ giới hạn nào (không Bucket4j,
- * không {@code @Retryable}/lockout logic), nên một tài khoản như "admin" có
- * thể bị thử mật khẩu không giới hạn số lần - đặc biệt nguy hiểm khi kết hợp
- * với rủi ro mật khẩu mặc định yếu ở
- * {@link com.website.gis.config.DatabaseSeeder}.
- *
- * Cài đặt bằng bộ nhớ trong tiến trình ({@link ConcurrentHashMap}) - không
- * cần thêm dependency mới, đủ dùng cho một instance backend duy nhất. Nếu
- * triển khai nhiều instance (scale-out) phía sau load balancer, nên thay
- * bằng một store dùng chung (Redis, Bucket4j + Redis, v.v.) để giới hạn
- * được áp dụng nhất quán giữa các instance.
  */
 @Component
 public class LoginAttemptService {
 
+    private static final Logger logger = LoggerFactory.getLogger(LoginAttemptService.class);
     private static final int MAX_ATTEMPTS = 5;
     private static final Duration ATTEMPT_WINDOW = Duration.ofMinutes(15);
     private static final Duration LOCK_DURATION = Duration.ofMinutes(15);
@@ -44,10 +33,8 @@ public class LoginAttemptService {
     private final ConcurrentMap<String, Attempt> attemptsByKey = new ConcurrentHashMap<>();
 
     /**
-     * Ném {@link TooManyRequestsException} (-&gt; HTTP 429) nếu key này
-     * (username hoặc IP) đang trong thời gian bị khoá tạm. Gọi TRƯỚC khi xác
-     * thực mật khẩu để chặn sớm, tránh tốn công verify BCrypt cho các request
-     * chắc chắn sẽ bị từ chối.
+     * Ném {@link TooManyRequestsException} (-> HTTP 429) nếu key này
+     * (username hoặc IP) đang trong thời gian bị khoá tạm.
      */
     public void checkAllowed(String key) {
         Attempt attempt = attemptsByKey.get(key);
@@ -92,8 +79,6 @@ public class LoginAttemptService {
     @Scheduled(fixedRate = 3600000) // Every hour
     public void cleanupExpiredAttempts() {
         Instant now = Instant.now();
-        AtomicInteger removedCount = new AtomicInteger(0);
-
         attemptsByKey.entrySet().removeIf(entry -> {
             Attempt attempt = entry.getValue();
 
@@ -106,17 +91,11 @@ public class LoginAttemptService {
             if (attempt.windowStartedAt != null) {
                 Duration age = Duration.between(attempt.windowStartedAt, now);
                 Duration maxAge = ATTEMPT_WINDOW.plus(LOCK_DURATION);
-                if (age.compareTo(maxAge) > 0) {
-                    removedCount.incrementAndGet();
-                    return true;
-                }
+                return age.compareTo(maxAge) > 0;
             }
 
             return false;
         });
-
-        if (removedCount.get() > 0) {
-            System.out.println("Cleaned up " + removedCount.get() + " expired login attempt entries");
-        }
+        logger.debug("Expired login attempt cleanup completed");
     }
 }

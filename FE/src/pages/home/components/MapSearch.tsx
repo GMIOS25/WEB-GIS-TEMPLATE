@@ -1,24 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Landmark } from 'lucide-react';
-
-export interface GeoJsonFeature {
-  type: string;
-  properties: {
-    code: string;
-    name: string;
-    fullName?: string;
-    areaKm2?: string | number;
-  };
-  geometry: {
-    type: string;
-    coordinates: number[][][] | number[][][][];
-  };
-}
-
-export interface GeoJsonData {
-  type: string;
-  features: GeoJsonFeature[];
-}
+import type { GeoJsonFeature, GeoJsonData } from '../../../types/gis';
 
 interface MapSearchProps {
   geoJsonData: GeoJsonData | null;
@@ -32,7 +14,7 @@ const MapSearch: React.FC<MapSearchProps> = ({
   setSelectedWard,
 }) => {
   const [searchQuery, setSearchQuery] = useState(
-    selectedWard ? (selectedWard.properties.fullName || selectedWard.properties.name || '') : ''
+    selectedWard?.properties.fullName ?? selectedWard?.properties.name ?? ''
   );
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);

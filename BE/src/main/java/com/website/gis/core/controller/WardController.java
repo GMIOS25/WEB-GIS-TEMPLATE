@@ -22,11 +22,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.util.concurrent.TimeUnit;
+import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/wards")
@@ -49,19 +49,11 @@ public class WardController {
 
     @GetMapping
     public ResponseEntity<List<WardDto>> getWards(@RequestParam(value = "q", required = false) String query) {
-        List<Ward> wards;
-        if (query != null && !query.trim().isEmpty()) {
-            String trimmed = query.trim();
-            wards = wardRepository.findByNameContainingIgnoreCaseOrFullNameContainingIgnoreCase(trimmed, trimmed);
-        } else {
-            wards = wardRepository.findAll();
-        }
+        List<Ward> wards = StringUtils.hasText(query)
+                ? wardRepository.findByNameContainingIgnoreCaseOrFullNameContainingIgnoreCase(query.trim(), query.trim())
+                : wardRepository.findAll();
 
-        List<WardDto> dtos = wards.stream()
-                .map(wardMapper::toDto)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(wards.stream().map(wardMapper::toDto).toList());
     }
 
     @GetMapping("/{code}")

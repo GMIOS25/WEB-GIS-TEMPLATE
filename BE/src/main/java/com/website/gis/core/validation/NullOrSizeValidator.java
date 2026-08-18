@@ -16,12 +16,9 @@ public class NullOrSizeValidator implements ConstraintValidator<NullOrSize, Stri
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        // null hoặc blank -> "không cung cấp giá trị mới", coi là hợp lệ (giữ
-        // nguyên giá trị cũ). Chỉ áp min/max khi người dùng THỰC SỰ nhập gì đó.
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.isBlank()) {
             return true;
         }
-        int length = value.length();
-        return length >= min && length <= max;
+        return value.length() >= min && value.length() <= max;
     }
 }

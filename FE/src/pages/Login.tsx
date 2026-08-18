@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosInstance';
 import { Lock, User, Eye, EyeOff, Loader2, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { extractErrorMessage } from '../api/errorUtils';
 
 const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
@@ -54,17 +55,11 @@ const Login: React.FC = () => {
       navigate('/');
     } catch (err: unknown) {
       console.error('Login error', err);
-      const errorResponse = err as { response?: { status: number; data?: { message?: string } }; request?: unknown };
-      if (errorResponse.response) {
-        if (errorResponse.response.status === 401) {
-          setError('Tên đăng nhập hoặc mật khẩu không chính xác.');
-        } else {
-          setError(errorResponse.response.data?.message || 'Có lỗi xảy ra từ máy chủ.');
-        }
-      } else if (errorResponse.request) {
-        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng.');
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        setError('Tên đăng nhập hoặc mật khẩu không chính xác.');
       } else {
-        setError('Đã xảy ra lỗi không xác định.');
+        setError(extractErrorMessage(err, 'Có lỗi xảy ra khi đăng nhập.'));
       }
     } finally {
       setIsLoading(false);
