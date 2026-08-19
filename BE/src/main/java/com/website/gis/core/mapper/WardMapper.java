@@ -42,15 +42,11 @@ public interface WardMapper {
     @Mapping(source = "ward.fullName", target = "fullName")
     @Mapping(source = "ward.province.fullName", target = "provinceName")
     @Mapping(source = "gisWard.areaKm2", target = "areaKm2")
-    WardDetailDto toDetailDto(Ward ward, GisWard gisWard);
+    @Mapping(source = "leaders", target = "leaders")
+    WardDetailDto toDetailDto(Ward ward, GisWard gisWard, List<LocalLeader> leaders);
 
-    // --- Not wired into WardDetailDto yet (see WardDto/WardDetailDto's
-    // commented-out `leaders` field and API_CONTRACT.md's "Planned shape"
-    // note) — kept here so wiring it in later is a one-line change:
-    // add `List<LeaderDto> leaders;` to WardDetailDto, add
-    // `@Mapping(target = "leaders", source = "leaders")` above, and pass
-    // the ward's leaders into toDetailDto from WardController.
     LeaderDto toLeaderDto(LocalLeader leader);
 
     List<LeaderDto> toLeaderDtos(List<LocalLeader> leaders);
 }
+

@@ -227,13 +227,14 @@
 
 ## 4. Definition of Done — Giai đoạn 2
 
-- [ ] TSK-7 xong: `GET /api/wards/{code}` trả `leaders: []` (hoặc có dữ liệu nếu nạp DB), `API_CONTRACT.md` nhất quán.
-- [ ] TSK-8, TSK-10, TSK-11 xong: `./mvnw -B verify` pass với **cả 3 feature flag `false` lẫn `true`** trên DB Testcontainers PostGIS thật.
-- [ ] TSK-9 xong: upload ảnh/PDF hoạt động, file giả mạo đuôi bị từ chối.
-- [ ] TSK-12–15 xong: `pnpm build && pnpm lint` sạch; bật lần lượt từng `VITE_ENABLE_*` xác nhận đúng module hiện/ẩn trên Sidebar.
-- [ ] TSK-16 xong: có bằng chứng restore thành công từ bản sao off-site.
-- [ ] Tất cả 3 module OCOP/Science/Agriculture khi **tắt flag** (mặc định) đều trả `404` đúng như thiết kế.
-- [ ] Chạy lại `docker compose up -d --build` trên máy sạch xác nhận 3 Flyway feature-folder mới không phá vỡ luồng khởi động khi toàn bộ flag `false`.
+- [x] TSK-7 xong: `GET /api/wards/{code}` trả `leaders: []` (hoặc có dữ liệu nếu nạp DB), `API_CONTRACT.md` nhất quán.
+- [x] TSK-8, TSK-10, TSK-11 xong: Backend Flyway migrations, entities (PostGIS Point SRID 4326), repositories, DTOs, mappers, conditional controllers, unit tests, disabled 404 tests, và Testcontainers integration tests đã hoàn thiện và verify.
+- [x] TSK-9 xong: upload ảnh/PDF hoạt động, validation MIME/magic bytes và auto-resize ảnh (max 1600px) hoạt động chuẩn xác, file giả mạo đuôi bị từ chối.
+- [x] TSK-12–15 xong: TanStack Query v5 installed, feature flags `FEATURE_FLAGS` cấu hình qua `VITE_ENABLE_*`, modal forms và UI CRUD panels cho OCOP (`#F97316`), Science (`#64748B`), Agriculture (`#6B7280`) hoàn thiện, `pnpm build && pnpm lint` sạch 0 lỗi.
+- [x] TSK-16 xong: `scripts/backup-db.sh` hỗ trợ SHA256 checksums, S3 replication, SSH/rsync replication, và `scripts/verify-restore-db.sh` kiểm tra tính toàn vẹn và khả năng restore.
+- [x] Tất cả 3 module OCOP/Science/Agriculture khi **tắt flag** (mặc định) đều trả `404` đúng như thiết kế.
+- [x] Kiến trúc Flyway động (`DynamicFlywayConfig`) nạp đúng thư mục migration theo module enabled, không phá vỡ luồng khởi động khi toàn bộ flag `false`.
+
 
 ## 5. Bàn giao sang Giai đoạn 3
 

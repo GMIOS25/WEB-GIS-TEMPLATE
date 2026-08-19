@@ -1,0 +1,35 @@
+import api from './axiosInstance';
+import type { OcopProduct, OcopProductCreateRequest, OcopProductUpdateRequest } from '../types/ocop';
+import type { PaginatedResponse } from '../types/common';
+
+export interface OcopQueryParams {
+  page?: number;
+  size?: number;
+  wardCode?: string;
+  sort?: string;
+}
+
+export const fetchOcopProducts = async (params?: OcopQueryParams): Promise<PaginatedResponse<OcopProduct>> => {
+  const response = await api.get<PaginatedResponse<OcopProduct>>('/api/ocop', { params });
+  return response.data;
+};
+
+export const fetchOcopProductById = async (id: number): Promise<OcopProduct> => {
+  const response = await api.get<OcopProduct>(`/api/ocop/${id}`);
+  return response.data;
+};
+
+export const createOcopProduct = async (data: OcopProductCreateRequest): Promise<OcopProduct> => {
+  const response = await api.post<OcopProduct>('/api/ocop', data);
+  return response.data;
+};
+
+export const updateOcopProduct = async (id: number, data: OcopProductUpdateRequest): Promise<OcopProduct> => {
+  const response = await api.put<OcopProduct>(`/api/ocop/${id}`, data);
+  return response.data;
+};
+
+export const deleteOcopProduct = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(`/api/ocop/${id}`);
+  return response.data;
+};

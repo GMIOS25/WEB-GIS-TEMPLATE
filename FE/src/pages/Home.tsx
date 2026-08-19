@@ -2,17 +2,20 @@ import React, { useState, useEffect, useCallback, startTransition } from 'react'
 import api from '../api/axiosInstance';
 import { Map, X } from 'lucide-react';
 import GisMap, { type GeoJsonData, type GeoJsonFeature } from './home/components/GisMap';
-import SidebarDrawer from './home/components/SidebarDrawer';
+import SidebarDrawer, { type ActiveViewType } from './home/components/SidebarDrawer';
 import MapSearch from './home/components/MapSearch';
 import ProfileCard from './home/components/ProfileCard';
 import StatsBoard from './home/components/StatsBoard';
 import DetailsPanel from './home/components/DetailsPanel';
 import AdminPanel from './home/components/AdminPanel';
+import OcopPanel from './home/components/OcopPanel';
+import SciencePanel from './home/components/SciencePanel';
+import AgriculturePanel from './home/components/AgriculturePanel';
 
 const Home: React.FC = () => {
   // Core view & drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeView, setActiveView] = useState<'map' | 'admin'>('map');
+  const [activeView, setActiveView] = useState<ActiveViewType>('map');
 
   // Map settings and GeoJSON data state
   const [layers, setLayers] = useState({
@@ -33,9 +36,6 @@ const Home: React.FC = () => {
           api.get('/api/wards/geojson'),
           api.get('/api/wards/province/geojson'),
         ]);
-        // startTransition marks the (expensive) map layer render as low-priority so
-        // React keeps the UI thread free to respond to clicks on the drawer/profile
-        // while Leaflet builds out the ward polygons in the background.
         startTransition(() => {
           setGeoJsonData(wardsRes.data);
           setProvinceGeoJson(provinceRes.data);
@@ -56,19 +56,19 @@ const Home: React.FC = () => {
     }));
   }, []);
 
-  return (
-    <div className="w-full h-screen relative bg-white overflow-hidden font-sans text-neutral-900 select-none">
-      
-      {/* 1. VIEW PORT ROUTER */}
-      <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
-        {mapLoading && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-            <span className="text-sm font-semibold text-neutral-600">Đang tải bản đồ địa giới Gia Lai...</span>
-          </div>
-        )}
-
-        {activeView === 'map' ? (
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'admin':
+        return <AdminPanel setActiveView={(view) => setActiveView(view as ActiveViewType)} />;
+      case 'ocop':
+        return <OcopPanel setActiveView={setActiveView} />;
+      case 'science':
+        return <SciencePanel setActiveView={setActiveView} />;
+      case 'agriculture':
+        return <AgriculturePanel setActiveView={setActiveView} />;
+      case 'map':
+      default:
+        return (
           <GisMap
             layers={layers}
             geoJsonData={geoJsonData}
@@ -76,9 +76,23 @@ const Home: React.FC = () => {
             selectedWard={selectedWard}
             setSelectedWard={setSelectedWard}
           />
-        ) : (
-          <AdminPanel setActiveView={setActiveView} />
+        );
+    }
+  };
+
+  return (
+    <div className="w-full h-screen relative bg-white overflow-hidden font-sans text-neutral-900 select-none">
+      
+      {/* 1. VIEW PORT ROUTER */}
+      <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
+        {mapLoading && activeView === 'map' && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+            <span className="text-sm font-semibold text-neutral-600">Đang tải bản đồ địa giới Gia Lai...</span>
+          </div>
         )}
+
+        {renderActiveView()}
       </div>
 
       {/* 2. FLOATING OVERLAYS (Only visible on Map View) */}
@@ -126,7 +140,7 @@ const Home: React.FC = () => {
         </>
       )}
 
-      {/* Profile Card & Dropdown (Visible on both Map and Admin view for header navigation) */}
+      {/* Profile Card & Dropdown (Visible on all views for header navigation) */}
       <ProfileCard />
 
     </div>

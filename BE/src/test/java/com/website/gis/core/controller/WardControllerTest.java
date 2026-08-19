@@ -2,10 +2,12 @@ package com.website.gis.core.controller;
 
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.core.entity.GisWard;
+import com.website.gis.core.entity.LocalLeader;
 import com.website.gis.core.entity.Province;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.mapper.WardMapperImpl;
 import com.website.gis.core.repository.GisWardRepository;
+import com.website.gis.core.repository.LocalLeaderRepository;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.repository.WardRepository;
 import com.website.gis.core.security.CustomUserDetailsService;
@@ -23,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,6 +49,9 @@ class WardControllerTest {
 
     @MockitoBean
     private GisWardRepository gisWardRepository;
+
+    @MockitoBean
+    private LocalLeaderRepository localLeaderRepository;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -79,19 +85,49 @@ class WardControllerTest {
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
-    void whenGetWardDetail_thenReturnDetail() throws Exception {
+    void whenGetWardDetail_withNoLeaders_thenReturnEmptyLeadersArray() throws Exception {
         Province province = Province.builder().code("64").fullName("Tỉnh Gia Lai").build();
         Ward ward = Ward.builder().code("24124").name("Xã An Phú").fullName("Xã An Phú").province(province).build();
         GisWard gisWard = GisWard.builder().areaKm2(new BigDecimal("12.34")).build();
 
         Mockito.when(wardRepository.findById("24124")).thenReturn(Optional.of(ward));
         Mockito.when(gisWardRepository.findByWardCode("24124")).thenReturn(Optional.of(gisWard));
+        Mockito.when(localLeaderRepository.findByWardCode("24124")).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/wards/24124"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("24124"))
-                .andExpect(jsonPath("$.areaKm2").value(12.34));
+                .andExpect(jsonPath("$.areaKm2").value(12.34))
+                .andExpect(jsonPath("$.leaders").isArray())
+                .andExpect(jsonPath("$.leaders").isEmpty());
     }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetWardDetail_withLeaders_thenReturnLeadersList() throws Exception {
+        Province province = Province.builder().code("64").fullName("Tỉnh Gia Lai").build();
+        Ward ward = Ward.builder().code("24124").name("Xã An Phú").fullName("Xã An Phú").province(province).build();
+        GisWard gisWard = GisWard.builder().areaKm2(new BigDecimal("12.34")).build();
+        LocalLeader leader = LocalLeader.builder()
+                .id(1)
+                .fullName("Nguyễn Văn A")
+                .position("Chủ tịch UBND")
+                .phoneNumber("0905123456")
+                .ward(ward)
+                .build();
+
+        Mockito.when(wardRepository.findById("24124")).thenReturn(Optional.of(ward));
+        Mockito.when(gisWardRepository.findByWardCode("24124")).thenReturn(Optional.of(gisWard));
+        Mockito.when(localLeaderRepository.findByWardCode("24124")).thenReturn(List.of(leader));
+
+        mockMvc.perform(get("/api/wards/24124"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("24124"))
+                .andExpect(jsonPath("$.leaders[0].fullName").value("Nguyễn Văn A"))
+                .andExpect(jsonPath("$.leaders[0].position").value("Chủ tịch UBND"))
+                .andExpect(jsonPath("$.leaders[0].phoneNumber").value("0905123456"));
+    }
+
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")

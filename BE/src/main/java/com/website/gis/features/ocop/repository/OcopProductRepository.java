@@ -1,0 +1,34 @@
+package com.website.gis.features.ocop.repository;
+
+import com.website.gis.features.ocop.entity.OcopProduct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface OcopProductRepository extends JpaRepository<OcopProduct, Integer> {
+
+    @Override
+    @NonNull
+    @EntityGraph(attributePaths = {"ward"})
+    Page<OcopProduct> findAll(@NonNull Pageable pageable);
+
+    @Override
+    @NonNull
+    @EntityGraph(attributePaths = {"ward"})
+    Optional<OcopProduct> findById(@NonNull Integer id);
+
+    @EntityGraph(attributePaths = {"ward"})
+    Page<OcopProduct> findByWardCode(String wardCode, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"ward"})
+    Page<OcopProduct> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"ward"})
+    Page<OcopProduct> findByWardCodeAndNameContainingIgnoreCase(String wardCode, String name, Pageable pageable);
+}

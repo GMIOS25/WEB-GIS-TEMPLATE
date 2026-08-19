@@ -3,7 +3,9 @@ package com.website.gis.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -71,10 +73,21 @@ public class SecurityConfig {
                                                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
                                                                 "/swagger-ui.html")
                                                 .permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/ocop/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PUT, "/api/ocop/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/api/ocop/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/api/science/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PUT, "/api/science/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/api/science/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/api/agriculture/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.PUT, "/api/agriculture/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/api/agriculture/**").hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/api/files/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/**").authenticated()
                                                 .anyRequest().permitAll())
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
 
                 return http.build();
         }

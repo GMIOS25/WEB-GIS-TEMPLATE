@@ -55,6 +55,8 @@ public class DynamicFlywayConfig {
             }
 
             configuration.locations(locations.toArray(new String[0]));
+            configuration.outOfOrder(true);
         };
     }
 }
+

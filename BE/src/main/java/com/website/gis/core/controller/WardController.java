@@ -8,10 +8,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.website.gis.core.dto.WardDetailDto;
 import com.website.gis.core.dto.WardDto;
 import com.website.gis.core.entity.GisWard;
+import com.website.gis.core.entity.LocalLeader;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.mapper.WardMapper;
 import com.website.gis.core.repository.GisWardRepository;
+import com.website.gis.core.repository.LocalLeaderRepository;
 import com.website.gis.core.repository.WardRepository;
 
 import org.slf4j.Logger;
@@ -36,13 +38,16 @@ public class WardController {
 
     private final WardRepository wardRepository;
     private final GisWardRepository gisWardRepository;
+    private final LocalLeaderRepository localLeaderRepository;
     private final WardMapper wardMapper;
     private final ObjectMapper objectMapper;
 
-    public WardController(WardRepository wardRepository, GisWardRepository gisWardRepository, WardMapper wardMapper,
+    public WardController(WardRepository wardRepository, GisWardRepository gisWardRepository,
+            LocalLeaderRepository localLeaderRepository, WardMapper wardMapper,
             ObjectMapper objectMapper) {
         this.wardRepository = wardRepository;
         this.gisWardRepository = gisWardRepository;
+        this.localLeaderRepository = localLeaderRepository;
         this.wardMapper = wardMapper;
         this.objectMapper = objectMapper;
     }
@@ -62,11 +67,13 @@ public class WardController {
                 .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + code));
 
         GisWard gisWard = gisWardRepository.findByWardCode(code).orElse(null);
+        List<LocalLeader> leaders = localLeaderRepository.findByWardCode(code);
 
-        WardDetailDto dto = wardMapper.toDetailDto(ward, gisWard);
+        WardDetailDto dto = wardMapper.toDetailDto(ward, gisWard, leaders);
 
         return ResponseEntity.ok(dto);
     }
+
 
     @GetMapping(value = "/{code}/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getWardGeoJson(@PathVariable String code) {

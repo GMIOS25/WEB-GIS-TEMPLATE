@@ -344,15 +344,58 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 
 ---
 
-### 4.4. Convention for Future Feature Modules (`ocop`, `science`, `agriculture`)
+---
 
-These modules are implemented as independent pluggable feature extensions. When building them, follow the standard shape established above:
+### 4.4. Shared Media & File Management (`/api/files`)
 
-- **Base path:** `/api/{feature}` — e.g. `/api/ocop`, `/api/science`, `/api/agriculture`. Each is only registered when its `@ConditionalOnProperty` flag is enabled (`ARCHITECTURE SPECIFICATION.md` Section 4.2); when disabled, the path returns `404` because the controller bean simply doesn't exist.
-- **List endpoint:** `GET /api/{feature}` — unlike `/api/wards` (unpaginated, since only 135 rows), feature module lists use the pagination standard from Section 3, since the number of OCOP products / Science units / Agriculture units can grow arbitrarily.
-- **Detail endpoint:** `GET /api/{feature}/{id}`.
-- **GeoJSON endpoint:** `GET /api/{feature}/geojson` — returns a `FeatureCollection` of Point features, for direct Leaflet marker layer consumption with clustering.
-- **Write endpoints** (`POST`/`PUT`/`DELETE`) — restricted to `ADMIN` only, same role pattern as Section 4.2.
-- **Geometry type:** All 3 feature modules (`ocop`, `science`, `agriculture`) return `Point` geometries (`geometry(Point, 4326)`), rendered on the frontend as interactive Leaflet markers with clustering, popup details, and distinctive color coding (OCOP: Orange, Science: Slate Gray, Agriculture: Cool Gray) per `docs/UI-UX/Design_rule.md`.
+#### `POST /api/files`
+- **Access:** `ADMIN` only
+- **Content-Type:** `multipart/form-data`
+- **Request Parameters:**
+  - `file` (MultipartFile, required): Allowed formats JPEG, PNG (max 5MB, auto-resized to max 1600px width), PDF, DOCX (max 20MB). Magic bytes validated.
+  - `folder` (string, optional): Sub-directory name (e.g. `ocop`, `science`, `agriculture`).
+- **Response Body (`StoredFile`):**
+  - Status `201 Created`
+  ```json
+  {
+    "storedFileName": "ocop/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d.png",
+    "originalFileName": "sample.png",
+    "contentType": "image/png",
+    "sizeBytes": 124560,
+    "publicUrl": "/api/files/ocop/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d.png"
+  }
+  ```
 
-See `DATA_MODEL.md` Section 4 for the corresponding table schema convention these endpoints query.
+#### `GET /api/files/{fileName}`
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Response:** Raw file binary stream with appropriate `Content-Type`, `Content-Disposition: inline`, and `Cache-Control: private, max-age=604800`.
+
+---
+
+### 4.5. Feature Modules (`ocop`, `science`, `agriculture`)
+
+These modules are implemented as independent pluggable feature extensions. Each controller is conditional upon `features.<module>.enabled=true` (returning `404 Not Found` when disabled).
+
+#### `GET /api/{ocop|science|agriculture}`
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Query Parameters:** `page`, `size`, `sort`, `wardCode` (optional filter)
+- **Response Body:** Paginated list of DTOs (Section 3).
+
+#### `GET /api/{ocop|science|agriculture}/{id}`
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Response Body:** Single item DTO (404 if not found).
+
+#### `POST /api/{ocop|science|agriculture}`
+- **Access:** `ADMIN` only
+- **Request Body:** `{ "name": "...", "unitType": "...", "description": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
+- **Response Body:** Created item DTO with status `201 Created`.
+
+#### `PUT /api/{ocop|science|agriculture}/{id}`
+- **Access:** `ADMIN` only
+- **Request Body:** Update fields (`name`, `unitType`, `description`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
+- **Response Body:** Updated item DTO with status `200 OK`.
+
+#### `DELETE /api/{ocop|science|agriculture}/{id}`
+- **Access:** `ADMIN` only
+- **Response Body:** Status `200 OK`, `{ "message": "... deleted successfully" }`.
+

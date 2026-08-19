@@ -17,5 +17,5 @@ public class WardDto {
     private String name;
     private String fullName;
     private String provinceName;
-    // private List<LeaderDto> leaders;
 }
+
