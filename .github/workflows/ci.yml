@@ -35,6 +35,9 @@ jobs:
         # Test dùng Testcontainers (postgis/postgis) - xem TestcontainersConfiguration.java
         # - cần Docker, vốn có sẵn trên GitHub-hosted ubuntu-latest runner.
         run: ./mvnw -B verify
+        env:
+          JWT_SECRET: "932326ec1935bc7c0cc163392c96d22e35ed8fb2b6d98fcb69ff4c0b001455e5"
+          JWT_EXPIRATION_MS: "86400000"
 
   frontend:
     name: Frontend (pnpm)

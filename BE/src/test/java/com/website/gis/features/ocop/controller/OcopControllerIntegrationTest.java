@@ -49,6 +49,7 @@ class OcopControllerIntegrationTest {
         registry.add("features.ocop.enabled", () -> "true");
         registry.add("app.jwt.secret",
                 () -> "test-secret-key-for-integration-tests-only-must-be-at-least-32-bytes-long");
+        registry.add("app.jwt.expiration-ms", () -> "86400000");
     }
 
     @Autowired

@@ -42,6 +42,12 @@ application-*.yaml
 !application-*.yml.example
 !application.yaml.example
 !application-*.yaml.example
+!**/src/test/resources/application.properties
+!**/src/test/resources/application-*.properties
+!**/src/test/resources/application.yml
+!**/src/test/resources/application-*.yml
+!**/src/test/resources/application.yaml
+!**/src/test/resources/application-*.yaml
 
 
 # Agent/Tooling directories
