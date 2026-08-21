@@ -1,11 +1,20 @@
 import React, { useMemo } from 'react';
 import type { GeoJsonData } from '../../../types/gis';
+import { FEATURE_FLAGS } from '../../../config/features';
 
 interface StatsBoardProps {
   geoJsonData: GeoJsonData | null;
+  ocopCount?: number;
+  scienceCount?: number;
+  agricultureCount?: number;
 }
 
-const StatsBoard: React.FC<StatsBoardProps> = ({ geoJsonData }) => {
+const StatsBoard: React.FC<StatsBoardProps> = ({
+  geoJsonData,
+  ocopCount = 0,
+  scienceCount = 0,
+  agricultureCount = 0,
+}) => {
   const totalWards = useMemo(() => {
     return geoJsonData ? geoJsonData.features.length : 0;
   }, [geoJsonData]);
@@ -17,29 +26,54 @@ const StatsBoard: React.FC<StatsBoardProps> = ({ geoJsonData }) => {
   }, [geoJsonData]);
 
   return (
-    <div className="absolute bottom-6 right-6 z-30 bg-white border border-neutral-200 rounded-2xl shadow-md p-4 w-[280px] hidden sm:block">
-      <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Thống kê địa lý Gia Lai</h4>
-      <div className="space-y-3">
-        <div className="flex justify-between items-center text-sm border-b border-neutral-50 pb-2">
-          <span className="text-neutral-500">Tổng xã/phường</span>
-          <span className="font-bold text-neutral-900">{totalWards} xã/phường</span>
+    <div className="absolute bottom-6 right-6 z-30 bg-white/95 backdrop-blur-md border border-neutral-200 rounded-2xl shadow-lg p-4 w-[300px] hidden sm:block select-none">
+      <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2.5">
+        Tổng quan dữ liệu GIS Gia Lai
+      </h4>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center text-xs border-b border-neutral-100 pb-1.5">
+          <span className="text-neutral-500">Tổng số xã/phường</span>
+          <span className="font-bold text-neutral-900">{totalWards} đơn vị</span>
         </div>
-        <div className="flex justify-between items-center text-sm pb-1">
-          <span className="text-neutral-500">Tổng diện tích</span>
+
+        <div className="flex justify-between items-center text-xs border-b border-neutral-100 pb-1.5">
+          <span className="text-neutral-500">Tổng diện tích tự nhiên</span>
           <span className="font-bold text-neutral-900">
-            {/*
-              BUG FIX: was a hardcoded '21.576,56' fallback whenever totalArea was 0
-              (i.e. while geoJsonData is still loading). A fallback like that reads
-              as real data, not a loading state — and DEPLOYMENT & FLEET
-              STRATEGY.md Section 7.4 explicitly plans for core boundary-data
-              corrections via forward-only Flyway migrations, so this hardcoded
-              number would silently drift from the real total the next time that
-              happens, with nothing to catch it. Show an honest loading state
-              instead of a number that might be wrong.
-            */}
-            {totalArea > 0 ? `${totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} km²` : 'Đang tải...'}
+            {totalArea > 0
+              ? `${totalArea.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} km²`
+              : 'Đang tải...'}
           </span>
         </div>
+
+        {FEATURE_FLAGS.ocop && (
+          <div className="flex justify-between items-center text-xs border-b border-neutral-100 pb-1.5">
+            <span className="text-neutral-500 flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]"></span>
+              <span>Sản phẩm OCOP</span>
+            </span>
+            <span className="font-bold text-orange-600">{ocopCount} sản phẩm</span>
+          </div>
+        )}
+
+        {FEATURE_FLAGS.science && (
+          <div className="flex justify-between items-center text-xs border-b border-neutral-100 pb-1.5">
+            <span className="text-neutral-500 flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#64748B]"></span>
+              <span>Đơn vị KH&CN</span>
+            </span>
+            <span className="font-bold text-slate-700">{scienceCount} đơn vị</span>
+          </div>
+        )}
+
+        {FEATURE_FLAGS.agriculture && (
+          <div className="flex justify-between items-center text-xs pb-1">
+            <span className="text-neutral-500 flex items-center space-x-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6B7280]"></span>
+              <span>Trang trại nông nghiệp</span>
+            </span>
+            <span className="font-bold text-neutral-700">{agricultureCount} trang trại</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,59 +1,168 @@
-import React, { useState, useEffect, useCallback, startTransition } from 'react';
-import api from '../api/axiosInstance';
+import React, { useState, useCallback, useTransition } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Map, X } from 'lucide-react';
 import GisMap, { type GeoJsonData, type GeoJsonFeature } from './home/components/GisMap';
-import SidebarDrawer, { type ActiveViewType } from './home/components/SidebarDrawer';
+import SidebarDrawer, { type ActiveViewType, type LayerKey, type MapLayersState } from './home/components/SidebarDrawer';
 import MapSearch from './home/components/MapSearch';
 import ProfileCard from './home/components/ProfileCard';
 import StatsBoard from './home/components/StatsBoard';
-import DetailsPanel from './home/components/DetailsPanel';
+import DetailsPanel, { type SelectedPoiDetail } from './home/components/DetailsPanel';
+import RadiusSearchControl, { type RadiusSearchState } from './home/components/RadiusSearchControl';
 import AdminPanel from './home/components/AdminPanel';
 import OcopPanel from './home/components/OcopPanel';
 import SciencePanel from './home/components/SciencePanel';
 import AgriculturePanel from './home/components/AgriculturePanel';
 
+import api from '../api/axiosInstance';
+import { queryKeys } from '../api/queryKeys';
+import { FEATURE_FLAGS } from '../config/features';
+import { fetchOcopGeoJson, fetchOcopProductById } from '../api/ocop';
+import { fetchScienceGeoJson, fetchScienceUnitById } from '../api/science';
+import { fetchAgricultureGeoJson, fetchAgricultureUnitById } from '../api/agriculture';
+
 const Home: React.FC = () => {
   // Core view & drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActiveViewType>('map');
+  const [, startTransition] = useTransition();
 
-  // Map settings and GeoJSON data state
-  const [layers, setLayers] = useState({
+  // Map settings - Single Source of Truth for Layers
+  const [layers, setLayers] = useState<MapLayersState>({
     province: false,
     commune: true,
+    ocop: true,
+    science: true,
+    agriculture: true,
   });
-  const [geoJsonData, setGeoJsonData] = useState<GeoJsonData | null>(null);
-  const [provinceGeoJson, setProvinceGeoJson] = useState<unknown>(null);
-  const [mapLoading, setMapLoading] = useState<boolean>(true);
+
   const [selectedWard, setSelectedWard] = useState<GeoJsonFeature | null>(null);
+  const [selectedPoi, setSelectedPoi] = useState<SelectedPoiDetail | null>(null);
 
-  // 1. Fetch GIS Data on mount
-  useEffect(() => {
-    const fetchGisData = async () => {
-      setMapLoading(true);
-      try {
-        const [wardsRes, provinceRes] = await Promise.all([
-          api.get('/api/wards/geojson'),
-          api.get('/api/wards/province/geojson'),
-        ]);
-        startTransition(() => {
-          setGeoJsonData(wardsRes.data);
-          setProvinceGeoJson(provinceRes.data);
-          setMapLoading(false);
-        });
-      } catch (err) {
-        console.error('Failed to load GIS boundary data', err);
-        setMapLoading(false);
-      }
-    };
-    fetchGisData();
-  }, []);
+  // Radius Search State
+  const [radiusSearchState, setRadiusSearchState] = useState<RadiusSearchState>({
+    center: null,
+    radiusKm: 10,
+    module: 'ocop',
+    resultIds: [],
+  });
+  const [isPickingCenter, setIsPickingCenter] = useState(false);
 
-  const toggleLayer = useCallback((layer: 'province' | 'commune') => {
+  // 1. Fetch GIS Boundary Data using TanStack Query
+  const { data: geoJsonData = null, isLoading: isWardsLoading } = useQuery<GeoJsonData>({
+    queryKey: queryKeys.wards.geojson(),
+    queryFn: async () => {
+      const res = await api.get<GeoJsonData>('/api/wards/geojson');
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 30, // 30 mins
+  });
+
+  const { data: provinceGeoJson = null } = useQuery({
+    queryKey: queryKeys.wards.provinceGeojson(),
+    queryFn: async () => {
+      const res = await api.get('/api/wards/province/geojson');
+      return res.data;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  // 2. Fetch POI GeoJSON Data conditionally using TanStack Query
+  const { data: ocopGeoJson = null } = useQuery({
+    queryKey: queryKeys.ocop.geojson(),
+    queryFn: fetchOcopGeoJson,
+    enabled: FEATURE_FLAGS.ocop && layers.ocop,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: scienceGeoJson = null } = useQuery({
+    queryKey: queryKeys.science.geojson(),
+    queryFn: fetchScienceGeoJson,
+    enabled: FEATURE_FLAGS.science && layers.science,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: agricultureGeoJson = null } = useQuery({
+    queryKey: queryKeys.agriculture.geojson(),
+    queryFn: fetchAgricultureGeoJson,
+    enabled: FEATURE_FLAGS.agriculture && layers.agriculture,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Toggle Layer handler
+  const toggleLayer = useCallback((layer: LayerKey) => {
     setLayers((prev) => ({
       ...prev,
       [layer]: !prev[layer],
     }));
+  }, []);
+
+  // Map center picked for radius search
+  const handleMapCenterPicked = useCallback((lat: number, lng: number) => {
+    setRadiusSearchState((prev) => ({
+      ...prev,
+      center: [lat, lng],
+    }));
+    setIsPickingCenter(false);
+  }, []);
+
+  // Lazy POI detail fetcher when user clicks [Xem chi tiết] on marker popup
+  const handleSelectPoiDetail = useCallback(async (type: 'ocop' | 'science' | 'agriculture', id: number) => {
+    try {
+      if (type === 'ocop') {
+        const item = await fetchOcopProductById(id);
+        startTransition(() => {
+          setSelectedPoi({
+            moduleType: 'ocop',
+            id: item.id,
+            name: item.name,
+            typeBadge: item.productType,
+            description: item.description,
+            wardCode: item.wardCode,
+            wardName: item.wardName,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            imageUrl: item.imageUrl,
+          });
+          setSelectedWard(null);
+        });
+      } else if (type === 'science') {
+        const item = await fetchScienceUnitById(id);
+        startTransition(() => {
+          setSelectedPoi({
+            moduleType: 'science',
+            id: item.id,
+            name: item.name,
+            typeBadge: item.unitType,
+            description: item.description,
+            wardCode: item.wardCode,
+            wardName: item.wardName,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            imageUrl: item.imageUrl,
+          });
+          setSelectedWard(null);
+        });
+      } else if (type === 'agriculture') {
+        const item = await fetchAgricultureUnitById(id);
+        startTransition(() => {
+          setSelectedPoi({
+            moduleType: 'agriculture',
+            id: item.id,
+            name: item.name,
+            typeBadge: item.unitType,
+            description: item.description,
+            wardCode: item.wardCode,
+            wardName: item.wardName,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            imageUrl: item.imageUrl,
+          });
+          setSelectedWard(null);
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load detail for POI', err);
+    }
   }, []);
 
   const renderActiveView = () => {
@@ -73,8 +182,18 @@ const Home: React.FC = () => {
             layers={layers}
             geoJsonData={geoJsonData}
             provinceGeoJson={provinceGeoJson}
+            ocopGeoJson={ocopGeoJson}
+            scienceGeoJson={scienceGeoJson}
+            agricultureGeoJson={agricultureGeoJson}
             selectedWard={selectedWard}
-            setSelectedWard={setSelectedWard}
+            setSelectedWard={(ward) => {
+              setSelectedWard(ward);
+              if (ward) setSelectedPoi(null);
+            }}
+            radiusSearchState={radiusSearchState}
+            isPickingCenter={isPickingCenter}
+            onMapCenterPicked={handleMapCenterPicked}
+            onSelectDetail={handleSelectPoiDetail}
           />
         );
     }
@@ -82,10 +201,9 @@ const Home: React.FC = () => {
 
   return (
     <div className="w-full h-screen relative bg-white overflow-hidden font-sans text-neutral-900 select-none">
-      
       {/* 1. VIEW PORT ROUTER */}
       <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
-        {mapLoading && activeView === 'map' && (
+        {isWardsLoading && activeView === 'map' && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
             <span className="text-sm font-semibold text-neutral-600">Đang tải bản đồ địa giới Gia Lai...</span>
@@ -103,7 +221,19 @@ const Home: React.FC = () => {
             key={selectedWard?.properties.code || 'empty'}
             geoJsonData={geoJsonData}
             selectedWard={selectedWard}
-            setSelectedWard={setSelectedWard}
+            setSelectedWard={(ward) => {
+              setSelectedWard(ward);
+              if (ward) setSelectedPoi(null);
+            }}
+          />
+
+          {/* Top Middle Radius Search Control */}
+          <RadiusSearchControl
+            radiusSearchState={radiusSearchState}
+            setRadiusSearchState={setRadiusSearchState}
+            isPickingCenter={isPickingCenter}
+            setIsPickingCenter={setIsPickingCenter}
+            onSelectDetail={handleSelectPoiDetail}
           />
 
           {/* Left Sidebar Drawer */}
@@ -130,19 +260,25 @@ const Home: React.FC = () => {
           </button>
 
           {/* Bottom Right Stats Board */}
-          <StatsBoard geoJsonData={geoJsonData} />
+          <StatsBoard
+            geoJsonData={geoJsonData}
+            ocopCount={ocopGeoJson?.features?.length || 0}
+            scienceCount={scienceGeoJson?.features?.length || 0}
+            agricultureCount={agricultureGeoJson?.features?.length || 0}
+          />
 
           {/* Right Sidebar Details Panel */}
           <DetailsPanel
             selectedWard={selectedWard}
             setSelectedWard={setSelectedWard}
+            selectedPoi={selectedPoi}
+            setSelectedPoi={setSelectedPoi}
           />
         </>
       )}
 
       {/* Profile Card & Dropdown (Visible on all views for header navigation) */}
       <ProfileCard />
-
     </div>
   );
 };

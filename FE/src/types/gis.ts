@@ -35,3 +35,26 @@ export interface GeoJsonData {
   type: string;
   features: GeoJsonFeature[];
 }
+
+export interface PoiGeoJsonProperties {
+  id: number;
+  name: string;
+  productType?: string | null;
+  unitType?: string | null;
+  wardCode?: string | null;
+  imageUrl?: string | null;
+}
+
+export interface PoiGeoJsonFeature {
+  type: 'Feature';
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number]; // [lng, lat]
+  };
+  properties: PoiGeoJsonProperties;
+}
+
+export interface PoiGeoJsonData {
+  type: 'FeatureCollection';
+  features: PoiGeoJsonFeature[];
+}

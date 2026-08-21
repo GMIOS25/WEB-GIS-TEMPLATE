@@ -233,6 +233,7 @@ CREATE TABLE ocop_products (
 );
 CREATE INDEX idx_ocop_products_ward_code ON public.ocop_products USING btree (ward_code);
 CREATE INDEX idx_ocop_products_geom ON public.ocop_products USING gist (geom);
+CREATE INDEX idx_ocop_products_geog ON public.ocop_products USING gist (CAST(geom AS geography));
 
 -- 2. Schema for features/science (identical shape)
 CREATE TABLE science_units (
@@ -248,6 +249,7 @@ CREATE TABLE science_units (
 );
 CREATE INDEX idx_science_units_ward_code ON public.science_units USING btree (ward_code);
 CREATE INDEX idx_science_units_geom ON public.science_units USING gist (geom);
+CREATE INDEX idx_science_units_geog ON public.science_units USING gist (CAST(geom AS geography));
 
 -- 3. Schema for features/agriculture (identical shape)
 CREATE TABLE agriculture_units (
@@ -263,6 +265,7 @@ CREATE TABLE agriculture_units (
 );
 CREATE INDEX idx_agriculture_units_ward_code ON public.agriculture_units USING btree (ward_code);
 CREATE INDEX idx_agriculture_units_geom ON public.agriculture_units USING gist (geom);
+CREATE INDEX idx_agriculture_units_geog ON public.agriculture_units USING gist (CAST(geom AS geography));
 ```
 
 ### 4.2. Migration Placement

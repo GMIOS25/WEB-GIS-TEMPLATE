@@ -1,6 +1,7 @@
 import api from './axiosInstance';
 import type { AgricultureUnit, AgricultureUnitCreateRequest, AgricultureUnitUpdateRequest } from '../types/agriculture';
 import type { PaginatedResponse } from '../types/common';
+import type { PoiGeoJsonData } from '../types/gis';
 
 export interface AgricultureQueryParams {
   page?: number;
@@ -11,6 +12,18 @@ export interface AgricultureQueryParams {
 
 export const fetchAgricultureUnits = async (params?: AgricultureQueryParams): Promise<PaginatedResponse<AgricultureUnit>> => {
   const response = await api.get<PaginatedResponse<AgricultureUnit>>('/api/agriculture', { params });
+  return response.data;
+};
+
+export const fetchAgricultureGeoJson = async (): Promise<PoiGeoJsonData> => {
+  const response = await api.get<PoiGeoJsonData>('/api/agriculture/geojson');
+  return response.data;
+};
+
+export const fetchAgricultureNearby = async (lat: number, lng: number, radiusKm: number): Promise<AgricultureUnit[]> => {
+  const response = await api.get<AgricultureUnit[]>('/api/agriculture/nearby', {
+    params: { lat, lng, radiusKm },
+  });
   return response.data;
 };
 

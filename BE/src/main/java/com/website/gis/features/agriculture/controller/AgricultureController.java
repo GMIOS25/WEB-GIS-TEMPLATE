@@ -26,7 +26,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/agriculture")
@@ -37,14 +46,87 @@ public class AgricultureController {
     private final WardRepository wardRepository;
     private final AgricultureUnitMapper agricultureUnitMapper;
     private final GeometryFactory geometryFactory;
+    private final ObjectMapper objectMapper;
 
     public AgricultureController(AgricultureUnitRepository agricultureUnitRepository,
                                  WardRepository wardRepository,
-                                 AgricultureUnitMapper agricultureUnitMapper) {
+                                 AgricultureUnitMapper agricultureUnitMapper,
+                                 ObjectMapper objectMapper) {
         this.agricultureUnitRepository = agricultureUnitRepository;
         this.wardRepository = wardRepository;
         this.agricultureUnitMapper = agricultureUnitMapper;
         this.geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping(value = "/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getAgricultureGeoJson() {
+        List<AgricultureUnit> units = agricultureUnitRepository.findAll();
+
+        ArrayNode features = objectMapper.createArrayNode();
+        for (AgricultureUnit unit : units) {
+            if (unit.getGeom() == null) {
+                continue;
+            }
+
+            ObjectNode feature = objectMapper.createObjectNode();
+            feature.put("type", "Feature");
+
+            ObjectNode geometry = feature.putObject("geometry");
+            geometry.put("type", "Point");
+            ArrayNode coordinates = geometry.putArray("coordinates");
+            coordinates.add(BigDecimal.valueOf(unit.getGeom().getX()));
+            coordinates.add(BigDecimal.valueOf(unit.getGeom().getY()));
+
+            ObjectNode properties = feature.putObject("properties");
+            properties.put("id", unit.getId());
+            properties.put("name", unit.getName());
+            if (unit.getUnitType() != null) {
+                properties.put("unitType", unit.getUnitType());
+            } else {
+                properties.putNull("unitType");
+            }
+            properties.put("wardCode", unit.getWard() != null ? unit.getWard().getCode() : null);
+            if (unit.getImageUrl() != null) {
+                properties.put("imageUrl", unit.getImageUrl());
+            } else {
+                properties.putNull("imageUrl");
+            }
+
+            features.add(feature);
+        }
+
+        ObjectNode featureCollection = objectMapper.createObjectNode();
+        featureCollection.put("type", "FeatureCollection");
+        featureCollection.set("features", features);
+
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate())
+                .body(featureCollection);
+    }
+
+    @GetMapping("/nearby")
+    public ResponseEntity<List<AgricultureUnitDto>> getNearbyAgricultureUnits(
+            @RequestParam("lat") Double lat,
+            @RequestParam("lng") Double lng,
+            @RequestParam("radiusKm") Double radiusKm) {
+
+        validateNearbyParams(lat, lng, radiusKm);
+
+        List<AgricultureUnit> units = agricultureUnitRepository.findNearby(lat, lng, radiusKm * 1000.0);
+        return ResponseEntity.ok(units.stream().map(agricultureUnitMapper::toDto).toList());
+    }
+
+    private static void validateNearbyParams(Double lat, Double lng, Double radiusKm) {
+        if (lat == null || lat < -90.0 || lat > 90.0) {
+            throw new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)");
+        }
+        if (lng == null || lng < -180.0 || lng > 180.0) {
+            throw new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)");
+        }
+        if (radiusKm == null || radiusKm <= 0.0) {
+            throw new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0");
+        }
     }
 
     @GetMapping

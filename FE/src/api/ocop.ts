@@ -1,6 +1,7 @@
 import api from './axiosInstance';
 import type { OcopProduct, OcopProductCreateRequest, OcopProductUpdateRequest } from '../types/ocop';
 import type { PaginatedResponse } from '../types/common';
+import type { PoiGeoJsonData } from '../types/gis';
 
 export interface OcopQueryParams {
   page?: number;
@@ -11,6 +12,18 @@ export interface OcopQueryParams {
 
 export const fetchOcopProducts = async (params?: OcopQueryParams): Promise<PaginatedResponse<OcopProduct>> => {
   const response = await api.get<PaginatedResponse<OcopProduct>>('/api/ocop', { params });
+  return response.data;
+};
+
+export const fetchOcopGeoJson = async (): Promise<PoiGeoJsonData> => {
+  const response = await api.get<PoiGeoJsonData>('/api/ocop/geojson');
+  return response.data;
+};
+
+export const fetchOcopNearby = async (lat: number, lng: number, radiusKm: number): Promise<OcopProduct[]> => {
+  const response = await api.get<OcopProduct[]>('/api/ocop/nearby', {
+    params: { lat, lng, radiusKm },
+  });
   return response.data;
 };
 

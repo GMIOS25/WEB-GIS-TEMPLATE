@@ -1,6 +1,7 @@
 import api from './axiosInstance';
 import type { ScienceUnit, ScienceUnitCreateRequest, ScienceUnitUpdateRequest } from '../types/science';
 import type { PaginatedResponse } from '../types/common';
+import type { PoiGeoJsonData } from '../types/gis';
 
 export interface ScienceQueryParams {
   page?: number;
@@ -11,6 +12,18 @@ export interface ScienceQueryParams {
 
 export const fetchScienceUnits = async (params?: ScienceQueryParams): Promise<PaginatedResponse<ScienceUnit>> => {
   const response = await api.get<PaginatedResponse<ScienceUnit>>('/api/science', { params });
+  return response.data;
+};
+
+export const fetchScienceGeoJson = async (): Promise<PoiGeoJsonData> => {
+  const response = await api.get<PoiGeoJsonData>('/api/science/geojson');
+  return response.data;
+};
+
+export const fetchScienceNearby = async (lat: number, lng: number, radiusKm: number): Promise<ScienceUnit[]> => {
+  const response = await api.get<ScienceUnit[]>('/api/science/nearby', {
+    params: { lat, lng, radiusKm },
+  });
   return response.data;
 };
 

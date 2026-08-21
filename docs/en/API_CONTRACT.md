@@ -381,6 +381,56 @@ These modules are implemented as independent pluggable feature extensions. Each 
 - **Query Parameters:** `page`, `size`, `sort`, `wardCode` (optional filter)
 - **Response Body:** Paginated list of DTOs (Section 3).
 
+#### `GET /api/{ocop|science|agriculture}/geojson`
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Response:** Status `200 OK`, `application/json`, `Cache-Control: private, max-age=3600`.
+- **Response Body:** GeoJSON `FeatureCollection` with Point features `[longitude, latitude]` and minimal properties:
+  ```json
+  {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [108.015, 13.985]
+        },
+        "properties": {
+          "id": 1,
+          "name": "Cà phê Robusta Pleiku",
+          "productType": "Đồ uống",
+          "wardCode": "21112",
+          "imageUrl": "/api/files/ocop/sample.jpg"
+        }
+      }
+    ]
+  }
+  ```
+
+#### `GET /api/{ocop|science|agriculture}/nearby`
+- **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
+- **Query Parameters:**
+  - `lat` (required, double): Latitude in range `[-90.0, 90.0]`.
+  - `lng` (required, double): Longitude in range `[-180.0, 180.0]`.
+  - `radiusKm` (required, double): Search radius in kilometers (`radiusKm > 0`).
+- **Validation:** Returns `400 Bad Request` if coordinates or radius are invalid/missing.
+- **Response Body:** List of DTOs within the search radius:
+  ```json
+  [
+    {
+      "id": 1,
+      "name": "Cà phê Robusta Pleiku",
+      "productType": "Đồ uống",
+      "description": "Cà phê đặc sản Gia Lai",
+      "wardCode": "21112",
+      "wardName": "Phường Ia Kring",
+      "latitude": 13.985,
+      "longitude": 108.015,
+      "imageUrl": "/api/files/ocop/sample.jpg"
+    }
+  ]
+  ```
+
 #### `GET /api/{ocop|science|agriculture}/{id}`
 - **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
 - **Response Body:** Single item DTO (404 if not found).

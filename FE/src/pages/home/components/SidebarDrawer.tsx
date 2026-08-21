@@ -4,15 +4,21 @@ import { ChevronDown, CheckSquare, Square, Users, Sparkles, FlaskConical, Trees 
 import { FEATURE_FLAGS } from '../../../config/features';
 
 export type ActiveViewType = 'map' | 'admin' | 'ocop' | 'science' | 'agriculture';
+export type LayerKey = 'province' | 'commune' | 'ocop' | 'science' | 'agriculture';
+
+export interface MapLayersState {
+  province: boolean;
+  commune: boolean;
+  ocop: boolean;
+  science: boolean;
+  agriculture: boolean;
+}
 
 interface SidebarDrawerProps {
   isDrawerOpen: boolean;
   setIsDrawerOpen: (open: boolean) => void;
-  layers: {
-    province: boolean;
-    commune: boolean;
-  };
-  toggleLayer: (layer: 'province' | 'commune') => void;
+  layers: MapLayersState;
+  toggleLayer: (layer: LayerKey) => void;
   activeView: ActiveViewType;
   setActiveView: (view: ActiveViewType) => void;
 }
@@ -73,11 +79,80 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           </div>
         </div>
 
-        {/* Modular Feature Extensions Group */}
+        {/* POI Marker Layer Toggles & Legends */}
         {hasFeatureModules && (
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between text-sm font-bold text-neutral-700 border-b border-neutral-100 pb-2">
-              <span>Đơn vị trực thuộc & Chuyên đề</span>
+              <span>Lớp điểm chuyên đề (POI)</span>
+              <ChevronDown size={16} className="text-neutral-500" />
+            </div>
+
+            <div className="space-y-2.5">
+              {FEATURE_FLAGS.ocop && (
+                <button
+                  onClick={() => toggleLayer('ocop')}
+                  className="w-full flex items-center justify-between text-sm text-neutral-600 hover:text-neutral-900 transition-colors py-1 cursor-pointer"
+                >
+                  <div className="flex items-center space-x-3">
+                    {layers.ocop ? (
+                      <CheckSquare size={18} className="text-orange-500 fill-orange-500/10" />
+                    ) : (
+                      <Square size={18} className="text-neutral-400" />
+                    )}
+                    <span className={layers.ocop ? 'font-semibold text-neutral-900' : ''}>Sản phẩm OCOP</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-xs text-neutral-400">
+                    <span className="w-3 h-3 rounded-full bg-[#F97316] border-2 border-white shadow-xs inline-block"></span>
+                  </div>
+                </button>
+              )}
+
+              {FEATURE_FLAGS.science && (
+                <button
+                  onClick={() => toggleLayer('science')}
+                  className="w-full flex items-center justify-between text-sm text-neutral-600 hover:text-neutral-900 transition-colors py-1 cursor-pointer"
+                >
+                  <div className="flex items-center space-x-3">
+                    {layers.science ? (
+                      <CheckSquare size={18} className="text-slate-500 fill-slate-500/10" />
+                    ) : (
+                      <Square size={18} className="text-neutral-400" />
+                    )}
+                    <span className={layers.science ? 'font-semibold text-neutral-900' : ''}>Khoa học & Công nghệ</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-xs text-neutral-400">
+                    <span className="w-3 h-3 rounded-full bg-[#64748B] border-2 border-white shadow-xs inline-block"></span>
+                  </div>
+                </button>
+              )}
+
+              {FEATURE_FLAGS.agriculture && (
+                <button
+                  onClick={() => toggleLayer('agriculture')}
+                  className="w-full flex items-center justify-between text-sm text-neutral-600 hover:text-neutral-900 transition-colors py-1 cursor-pointer"
+                >
+                  <div className="flex items-center space-x-3">
+                    {layers.agriculture ? (
+                      <CheckSquare size={18} className="text-neutral-600 fill-neutral-600/10" />
+                    ) : (
+                      <Square size={18} className="text-neutral-400" />
+                    )}
+                    <span className={layers.agriculture ? 'font-semibold text-neutral-900' : ''}>Nông nghiệp & Trang trại</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-xs text-neutral-400">
+                    <span className="w-3 h-3 rounded-full bg-[#6B7280] border-2 border-white shadow-xs inline-block"></span>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Modular Feature Management Panels */}
+        {hasFeatureModules && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between text-sm font-bold text-neutral-700 border-b border-neutral-100 pb-2">
+              <span>Quản lý dữ liệu chuyên đề</span>
             </div>
 
             <div className="space-y-2">

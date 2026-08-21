@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Circle, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
-import type { GeoJsonFeature, GeoJsonData } from '../../../types/gis';
+import type { GeoJsonFeature, GeoJsonData, PoiGeoJsonData } from '../../../types/gis';
+import { PoiMarkerClusterLayer } from './PoiMarkerClusterLayer';
+import type { RadiusSearchState } from './RadiusSearchControl';
+import { FEATURE_FLAGS } from '../../../config/features';
+
 export type { GeoJsonFeature, GeoJsonData };
 
 const DEFAULT_STYLE = {
@@ -44,23 +48,55 @@ const MapController: React.FC<{ selectedWard: GeoJsonFeature | null }> = ({ sele
   return null;
 };
 
+// Sub-component to capture map clicks for radius search center picking
+const MapClickHandler: React.FC<{
+  isPickingCenter?: boolean;
+  onMapCenterPicked?: (lat: number, lng: number) => void;
+}> = ({ isPickingCenter, onMapCenterPicked }) => {
+  useMapEvents({
+    click(e) {
+      if (isPickingCenter && onMapCenterPicked) {
+        onMapCenterPicked(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
+  return null;
+};
+
 interface GisMapProps {
   layers: {
     province: boolean;
     commune: boolean;
+    ocop: boolean;
+    science: boolean;
+    agriculture: boolean;
   };
   geoJsonData: GeoJsonData | null;
   provinceGeoJson: unknown;
+  ocopGeoJson?: PoiGeoJsonData | null;
+  scienceGeoJson?: PoiGeoJsonData | null;
+  agricultureGeoJson?: PoiGeoJsonData | null;
   selectedWard: GeoJsonFeature | null;
   setSelectedWard: (ward: GeoJsonFeature | null) => void;
+  radiusSearchState?: RadiusSearchState | null;
+  isPickingCenter?: boolean;
+  onMapCenterPicked?: (lat: number, lng: number) => void;
+  onSelectDetail?: (type: 'ocop' | 'science' | 'agriculture', id: number) => void;
 }
 
 const GisMap: React.FC<GisMapProps> = ({
   layers,
   geoJsonData,
   provinceGeoJson,
+  ocopGeoJson,
+  scienceGeoJson,
+  agricultureGeoJson,
   selectedWard,
   setSelectedWard,
+  radiusSearchState,
+  isPickingCenter,
+  onMapCenterPicked,
+  onSelectDetail,
 }) => {
   // Use ref to avoid stale closures in Leaflet event listeners
   const selectedWardRef = useRef(selectedWard);
@@ -216,6 +252,83 @@ const GisMap: React.FC<GisMapProps> = ({
           interactive={false}
         />
       )}
+
+      {/* Feature POI Marker Cluster Layers */}
+      {FEATURE_FLAGS.ocop && (
+        <PoiMarkerClusterLayer
+          moduleType="ocop"
+          moduleLabel="Sản phẩm OCOP"
+          color="#F97316"
+          enabled={layers.ocop}
+          data={ocopGeoJson}
+          highlightedIds={radiusSearchState?.module === 'ocop' ? radiusSearchState.resultIds : []}
+          onSelectDetail={onSelectDetail}
+        />
+      )}
+
+      {FEATURE_FLAGS.science && (
+        <PoiMarkerClusterLayer
+          moduleType="science"
+          moduleLabel="Khoa học & CN"
+          color="#64748B"
+          enabled={layers.science}
+          data={scienceGeoJson}
+          highlightedIds={radiusSearchState?.module === 'science' ? radiusSearchState.resultIds : []}
+          onSelectDetail={onSelectDetail}
+        />
+      )}
+
+      {FEATURE_FLAGS.agriculture && (
+        <PoiMarkerClusterLayer
+          moduleType="agriculture"
+          moduleLabel="Nông nghiệp"
+          color="#6B7280"
+          enabled={layers.agriculture}
+          data={agricultureGeoJson}
+          highlightedIds={radiusSearchState?.module === 'agriculture' ? radiusSearchState.resultIds : []}
+          onSelectDetail={onSelectDetail}
+        />
+      )}
+
+      {/* Radius Search Circle & Center Pin */}
+      {radiusSearchState?.center && (
+        <>
+          <Circle
+            center={radiusSearchState.center}
+            radius={radiusSearchState.radiusKm * 1000}
+            pathOptions={{
+              color: '#059669',
+              fillColor: '#10B981',
+              fillOpacity: 0.15,
+              weight: 2,
+              dashArray: '6, 6',
+            }}
+          />
+          <Marker
+            position={radiusSearchState.center}
+            icon={L.divIcon({
+              html: `
+                <div style="
+                  width: 14px;
+                  height: 14px;
+                  background-color: #059669;
+                  border: 2.5px solid #FFFFFF;
+                  border-radius: 50%;
+                  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.35);
+                "></div>
+              `,
+              className: 'radius-center-marker',
+              iconSize: L.point(14, 14),
+              iconAnchor: L.point(7, 7),
+            })}
+          />
+        </>
+      )}
+
+      <MapClickHandler
+        isPickingCenter={isPickingCenter}
+        onMapCenterPicked={onMapCenterPicked}
+      />
 
       <MapController selectedWard={selectedWard} />
     </MapContainer>

@@ -6,6 +6,7 @@ import api from '../../../api/axiosInstance';
 import { extractErrorMessage } from '../../../api/errorUtils';
 import type { AgricultureUnit } from '../../../types/agriculture';
 import type { Ward } from '../../../types/gis';
+import MapPicker from './MapPicker';
 
 interface AgricultureFormModalProps {
   isOpen: boolean;
@@ -232,6 +233,16 @@ const AgricultureFormModal: React.FC<AgricultureFormModalProps> = ({
               />
             </div>
           </div>
+
+          <MapPicker
+            latitude={latitude}
+            longitude={longitude}
+            onCoordinatesChange={(lat, lng) => {
+              setLatitude(lat);
+              setLongitude(lng);
+            }}
+            accentColor="#6B7280"
+          />
 
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1">

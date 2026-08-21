@@ -1,0 +1,14 @@
+INSERT INTO ocop_products (name, product_types, star_rating, contact_phone, location_address, ward_code, geom) VALUES
+('Cơ sở Thúy Trinh', ARRAY['Hải sản khô'], 3, '0933.330.486', '3D Tăng Bạt Hổ, phường Quy Nhơn, tỉnh Gia Lai', '21583', ST_SetSRID(ST_MakePoint(109.2322139, 13.7741854), 4326)),
+('Cơ sở Mận Khoa', ARRAY['Hải sản khô'], 3, '0906.495.991', '58 Vũ Bảo,phường Quy Nhơn Nam, tỉnh Gia Lai', '21592', ST_SetSRID(ST_MakePoint(109.2197561, 13.766349), 4326)),
+('Cơ sở Phụng Nga', ARRAY['Hải sản khô'], 3, '0935.388.728', 'Số 61 Vũ Bảo, Phường Quy Nhơn Nam, Tỉnh Gia Lai, Việt Nam', '21592', ST_SetSRID(ST_MakePoint(109.2185539, 13.7659423), 4326)),
+('HTX SXKD hải sản Hương Thanh – Nhơn Lý', ARRAY['Ruốc khô', 'Mực một nắng', 'Mắm ruốc', 'Cá cơm khô', 'Nước Mắm'], 3, '0909.185.202', 'Thôn Lý Hòa, Phường Quy Nhơn Đông, Tỉnh Gia Lai', '21601', ST_SetSRID(ST_MakePoint(109.2895845, 13.8822214), 4326)),
+('Cơ sở Ngũ cốc Khánh Giang', ARRAY['Bột ngũ cốc Khánh Giang'], 3, '0333.121.024', 'Tổ 3, KV7, Phường Quy Nhơn Bắc,tỉnh Gia Lai', '21553', ST_SetSRID(ST_MakePoint(109.1735303, 13.7889157), 4326)),
+('Cơ sở Chả ram Hồng Hạnh', ARRAY['Chả ram Tôm đất Hồng Hạnh'], 3, '0983.116.607', '18 Lê Đại Hành, Quy Nhơn, Gia Lai', '21583', ST_SetSRID(ST_MakePoint(109.2142872, 13.7858063), 4326)),
+('Công ty TNHH SX và TM Yến sào Tôn Thủy', ARRAY['Yến sào Tôn Thủy', 'Tổ yến chưng mật ong, đường phèn', 'Tổ yến chưng đường kiêng Isomailt', 'Tổ yến chưng sâm, mật ong'], 4, '0983.729.758', 'Số 452 đường Bạch Đằng, Phường Quy Nhơn, Tỉnh Gia Lai', '21583', ST_SetSRID(ST_MakePoint(109.223448, 13.7798735), 4326)),
+('Công ty TNHH Yến Quang', ARRAY['Tổ yến khô', 'Tổ yến tươi', 'Yến hũ ăn liền'], 4, '0913.432.919', 'Số 13 đường Nguyễn Văn Trỗi, Phường Quy Nhơn Nam, Tỉnh Gia Lai', '21592', ST_SetSRID(ST_MakePoint(109.2135472, 13.7556597), 4326)),
+('Cơ sở Chả cá Thanh Vân 2', ARRAY['Chả cá hấp', 'Chả cá chiên', 'Cá viên chiên'], 4, '0868.218.999', 'Lô E(44-45-46-47) phía đông đường Điện Biên Phủ, Phường Quy Nhơn Đông, Tỉnh Gia Lai', '21601', ST_SetSRID(ST_MakePoint(109.2038639, 13.7935871), 4326)),
+('Công ty TNHH Yến sào Đại Việt', ARRAY['Yến sào Đại Việt- Tổ yến chưng', 'Yến sào Đại Việt- Tổ yến tinh'], 3, '02563.823.412', 'Số 247 đường Tăng Bạt Hổ, Phường Quy Nhơn, Tỉnh Gia Lai', '21583', ST_SetSRID(ST_MakePoint(109.2256981, 13.7724407), 4326)),
+('HTX Thủy sản Nhơn Châu', ARRAY['Chả cá Cù lao xanh'], 3, '0362.262.033', 'Thôn Tây, Xã Nhơn Châu, Tỉnh Gia Lai', '21607', ST_SetSRID(ST_MakePoint(109.352163, 13.6128019), 4326)),
+('Công ty TNHH Thái An Bình Định', ARRAY['Trà Đinh lăng túi lọc Phúc An'], 3, '0977.301.467', 'Số 16 đường Thanh Niên, Phường Quy Nhơn Nam, Tỉnh Gia Lai', '21592', ST_SetSRID(ST_MakePoint(109.2163957, 13.7704194), 4326)),
+('HTX dịch vụ du lịch thủy sản Nhơn Hải', ARRAY['Nước rau câu'], 3, '0394.777.811', 'Nhà văn hóa thôn Hải Bắc, Phường Quy Nhơn Đông, Tỉnh Gia Lai', '21601', ST_SetSRID(ST_MakePoint(109.289776, 13.7693784), 4326));

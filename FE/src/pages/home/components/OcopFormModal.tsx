@@ -6,6 +6,7 @@ import api from '../../../api/axiosInstance';
 import { extractErrorMessage } from '../../../api/errorUtils';
 import type { OcopProduct } from '../../../types/ocop';
 import type { Ward } from '../../../types/gis';
+import MapPicker from './MapPicker';
 
 interface OcopFormModalProps {
   isOpen: boolean;
@@ -232,6 +233,16 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
               />
             </div>
           </div>
+
+          <MapPicker
+            latitude={latitude}
+            longitude={longitude}
+            onCoordinatesChange={(lat, lng) => {
+              setLatitude(lat);
+              setLongitude(lng);
+            }}
+            accentColor="#F97316"
+          />
 
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1">

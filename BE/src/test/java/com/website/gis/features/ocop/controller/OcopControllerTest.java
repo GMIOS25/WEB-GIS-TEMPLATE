@@ -37,6 +37,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -109,6 +110,73 @@ class OcopControllerTest {
                 .andExpect(jsonPath("$.content[0].latitude").value(13.9723))
                 .andExpect(jsonPath("$.content[0].longitude").value(107.9812))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetOcopGeoJson_asViewer_thenReturnFeatureCollection() throws Exception {
+        Mockito.when(ocopProductRepository.findAll()).thenReturn(List.of(testProduct));
+
+        mockMvc.perform(get("/api/ocop/geojson"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("private")))
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features[0].type").value("Feature"))
+                .andExpect(jsonPath("$.features[0].geometry.type").value("Point"))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[0]").value(107.9812))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[1]").value(13.9723))
+                .andExpect(jsonPath("$.features[0].properties.id").value(1))
+                .andExpect(jsonPath("$.features[0].properties.name").value("Cà phê Robusta Pleiku"))
+                .andExpect(jsonPath("$.features[0].properties.productType").value("Đồ uống"))
+                .andExpect(jsonPath("$.features[0].properties.wardCode").value("21112"))
+                .andExpect(jsonPath("$.features[0].properties.imageUrl").value("https://example.com/coffee.jpg"));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyOcopProducts_validParams_thenReturnList() throws Exception {
+        Mockito.when(ocopProductRepository.findNearby(13.9723, 107.9812, 10000.0))
+                .thenReturn(List.of(testProduct));
+
+        mockMvc.perform(get("/api/ocop/nearby")
+                        .param("lat", "13.9723")
+                        .param("lng", "107.9812")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Cà phê Robusta Pleiku"))
+                .andExpect(jsonPath("$[0].latitude").value(13.9723))
+                .andExpect(jsonPath("$[0].longitude").value(107.9812));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyOcopProducts_invalidLat_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/ocop/nearby")
+                        .param("lat", "95.0")
+                        .param("lng", "107.9812")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyOcopProducts_invalidLng_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/ocop/nearby")
+                        .param("lat", "13.9723")
+                        .param("lng", "-190.0")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyOcopProducts_invalidRadiusKm_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/ocop/nearby")
+                        .param("lat", "13.9723")
+                        .param("lng", "107.9812")
+                        .param("radiusKm", "-5"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

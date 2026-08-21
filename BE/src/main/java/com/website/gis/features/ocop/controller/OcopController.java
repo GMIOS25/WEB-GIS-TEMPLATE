@@ -1,6 +1,7 @@
 package com.website.gis.features.ocop.controller;
 
 import com.website.gis.core.entity.Ward;
+import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.repository.WardRepository;
 import com.website.gis.features.ocop.dto.OcopProductCreateRequest;
@@ -24,8 +25,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/ocop")
@@ -37,12 +47,84 @@ public class OcopController {
     private final OcopProductRepository ocopProductRepository;
     private final WardRepository wardRepository;
     private final OcopProductMapper ocopProductMapper;
+    private final ObjectMapper objectMapper;
 
     public OcopController(OcopProductRepository ocopProductRepository, WardRepository wardRepository,
-            OcopProductMapper ocopProductMapper) {
+            OcopProductMapper ocopProductMapper, ObjectMapper objectMapper) {
         this.ocopProductRepository = ocopProductRepository;
         this.wardRepository = wardRepository;
         this.ocopProductMapper = ocopProductMapper;
+        this.objectMapper = objectMapper;
+    }
+
+    @GetMapping(value = "/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getOcopGeoJson() {
+        List<OcopProduct> products = ocopProductRepository.findAll();
+
+        ArrayNode features = objectMapper.createArrayNode();
+        for (OcopProduct product : products) {
+            if (product.getGeom() == null) {
+                continue;
+            }
+
+            ObjectNode feature = objectMapper.createObjectNode();
+            feature.put("type", "Feature");
+
+            ObjectNode geometry = feature.putObject("geometry");
+            geometry.put("type", "Point");
+            ArrayNode coordinates = geometry.putArray("coordinates");
+            coordinates.add(BigDecimal.valueOf(product.getGeom().getX()));
+            coordinates.add(BigDecimal.valueOf(product.getGeom().getY()));
+
+            ObjectNode properties = feature.putObject("properties");
+            properties.put("id", product.getId());
+            properties.put("name", product.getName());
+            if (product.getProductType() != null) {
+                properties.put("productType", product.getProductType());
+            } else {
+                properties.putNull("productType");
+            }
+            properties.put("wardCode", product.getWard() != null ? product.getWard().getCode() : null);
+            if (product.getImageUrl() != null) {
+                properties.put("imageUrl", product.getImageUrl());
+            } else {
+                properties.putNull("imageUrl");
+            }
+
+            features.add(feature);
+        }
+
+        ObjectNode featureCollection = objectMapper.createObjectNode();
+        featureCollection.put("type", "FeatureCollection");
+        featureCollection.set("features", features);
+
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate())
+                .body(featureCollection);
+    }
+
+    @GetMapping("/nearby")
+    public ResponseEntity<List<OcopProductDto>> getNearbyOcopProducts(
+            @RequestParam("lat") Double lat,
+            @RequestParam("lng") Double lng,
+            @RequestParam("radiusKm") Double radiusKm) {
+
+        validateNearbyParams(lat, lng, radiusKm);
+
+        List<OcopProduct> products = ocopProductRepository.findNearby(lat, lng, radiusKm * 1000.0);
+        return ResponseEntity.ok(products.stream().map(ocopProductMapper::toDto).toList());
+    }
+
+    private static void validateNearbyParams(Double lat, Double lng, Double radiusKm) {
+        if (lat == null || lat < -90.0 || lat > 90.0) {
+            throw new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)");
+        }
+        if (lng == null || lng < -180.0 || lng > 180.0) {
+            throw new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)");
+        }
+        if (radiusKm == null || radiusKm <= 0.0) {
+            throw new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0");
+        }
     }
 
     @GetMapping

@@ -1,116 +1,90 @@
-# KẾ HOẠCH CHI TIẾT - GIAI ĐOẠN 3: TÍCH HỢP BẢN ĐỒ GIS (GIS MAP INTEGRATION)
+# BÁO CÁO TIẾN ĐỘ & KẾ HOẠCH CHI TIẾT - GIAI ĐOẠN 3: TÍCH HỢP BẢN ĐỒ GIS (GIS MAP INTEGRATION)
 
 ## DỰ ÁN: HỆ THỐNG QUẢN LÝ VÀ TRA CỨU THÔNG TIN HÀNH CHÍNH TỈNH GIA LAI
 
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (Soạn ngày 2026-08-17, Cập nhật chuẩn hoá): Kế hoạch DỰ KIẾN, CHƯA triển khai. Phụ thuộc vào Giai đoạn 2 hoàn thành (`docs/Phase2-task.md`).**
+> **Trạng thái tài liệu (Cập nhật 2026-08-21): Giai đoạn 3 đã HOÀN THÀNH trong môi trường phát triển cục bộ (Local Development).**
 >
-> Cả 3 module (`ocop`, `science`, `agriculture`) đều đã được chuẩn hoá là dạng Điểm (**Point layer** — `geometry(Point, 4326)`). Bảng màu chính thức đã chốt trong `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Cam, Science: `#64748B` Xám Slate, Agriculture: `#6B7280` Xám Cool).
-
-> [!TIP]
-> **Triết lý Giai đoạn 3:** Giai đoạn 2 xây "sổ đăng ký" CRUD. Giai đoạn 3 **chỉ thêm lớp hiển thị bản đồ + clustering + popup + truy vấn không gian lên trên dữ liệu đã có** — không viết lại CRUD, tái sử dụng hạ tầng Point layer nhất quán cho cả 3 module.
+> Cả 3 module (`ocop`, `science`, `agriculture`) đều đã được tích hợp hiển thị dạng Điểm (**Point layer** — `geometry(Point, 4326)`). Bảng màu tuân thủ `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Cam, Science: `#64748B` Xám Slate, Agriculture: `#6B7280` Xám Cool).
 
 ---
 
-## 1. Phạm vi Giai đoạn 3
+## 1. Bảng Theo dõi Tiến độ Tasks (Phase 3 Live Task Tracker)
 
-| Thuộc phạm vi | Không thuộc phạm vi |
-| :--- | :--- |
-| Endpoint GeoJSON (Point FeatureCollection) cho cả 3 module | CRUD cơ bản của cả 3 module (thuộc Giai đoạn 2) |
-| Vẽ marker layer lên bản đồ chính, hỗ trợ clustering (OCOP: Cam, Science/Agriculture: Xám) | Module Resource/Media (thuộc Giai đoạn 2) |
-| Popup thông tin cơ sở/đơn vị khi click marker | Chuyển sang MinIO/S3 (giữ local storage đơn giản) |
-| Tìm kiếm bán kính (`ST_DWithin`), lọc theo xã | Tự động hoá multi-instance fleet (Dokploy/Coolify) |
-| Map picker chọn toạ độ bằng click trên modal form | |
-| Dashboard/Analytics thống kê + xuất PDF/Excel | |
-
----
-
-### 🔴 PHẦN 1: BACKEND (SPRING BOOT)
-
-#### **TSK-17: Endpoint GeoJSON cho OCOP / Science / Agriculture**
-
-- **Việc cần làm:** Theo đúng quy ước tại `API_CONTRACT.md` mục 4.4: `GET /api/{feature}/geojson` trả về `FeatureCollection` các Điểm (Point):
-  - Cả 3 module (`ocop`, `science`, `agriculture`) đều có `geometry.type = "Point"`, toạ độ `[longitude, latitude]`.
-  - Properties chứa: `id`, `name`, `unitType` (hoặc `productType`), `wardCode`, `imageUrl`.
-  - Dựng GeoJSON bằng Jackson `ObjectMapper` (`ObjectNode`/`ArrayNode`) tương tự như cách `WardController.getAllWardsGeoJson()` đang làm.
-  - Áp dụng cache header private và `@ConditionalOnProperty`.
-- **Cách verify:** Gọi API `/api/{feature}/geojson` và tải dữ liệu lên [geojson.io] để kiểm tra toạ độ hiển thị đúng trong địa phận Gia Lai.
-
-#### **TSK-18: Truy vấn tìm kiếm bán kính (Radius Search)**
-
-- **Việc cần làm:** `GET /api/{feature}/nearby?lat={lat}&lng={lng}&radiusKm={radiusKm}`:
-  - Sử dụng PostGIS `ST_DWithin` trên cột `geom` với cast `::geography` để tính khoảng cách chính xác theo mét:
-    `ST_DWithin(geom::geography, ST_MakePoint(:lng, :lat)::geography, :radiusKm * 1000)`
-  - Tận dụng index GiST `idx_{table}_geom` đã tạo từ Giai đoạn 2.
-- **Cách verify:** Test truy vấn với toạ độ Pleiku, bán kính tăng dần và xác nhận số lượng bản ghi trả về tăng tương ứng.
-
-#### **TSK-19: Lọc theo vùng hành chính (Administrative Area Filter)**
-
-- **Việc cần làm:** Thêm query param `?wardCode=` vào endpoint danh sách `GET /api/{feature}` đã có từ Giai đoạn 2.
-- **Cách verify:** `GET /api/ocop?wardCode=21112` chỉ trả về các sản phẩm thuộc đúng xã đó.
+| Mã Task | Hạng mục công việc | Phạm vi (Scope) | Trạng thái | Ghi chú kỹ thuật |
+| :--- | :--- | :--- | :--- | :--- |
+| **TSK-17** | Endpoint GeoJSON cho OCOP / Science / Agriculture (`GET /api/{feature}/geojson`) | Backend | **HOÀN THÀNH** | Jackson `ObjectMapper` FeatureCollection, tọa độ `[lng, lat]`, cache header `private, max-age=3600`, 100% pass tests. |
+| **TSK-18** | Truy vấn tìm kiếm bán kính (`GET /api/{feature}/nearby`) | Backend / DB | **HOÀN THÀNH** | PostGIS `ST_DWithin` trên `geography`, bổ sung Expression GiST index `idx_*_geog`, validate lat/lng/radius, 100% pass tests. |
+| **TSK-19** | Lọc theo vùng hành chính (`GET /api/{feature}?wardCode=...`) | Backend | **HOÀN THÀNH** | Cả 3 controller hỗ trợ lọc theo xã kết hợp phân trang và tìm kiếm tên, 100% pass tests. |
+| **TSK-20** | Layer điểm OCOP trên bản đồ chính (có clustering & halo) | Frontend | **HOÀN THÀNH** | `PoiMarkerClusterLayer.tsx`, màu `#F97316`, halo viền trắng, badge `(N)`, popup thông tin + nút `[Xem chi tiết]`. |
+| **TSK-21** | Layer điểm Science & Agriculture trên bản đồ chính | Frontend | **HOÀN THÀNH** | Tích hợp trong `PoiMarkerClusterLayer.tsx` với màu Slate `#64748B` và Cool Gray `#6B7280`, độc lập theo feature flag. |
+| **TSK-22** | Sidebar điều khiển lớp dữ liệu (Single Source of Truth) + Legend | Frontend | **HOÀN THÀNH** | `SidebarDrawer.tsx` quản lý duy nhất layer state, có chấm màu Legend đối chiếu trực quan (🟠, 🔘, ⚪). |
+| **TSK-23** | Interactive Map Coordinate Picker cho form thêm/sửa | Frontend | **HOÀN THÀNH** | `MapPicker.tsx` tích hợp vào `OcopFormModal.tsx`, `ScienceFormModal.tsx`, `AgricultureFormModal.tsx`. |
+| **TSK-24** | UI Tìm kiếm bán kính & Lọc không gian | Frontend | **HOÀN THÀNH** | `RadiusSearchControl.tsx`, vẽ vòng tròn bán kính `Circle` trên Leaflet, highlight hiệu ứng pulse các điểm kết quả. |
+| **TSK-25 (Local)** | Bảng thống kê số lượng tổng quan | Frontend | **HOÀN THÀNH** | `StatsBoard.tsx` tổng hợp số lượng đơn vị OCOP, Science, Agriculture theo thời gian thực trên bản đồ. |
+| **TSK-25 (Export)** | Xuất báo cáo PDF/Excel (`xlsx`) | Backend/FE | **TẠM HOÃN (DEFERRED)** | Tạm hoãn trong Local Phase 3; sẽ triển khai khi có hạ tầng worker/object storage ở production. |
 
 ---
 
-### 🔵 PHẦN 2: FRONTEND (REACT LEAFLET)
+## 2. Chi tiết Kỹ thuật Triển khai
 
-#### **TSK-20: Layer điểm OCOP trên bản đồ chính (có clustering)**
+### 🔴 PHẦN 1: BACKEND (SPRING BOOT & POSTGIS)
 
-- **Việc cần làm:**
-  - Thêm thư viện clustering cho React Leaflet (ví dụ `react-leaflet-cluster` hoặc `leaflet.markercluster`).
-  - Tạo `FE/src/pages/home/components/OcopMarkers.tsx`, gọi `GET /api/ocop/geojson` qua TanStack Query.
-  - Tuân thủ `Design_rule.md`:
-    - Zoom xa: Gộp cụm điểm, hiển thị số lượng `(N)`.
-    - Zoom gần: Rã cụm, hiển thị chấm tròn màu Cam ấm (`#F97316`), viền trắng (Halo effect).
-    - Click điểm: Hiển thị popup với tên cơ sở, địa chỉ, SĐT, thuộc xã nào, nút `[Xem chi tiết]`.
-  - Tích hợp vào `GisMap.tsx` bọc trong điều kiện `FEATURE_FLAGS.ocop`.
+#### **TSK-17: Endpoint GeoJSON (`GET /api/{feature}/geojson`)**
+- Trả về `FeatureCollection` Point chuẩn GeoJSON RFC 7946: `geometry.coordinates = [longitude, latitude]`.
+- Properties tối thiểu: `{ id, name, productType/unitType, wardCode, imageUrl }`.
+- Cache-Control: `private, max-age=3600`.
+- Tự động tắt (trả về 404) khi `features.<module>.enabled=false`.
 
-#### **TSK-21: Layer điểm Science & Agriculture trên bản đồ chính**
+#### **TSK-18: Radius Search & GiST Index (`GET /api/{feature}/nearby`)**
+- Endpoint: `GET /api/{feature}/nearby?lat={lat}&lng={lng}&radiusKm={radiusKm}`.
+- Migration Flyway bổ sung Expression GiST index tối ưu cho phép cast geography:
+  - `V5_1_1__add_geog_gist_index_ocop.sql`
+  - `V5_2_1__add_geog_gist_index_science.sql`
+  - `V5_3_1__add_geog_gist_index_agriculture.sql`
+- Native query: `ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)`.
+- Input validation: `lat ∈ [-90, 90]`, `lng ∈ [-180, 180]`, `radiusKm > 0`.
+- Response contract: `List<Dto>` đồng nhất với chuẩn Phase 2.
 
-- **Việc cần làm:**
-  - Tạo `ScienceMarkers.tsx` với màu xám Slate `#64748B` (`FEATURE_FLAGS.science`).
-  - Tạo `AgricultureMarkers.tsx` với màu xám Cool Gray `#6B7280` (`FEATURE_FLAGS.agriculture`).
-  - Cả 2 module đều dùng chung cơ chế clustering, unclustering, halo effect và popup như OCOP.
-
-#### **TSK-22: Sidebar điều khiển lớp dữ liệu (Layer Control) + Legend**
-
-- **Việc cần làm:**
-  - Sidebar hiển thị checkbox bật/tắt từng layer chuyên đề khi module đó được kích hoạt qua feature flag.
-  - Hiển thị chấm tròn màu trực quan ngay cạnh tên layer: OCOP (Cam `#F97316`), Science (Xám `#64748B`), Agriculture (Xám `#6B7280`).
-
-#### **TSK-23: Map picker chọn toạ độ bằng click (nâng cấp form nhập liệu)**
-
-- **Việc cần làm:**
-  - Trong modal thêm/sửa của OCOP, Science, Agriculture: Tích hợp bản đồ nhỏ cho phép click chuột để ghim vị trí, tự động điền giá trị vào 2 ô số `latitude` và `longitude`.
-
-#### **TSK-24: UI Tìm kiếm bán kính & Lọc không gian**
-
-- **Việc cần làm:**
-  - Thêm công cụ chọn bán kính (km) và tâm tìm kiếm trên bản đồ, gọi API `/api/{feature}/nearby` và highlight các điểm kết quả.
-
-#### **TSK-25: Dashboard & Analytics**
-
-- **Việc cần làm:**
-  - Thống kê số lượng đơn vị theo từng module (OCOP, Science, Agriculture) phân bố theo xã/phường.
-  - Hỗ trợ xuất dữ liệu ra Excel (`xlsx`) hoặc in báo cáo PDF.
+#### **TSK-19: Administrative Ward Filter**
+- Cả 3 controller hỗ trợ `?wardCode=` kết hợp tìm kiếm `?q=` và phân trang `Pageable`.
 
 ---
 
-## 2. Mô hình Vận hành & Triển khai 3 Deployment
+### 🔵 PHẦN 2: FRONTEND (REACT 19 + LEAFLET MARKERCLUSTER)
 
-- **1 VPS — 3 Stacks — 3 Database:**
-  - Máy chủ VPS Viettel IDC chạy 3 container app độc lập: OCOP (`ocop.gialai.gov.vn`), Science (`khcn.gialai.gov.vn`), Agriculture (`nongnghiep.gialai.gov.vn`).
-  - Mỗi container kết nối tới database riêng (`gialai_ocop`, `gialai_science`, `gialai_agriculture`).
-  - Dùng chung ranh giới các xã (`wards`, `gis_wards`). Caddy xử lý reverse proxy và cấp phát chứng chỉ SSL tự động.
+#### **TSK-20 & TSK-21: PoiMarkerClusterLayer**
+- Sử dụng trực tiếp `leaflet.markercluster` qua `useMap()` React hook.
+- Phân biệt màu sắc trực quan:
+  - OCOP: Cam ấm `#F97316`
+  - Science: Xám Slate `#64748B`
+  - Agriculture: Xám Cool `#6B7280`
+- Quản lý vòng đời chặt chẽ (Lifecycle Safety): `clusterGroup.clearLayers()` và `map.removeLayer(clusterGroup)` trong cleanup hook, đảm bảo 0 marker duplicate, 0 memory leak.
+- Lazy Detail Loading: Popup hiển thị thông tin tóm tắt; click `[Xem chi tiết]` gọi API `GET /api/{feature}/{id}` để hiển thị đầy đủ trên `DetailsPanel.tsx`.
+
+#### **TSK-22: Single Source of Truth Layer Control**
+- Quản lý tập trung toàn bộ layers tại `Home.tsx` (`layers` state) và điều khiển duy nhất qua `SidebarDrawer.tsx`.
+- Hiển thị chấm màu Legend bên cạnh tên lớp dữ liệu.
+
+#### **TSK-23: Interactive Map Coordinate Picker**
+- `MapPicker.tsx` cho phép click chọn tọa độ trực tiếp, đồng bộ 2 chiều với các ô nhập `latitude` và `longitude`.
+
+#### **TSK-24: Spatial Radius Search Control**
+- `RadiusSearchControl.tsx` cho phép chọn tâm điểm trên bản đồ, kéo bán kính (1 - 100 km), chọn chuyên đề và kích hoạt tìm kiếm.
+- Vẽ vòng tròn bán kính đứt nét trên bản đồ và hiển thị hiệu ứng phát sáng (pulse) quanh các marker kết quả.
+
+#### **TSK-25: Dashboard & Thống kê**
+- `StatsBoard.tsx` tổng hợp số lượng xã/phường, diện tích và số lượng cơ sở chuyên đề.
 
 ---
 
 ## 3. Definition of Done — Giai đoạn 3
 
-- [ ] Cả 3 endpoint `/api/{feature}/geojson` trả về GeoJSON Point FeatureCollection hợp lệ.
-- [ ] Tìm kiếm bán kính `ST_DWithin` hoạt động chính xác với index GiST.
-- [ ] Cả 3 layer điểm (OCOP, Science, Agriculture) hiển thị chuẩn màu theo `Design_rule.md`, clustering mượt mà khi zoom xa/gần.
-- [ ] Legend hiển thị đúng màu sắc đối chiếu trực quan.
-- [ ] Map picker hoạt động trơn tru trong modal thêm/sửa đơn vị cho cả 3 module.
-- [ ] `./mvnw -B verify` và `docker compose up -d --build` hoàn tất thành công khi bật đồng thời các module.
+- [x] Cả 3 endpoint `/api/{feature}/geojson` trả về GeoJSON Point FeatureCollection hợp lệ.
+- [x] Tìm kiếm bán kính `ST_DWithin` hoạt động chính xác với index GiST `idx_*_geog`.
+- [x] Cả 3 layer điểm (OCOP, Science, Agriculture) hiển thị chuẩn màu theo `Design_rule.md`, clustering mượt mà khi zoom xa/gần.
+- [x] Legend hiển thị đúng màu sắc đối chiếu trực quan.
+- [x] Map picker hoạt động trơn tru trong modal thêm/sửa đơn vị cho cả 3 module.
+- [x] Backend tests (`.\mvnw test`) và Frontend build (`pnpm run build` + `pnpm run lint`) hoàn tất thành công với 0 lỗi.

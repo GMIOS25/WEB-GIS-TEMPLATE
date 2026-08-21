@@ -110,6 +110,73 @@ class AgricultureControllerTest {
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetAgricultureGeoJson_asViewer_thenReturnFeatureCollection() throws Exception {
+        Mockito.when(agricultureUnitRepository.findAll()).thenReturn(List.of(sampleUnit));
+
+        mockMvc.perform(get("/api/agriculture/geojson"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("private")))
+                .andExpect(jsonPath("$.type").value("FeatureCollection"))
+                .andExpect(jsonPath("$.features[0].type").value("Feature"))
+                .andExpect(jsonPath("$.features[0].geometry.type").value("Point"))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[0]").value(108.0123))
+                .andExpect(jsonPath("$.features[0].geometry.coordinates[1]").value(13.9876))
+                .andExpect(jsonPath("$.features[0].properties.id").value(1))
+                .andExpect(jsonPath("$.features[0].properties.name").value("Trang trại Cà phê Đak Đoa"))
+                .andExpect(jsonPath("$.features[0].properties.unitType").value("Trang trại"))
+                .andExpect(jsonPath("$.features[0].properties.wardCode").value("21112"))
+                .andExpect(jsonPath("$.features[0].properties.imageUrl").value("https://example.com/agri.jpg"));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyAgricultureUnits_validParams_thenReturnList() throws Exception {
+        Mockito.when(agricultureUnitRepository.findNearby(13.9876, 108.0123, 10000.0))
+                .thenReturn(List.of(sampleUnit));
+
+        mockMvc.perform(get("/api/agriculture/nearby")
+                        .param("lat", "13.9876")
+                        .param("lng", "108.0123")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].name").value("Trang trại Cà phê Đak Đoa"))
+                .andExpect(jsonPath("$[0].latitude").value(13.9876))
+                .andExpect(jsonPath("$[0].longitude").value(108.0123));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyAgricultureUnits_invalidLat_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/agriculture/nearby")
+                        .param("lat", "95.0")
+                        .param("lng", "108.0123")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyAgricultureUnits_invalidLng_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/agriculture/nearby")
+                        .param("lat", "13.9876")
+                        .param("lng", "-190.0")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyAgricultureUnits_invalidRadiusKm_thenReturn400() throws Exception {
+        mockMvc.perform(get("/api/agriculture/nearby")
+                        .param("lat", "13.9876")
+                        .param("lng", "108.0123")
+                        .param("radiusKm", "-1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetById_asViewer_thenReturnSingle() throws Exception {
         Mockito.when(agricultureUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
 
