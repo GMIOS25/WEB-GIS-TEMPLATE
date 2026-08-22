@@ -219,12 +219,14 @@ All 3 feature modules (`ocop`, `science`, `agriculture`) are **point-type POI mo
 ### 4.1. Point-type Module Pattern
 
 ```sql
--- 1. Example schema for features/ocop
+-- 1. Schema for features/ocop (with array and rating support)
 CREATE TABLE ocop_products (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
     name varchar(255) NOT NULL,
-    product_type varchar(100),
-    description text,
+    product_types text[] DEFAULT '{}',          -- Array of product types for multi-category support
+    star_rating integer,                        -- OCOP star rating (1-5)
+    contact_phone varchar(13),                  -- Contact phone number
+    location_address text,                      -- Detailed address
     ward_code varchar(20) NOT NULL,
     geom geometry(Point, 4326) NOT NULL,
     image_url varchar(500),
@@ -233,6 +235,7 @@ CREATE TABLE ocop_products (
 );
 CREATE INDEX idx_ocop_products_ward_code ON public.ocop_products USING btree (ward_code);
 CREATE INDEX idx_ocop_products_geom ON public.ocop_products USING gist (geom);
+CREATE INDEX idx_ocop_products_types ON public.ocop_products USING gin (product_types); -- GIN index for fast array search
 CREATE INDEX idx_ocop_products_geog ON public.ocop_products USING gist (CAST(geom AS geography));
 
 -- 2. Schema for features/science (identical shape)

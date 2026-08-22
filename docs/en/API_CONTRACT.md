@@ -398,7 +398,10 @@ These modules are implemented as independent pluggable feature extensions. Each 
         "properties": {
           "id": 1,
           "name": "Cà phê Robusta Pleiku",
-          "productType": "Đồ uống",
+          "productTypes": ["Đồ uống", "Nông sản"],
+          "starRating": 4,
+          "contactPhone": "0905123456",
+          "locationAddress": "123 Đường Hùng Vương, TP Pleiku",
           "wardCode": "21112",
           "imageUrl": "/api/files/ocop/sample.jpg"
         }
@@ -420,8 +423,10 @@ These modules are implemented as independent pluggable feature extensions. Each 
     {
       "id": 1,
       "name": "Cà phê Robusta Pleiku",
-      "productType": "Đồ uống",
-      "description": "Cà phê đặc sản Gia Lai",
+      "productTypes": ["Đồ uống", "Nông sản"],
+      "starRating": 4,
+      "contactPhone": "0905123456",
+      "locationAddress": "123 Đường Hùng Vương, TP Pleiku",
       "wardCode": "21112",
       "wardName": "Phường Ia Kring",
       "latitude": 13.985,
@@ -437,12 +442,16 @@ These modules are implemented as independent pluggable feature extensions. Each 
 
 #### `POST /api/{ocop|science|agriculture}`
 - **Access:** `ADMIN` only
-- **Request Body:** `{ "name": "...", "unitType": "...", "description": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
+- **Request Body:** 
+  - For `ocop`: `{ "name": "...", "productTypes": ["..."], "starRating": 4, "contactPhone": "...", "locationAddress": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
+  - For `science`/`agriculture`: `{ "name": "...", "unitType": "...", "description": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
 - **Response Body:** Created item DTO with status `201 Created`.
 
 #### `PUT /api/{ocop|science|agriculture}/{id}`
 - **Access:** `ADMIN` only
-- **Request Body:** Update fields (`name`, `unitType`, `description`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
+- **Request Body:** 
+  - For `ocop`: Update fields (`name`, `productTypes`, `starRating`, `contactPhone`, `locationAddress`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
+  - For `science`/`agriculture`: Update fields (`name`, `unitType`, `description`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
 - **Response Body:** Updated item DTO with status `200 OK`.
 
 #### `DELETE /api/{ocop|science|agriculture}/{id}`
