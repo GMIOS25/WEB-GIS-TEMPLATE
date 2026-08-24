@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { Sparkles, Plus, AlertCircle, Info, Edit2, Trash2, MapPin, ChevronLeft, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Sparkles, Plus, AlertCircle, Info, Edit2, Trash2, MapPin, ChevronLeft, ChevronRight, ArrowLeft, Loader2, Star, Phone, Home } from 'lucide-react';
 import { fetchOcopProducts, deleteOcopProduct } from '../../../api/ocop';
 import api from '../../../api/axiosInstance';
 import OcopFormModal from './OcopFormModal';
@@ -11,6 +11,25 @@ import type { Ward } from '../../../types/gis';
 interface OcopPanelProps {
   setActiveView: (view: 'map' | 'admin' | 'ocop' | 'science' | 'agriculture') => void;
 }
+
+const StarRatingDisplay: React.FC<{ rating?: number }> = ({ rating = 3 }) => {
+  return (
+    <div className="flex items-center space-x-0.5" title={`OCOP ${rating} sao`}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={13}
+          className={`${
+            star <= rating
+              ? 'fill-amber-400 text-amber-500'
+              : 'fill-neutral-200 text-neutral-200'
+          }`}
+        />
+      ))}
+      <span className="text-[11px] font-bold text-amber-600 ml-1">({rating}★)</span>
+    </div>
+  );
+};
 
 const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
   const { user } = useAuth();
@@ -127,9 +146,15 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
   };
 
   // Filter client-side search query
-  const filteredProducts = products.filter((p) =>
-    searchTerm ? p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.productType?.toLowerCase().includes(searchTerm.toLowerCase()) : true
-  );
+  const filteredProducts = products.filter((p) => {
+    if (!searchTerm.trim()) return true;
+    const s = searchTerm.toLowerCase();
+    const matchName = p.name.toLowerCase().includes(s);
+    const matchTypes = p.productTypes?.some((t) => t.toLowerCase().includes(s));
+    const matchAddress = p.locationAddress?.toLowerCase().includes(s);
+    const matchPhone = p.contactPhone?.toLowerCase().includes(s);
+    return matchName || matchTypes || matchAddress || matchPhone;
+  });
 
   return (
     <div className="w-full h-full bg-neutral-50 overflow-y-auto z-20 flex flex-col p-6 sm:p-10 pt-24">
@@ -174,7 +199,7 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <input
             type="text"
-            placeholder="Tìm theo tên hoặc phân loại..."
+            placeholder="Tìm theo tên, phân loại, địa chỉ, sđt..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
@@ -226,10 +251,10 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-neutral-100 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                  <th className="py-3 px-4">Sản phẩm</th>
-                  <th className="py-3 px-4">Phân loại</th>
-                  <th className="py-3 px-4">Địa bàn xã/phường</th>
-                  <th className="py-3 px-4">Tọa độ</th>
+                  <th className="py-3 px-4">Sản phẩm & Đánh giá</th>
+                  <th className="py-3 px-4">Phân loại ngành hàng</th>
+                  <th className="py-3 px-4">Địa bàn & Địa chỉ</th>
+                  <th className="py-3 px-4">Liên hệ & Tọa độ</th>
                   {isAdmin && <th className="py-3 px-4 text-right">Thao tác</th>}
                 </tr>
               </thead>
@@ -242,34 +267,61 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
                           <img
                             src={item.imageUrl}
                             alt={item.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-neutral-200"
+                            className="w-11 h-11 rounded-lg object-cover border border-neutral-200 shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xs font-bold border border-orange-100">
+                          <div className="w-11 h-11 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xs font-bold border border-orange-100 shrink-0">
                             {item.name.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <span className="font-bold text-neutral-900 block">{item.name}</span>
-                          {item.description && (
-                            <span className="text-[11px] text-neutral-400 line-clamp-1 max-w-xs">
-                              {item.description}
-                            </span>
-                          )}
+                          <span className="font-bold text-neutral-900 block text-sm">{item.name}</span>
+                          <div className="mt-1">
+                            <StarRatingDisplay rating={item.starRating || 3} />
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-200">
-                        {item.productType || 'Nông sản'}
-                      </span>
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {item.productTypes && item.productTypes.length > 0 ? (
+                          item.productTypes.map((type, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200"
+                            >
+                              {type}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+                            Nông sản
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-neutral-600">
-                      {item.wardName || item.wardCode}
+                      <div className="font-semibold text-neutral-800">
+                        {item.wardName || item.wardCode}
+                      </div>
+                      {item.locationAddress && (
+                        <div className="text-[11px] text-neutral-500 flex items-center space-x-1 mt-0.5 line-clamp-1 max-w-xs">
+                          <Home size={11} className="shrink-0 text-neutral-400" />
+                          <span>{item.locationAddress}</span>
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3.5 px-4 text-neutral-500 font-mono text-[11px]">
-                      <div className="flex items-center space-x-1">
-                        <MapPin size={12} className="text-orange-500" />
+                    <td className="py-3.5 px-4 text-neutral-500 text-[11px]">
+                      {item.contactPhone && (
+                        <div className="flex items-center space-x-1 font-semibold text-neutral-700 mb-1">
+                          <Phone size={11} className="text-emerald-600" />
+                          <a href={`tel:${item.contactPhone}`} className="hover:underline text-emerald-700">
+                            {item.contactPhone}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-1 font-mono text-[10px]">
+                        <MapPin size={11} className="text-orange-500" />
                         <span>{item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}</span>
                       </div>
                     </td>

@@ -140,6 +140,11 @@
     		<groupId>org.flywaydb</groupId>
     		<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
+		<!-- Caffeine Cache for In-Memory Rate Limiting -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

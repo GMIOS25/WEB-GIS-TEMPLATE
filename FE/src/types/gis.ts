@@ -40,8 +40,13 @@ export interface PoiGeoJsonProperties {
   id: number;
   name: string;
   productType?: string | null;
+  productTypes?: string[] | null;
+  starRating?: number | null;
+  contactPhone?: string | null;
+  locationAddress?: string | null;
   unitType?: string | null;
   wardCode?: string | null;
+  wardName?: string | null;
   imageUrl?: string | null;
 }
 

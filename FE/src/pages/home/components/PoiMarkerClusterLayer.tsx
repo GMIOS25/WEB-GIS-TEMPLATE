@@ -133,6 +133,13 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
 
       // Build popup content
       const typeDisplay = props.productType || props.unitType || moduleLabel;
+      const starsHtml = props.starRating
+        ? `<div style="margin-top: 3px; color: #F59E0B; font-size: 13px; letter-spacing: 1px;">
+            ${'★'.repeat(props.starRating)}${'<span style="color:#D1D5DB">☆</span>'.repeat(5 - props.starRating)}
+            <span style="font-size: 11px; font-weight: 700; color: #D97706; margin-left: 2px;">(${props.starRating}★)</span>
+           </div>`
+        : '';
+
       const popupContainer = document.createElement('div');
       popupContainer.style.fontFamily = 'ui-sans-serif, system-ui, sans-serif';
       popupContainer.style.fontSize = '13px';
@@ -157,6 +164,7 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
           <div style="font-weight: 700; color: #111827; font-size: 14px; margin-top: 2px;">
             ${props.name}
           </div>
+          ${starsHtml}
           ${
             props.wardCode
               ? `<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Mã xã: ${props.wardCode}</div>`

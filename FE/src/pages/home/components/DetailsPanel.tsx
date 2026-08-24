@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, FlaskConical, Trees, MapPin, Tag, FileText } from 'lucide-react';
+import { X, Sparkles, FlaskConical, Trees, MapPin, Tag, FileText, Star, Phone, Home } from 'lucide-react';
 import type { GeoJsonFeature } from '../../../types/gis';
 
 export interface SelectedPoiDetail {
@@ -7,6 +7,10 @@ export interface SelectedPoiDetail {
   id: number;
   name: string;
   typeBadge?: string;
+  productTypes?: string[];
+  starRating?: number;
+  contactPhone?: string;
+  locationAddress?: string;
   description?: string;
   wardCode: string;
   wardName?: string;
@@ -62,6 +66,26 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
               <h3 className="text-base font-bold text-neutral-900 mt-2 line-clamp-2">
                 {selectedPoi.name}
               </h3>
+
+              {/* Star Rating for OCOP */}
+              {isOcop && selectedPoi.starRating && (
+                <div className="flex items-center space-x-1 mt-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={14}
+                      className={`${
+                        star <= (selectedPoi.starRating || 0)
+                          ? 'fill-amber-400 text-amber-500'
+                          : 'fill-neutral-200 text-neutral-200'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-xs font-bold text-amber-600 ml-1">
+                    {selectedPoi.starRating} sao OCOP
+                  </span>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setSelectedPoi(null)}
@@ -87,18 +111,64 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
           {/* Details Card */}
           <div className="space-y-2.5">
-            {selectedPoi.typeBadge && (
+            {/* Product Types or Single Type Badge */}
+            {selectedPoi.productTypes && selectedPoi.productTypes.length > 0 ? (
               <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
-                <Tag size={15} className="text-neutral-500 mt-0.5" />
+                <Tag size={15} className="text-orange-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[11px] text-neutral-400 font-medium">Ngành hàng</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedPoi.productTypes.map((t, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-orange-50 text-orange-700 border border-orange-200"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : selectedPoi.typeBadge ? (
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+                <Tag size={15} className="text-neutral-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-[11px] text-neutral-400 font-medium">Phân loại / Loại hình</p>
                   <p className="text-xs font-bold text-neutral-800">{selectedPoi.typeBadge}</p>
                 </div>
               </div>
+            ) : null}
+
+            {/* Address */}
+            {selectedPoi.locationAddress && (
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+                <Home size={15} className="text-neutral-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[11px] text-neutral-400 font-medium">Địa chỉ cơ sở</p>
+                  <p className="text-xs font-semibold text-neutral-800">{selectedPoi.locationAddress}</p>
+                </div>
+              </div>
             )}
 
+            {/* Phone */}
+            {selectedPoi.contactPhone && (
+              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+                <Phone size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[11px] text-neutral-400 font-medium">Điện thoại liên hệ</p>
+                  <a
+                    href={`tel:${selectedPoi.contactPhone}`}
+                    className="text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    {selectedPoi.contactPhone}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Administrative boundary & Coordinates */}
             <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
-              <MapPin size={15} className="text-neutral-500 mt-0.5" />
+              <MapPin size={15} className="text-neutral-500 mt-0.5 shrink-0" />
               <div>
                 <p className="text-[11px] text-neutral-400 font-medium">Địa bàn hành chính</p>
                 <p className="text-xs font-bold text-neutral-800">
@@ -112,7 +182,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
             {selectedPoi.description && (
               <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
-                <FileText size={15} className="text-neutral-500 mt-0.5" />
+                <FileText size={15} className="text-neutral-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-[11px] text-neutral-400 font-medium">Mô tả chi tiết</p>
                   <p className="text-xs text-neutral-700 whitespace-pre-line leading-relaxed mt-0.5">
