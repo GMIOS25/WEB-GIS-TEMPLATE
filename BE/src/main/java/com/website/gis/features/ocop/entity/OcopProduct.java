@@ -3,7 +3,11 @@ package com.website.gis.features.ocop.entity;
 import com.website.gis.core.entity.Ward;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
+
+import java.util.List;
 
 @Entity
 @Table(name = "ocop_products")
@@ -21,11 +25,18 @@ public class OcopProduct {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "product_type", length = 100)
-    private String productType;
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "product_types", columnDefinition = "text[]")
+    private List<String> productTypes;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "star_rating")
+    private Integer starRating;
+
+    @Column(name = "contact_phone", length = 13)
+    private String contactPhone;
+
+    @Column(name = "location_address", columnDefinition = "TEXT")
+    private String locationAddress;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ward_code", nullable = false)

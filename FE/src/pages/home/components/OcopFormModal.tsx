@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { X, Sparkles, Upload, Loader2, Image as ImageIcon, Star, Phone, MapPin as MapPinIcon } from 'lucide-react';
 import { createOcopProduct, updateOcopProduct } from '../../../api/ocop';
 import { uploadFile } from '../../../api/files';
 import api from '../../../api/axiosInstance';
@@ -16,6 +16,15 @@ interface OcopFormModalProps {
   initialData?: OcopProduct | null;
 }
 
+const AVAILABLE_PRODUCT_TYPES = [
+  'Nông sản',
+  'Thực phẩm',
+  'Đồ uống',
+  'Thảo dược',
+  'Thủ công mỹ nghệ',
+  'Dịch vụ du lịch',
+];
+
 const OcopFormModal: React.FC<OcopFormModalProps> = ({
   isOpen,
   onClose,
@@ -25,8 +34,14 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
 }) => {
   const isEditing = !!initialData;
   const [name, setName] = useState(initialData?.name || '');
-  const [productType, setProductType] = useState(initialData?.productType || 'Nông sản');
-  const [description, setDescription] = useState(initialData?.description || '');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    initialData?.productTypes && initialData.productTypes.length > 0
+      ? initialData.productTypes
+      : ['Nông sản']
+  );
+  const [starRating, setStarRating] = useState<number>(initialData?.starRating || 3);
+  const [contactPhone, setContactPhone] = useState(initialData?.contactPhone || '');
+  const [locationAddress, setLocationAddress] = useState(initialData?.locationAddress || '');
   const [wardCode, setWardCode] = useState(initialData?.wardCode || '');
   const [latitude, setLatitude] = useState(initialData?.latitude?.toString() || '13.9850');
   const [longitude, setLongitude] = useState(initialData?.longitude?.toString() || '108.0150');
@@ -54,6 +69,16 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
   }, [initialData]);
 
   if (!isOpen) return null;
+
+  const toggleType = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      if (selectedTypes.length > 1) {
+        setSelectedTypes(selectedTypes.filter((t) => t !== type));
+      }
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,8 +121,10 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
       if (isEditing && initialData) {
         await updateOcopProduct(initialData.id, {
           name: name.trim(),
-          productType: productType.trim(),
-          description: description.trim(),
+          productTypes: selectedTypes,
+          starRating,
+          contactPhone: contactPhone.trim() || undefined,
+          locationAddress: locationAddress.trim() || undefined,
           wardCode,
           latitude: latNum,
           longitude: lngNum,
@@ -107,8 +134,10 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
       } else {
         await createOcopProduct({
           name: name.trim(),
-          productType: productType.trim(),
-          description: description.trim(),
+          productTypes: selectedTypes,
+          starRating,
+          contactPhone: contactPhone.trim() || undefined,
+          locationAddress: locationAddress.trim() || undefined,
           wardCode,
           latitude: latNum,
           longitude: lngNum,
@@ -157,29 +186,82 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Cà phê Pleiku, Tiêu Đắk Đoa, Bò một nắng..."
+              placeholder="VD: Cà phê Robusta Pleiku, Tiêu Đắk Đoa..."
               className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
               required
             />
           </div>
 
+          {/* Star Rating Selector with Yellow Stars */}
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+              Xếp hạng sao OCOP: <span className="text-amber-500 font-bold ml-1">{starRating} sao</span>
+            </label>
+            <div className="flex items-center space-x-1.5 p-2 bg-amber-50/50 rounded-xl border border-amber-200/60 w-fit">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setStarRating(star)}
+                  className="p-1 hover:scale-115 transition-transform cursor-pointer focus:outline-none"
+                  title={`${star} sao OCOP`}
+                >
+                  <Star
+                    size={22}
+                    className={`transition-colors ${
+                      star <= starRating
+                        ? 'fill-amber-400 text-amber-500 drop-shadow-xs'
+                        : 'fill-neutral-200 text-neutral-300 hover:fill-amber-200'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Types Selection Chips */}
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+              Phân loại ngành hàng (chọn một hoặc nhiều)
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {AVAILABLE_PRODUCT_TYPES.map((type) => {
+                const isSelected = selectedTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => toggleType(type)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                      isSelected
+                        ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                        : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Phân loại
+                Số điện thoại liên hệ
               </label>
-              <select
-                value={productType}
-                onChange={(e) => setProductType(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-              >
-                <option value="Nông sản">Nông sản</option>
-                <option value="Thực phẩm">Thực phẩm</option>
-                <option value="Đồ uống">Đồ uống</option>
-                <option value="Thảo dược">Thảo dược</option>
-                <option value="Thủ công mỹ nghệ">Thủ công mỹ nghệ</option>
-                <option value="Dịch vụ du lịch">Dịch vụ du lịch</option>
-              </select>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-400 pointer-events-none">
+                  <Phone size={14} />
+                </span>
+                <input
+                  type="text"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  placeholder="VD: 0905123456"
+                  className="w-full pl-9 pr-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                />
+              </div>
             </div>
 
             <div>
@@ -199,6 +281,24 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              Địa chỉ cơ sở sản xuất
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-400 pointer-events-none">
+                <MapPinIcon size={14} />
+              </span>
+              <input
+                type="text"
+                value={locationAddress}
+                onChange={(e) => setLocationAddress(e.target.value)}
+                placeholder="VD: 123 Đường Hùng Vương, TP Pleiku, Gia Lai"
+                className="w-full pl-9 pr-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+              />
             </div>
           </div>
 
@@ -246,19 +346,6 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1">
-              Mô tả chi tiết
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              placeholder="Thông tin giới thiệu về sản phẩm OCOP, xếp hạng sao, hợp tác xã..."
-              className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1">
               Hình ảnh minh họa
             </label>
             <div className="flex items-center space-x-3">
@@ -284,7 +371,7 @@ const OcopFormModal: React.FC<OcopFormModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setImageUrl('')}
-                    className="text-neutral-400 hover:text-rose-500"
+                    className="text-neutral-400 hover:text-rose-500 cursor-pointer"
                   >
                     <X size={12} />
                   </button>

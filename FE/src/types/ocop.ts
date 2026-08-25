@@ -1,8 +1,10 @@
 export interface OcopProduct {
   id: number;
   name: string;
-  productType?: string;
-  description?: string;
+  productTypes?: string[];
+  starRating?: number; // 1 - 5 sao
+  contactPhone?: string;
+  locationAddress?: string;
   wardCode: string;
   wardName?: string;
   latitude: number;
@@ -12,8 +14,10 @@ export interface OcopProduct {
 
 export interface OcopProductCreateRequest {
   name: string;
-  productType?: string;
-  description?: string;
+  productTypes?: string[];
+  starRating?: number;
+  contactPhone?: string;
+  locationAddress?: string;
   wardCode: string;
   latitude: number;
   longitude: number;
@@ -22,8 +26,10 @@ export interface OcopProductCreateRequest {
 
 export interface OcopProductUpdateRequest {
   name?: string;
-  productType?: string;
-  description?: string;
+  productTypes?: string[];
+  starRating?: number;
+  contactPhone?: string;
+  locationAddress?: string;
   wardCode?: string;
   latitude?: number;
   longitude?: number;

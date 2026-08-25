@@ -1,10 +1,14 @@
 package com.website.gis.features.agriculture.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.website.gis.core.entity.Ward;
-
 import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.repository.WardRepository;
+import com.website.gis.core.util.GisPointUtils;
 import com.website.gis.features.agriculture.dto.AgricultureUnitCreateRequest;
 import com.website.gis.features.agriculture.dto.AgricultureUnitDto;
 import com.website.gis.features.agriculture.dto.AgricultureUnitUpdateRequest;
@@ -12,29 +16,22 @@ import com.website.gis.features.agriculture.entity.AgricultureUnit;
 import com.website.gis.features.agriculture.mapper.AgricultureUnitMapper;
 import com.website.gis.features.agriculture.repository.AgricultureUnitRepository;
 import jakarta.validation.Valid;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.http.CacheControl;
-import org.springframework.http.MediaType;
-
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -45,7 +42,6 @@ public class AgricultureController {
     private final AgricultureUnitRepository agricultureUnitRepository;
     private final WardRepository wardRepository;
     private final AgricultureUnitMapper agricultureUnitMapper;
-    private final GeometryFactory geometryFactory;
     private final ObjectMapper objectMapper;
 
     public AgricultureController(AgricultureUnitRepository agricultureUnitRepository,
@@ -55,7 +51,6 @@ public class AgricultureController {
         this.agricultureUnitRepository = agricultureUnitRepository;
         this.wardRepository = wardRepository;
         this.agricultureUnitMapper = agricultureUnitMapper;
-        this.geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         this.objectMapper = objectMapper;
     }
 
@@ -132,7 +127,7 @@ public class AgricultureController {
     @GetMapping
     public ResponseEntity<Page<AgricultureUnitDto>> getAll(
             @RequestParam(required = false) String wardCode,
-            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<AgricultureUnit> page;
         if (StringUtils.hasText(wardCode)) {
@@ -156,7 +151,7 @@ public class AgricultureController {
         Ward ward = wardRepository.findById(request.getWardCode())
                 .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
 
-        Point point = createPoint(request.getLatitude(), request.getLongitude());
+        Point point = GisPointUtils.createPoint(request.getLatitude(), request.getLongitude());
 
         AgricultureUnit unit = AgricultureUnit.builder()
                 .name(request.getName())
@@ -192,7 +187,7 @@ public class AgricultureController {
             unit.setWard(ward);
         }
         if (request.getLatitude() != null && request.getLongitude() != null) {
-            unit.setGeom(createPoint(request.getLatitude(), request.getLongitude()));
+            unit.setGeom(GisPointUtils.createPoint(request.getLatitude(), request.getLongitude()));
         }
         if (request.getImageUrl() != null) {
             unit.setImageUrl(request.getImageUrl());
@@ -203,16 +198,11 @@ public class AgricultureController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<java.util.Map<String, String>> delete(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, String>> delete(@PathVariable Integer id) {
         AgricultureUnit unit = agricultureUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn vị nông nghiệp không tồn tại: " + id));
 
         agricultureUnitRepository.delete(unit);
-        return ResponseEntity.ok(java.util.Map.of("message", "Xóa đơn vị nông nghiệp thành công"));
-    }
-
-
-    private Point createPoint(BigDecimal lat, BigDecimal lng) {
-        return geometryFactory.createPoint(new Coordinate(lng.doubleValue(), lat.doubleValue()));
+        return ResponseEntity.ok(Map.of("message", "Xóa đơn vị nông nghiệp thành công"));
     }
 }

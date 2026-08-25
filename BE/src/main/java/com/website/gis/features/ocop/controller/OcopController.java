@@ -1,9 +1,14 @@
 package com.website.gis.features.ocop.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.repository.WardRepository;
+import com.website.gis.core.util.GisPointUtils;
 import com.website.gis.features.ocop.dto.OcopProductCreateRequest;
 import com.website.gis.features.ocop.dto.OcopProductDto;
 import com.website.gis.features.ocop.dto.OcopProductUpdateRequest;
@@ -11,26 +16,18 @@ import com.website.gis.features.ocop.entity.OcopProduct;
 import com.website.gis.features.ocop.mapper.OcopProductMapper;
 import com.website.gis.features.ocop.repository.OcopProductRepository;
 import jakarta.validation.Valid;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.springframework.http.CacheControl;
-import org.springframework.http.MediaType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -41,8 +38,6 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/ocop")
 @ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
 public class OcopController {
-
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 
     private final OcopProductRepository ocopProductRepository;
     private final WardRepository wardRepository;
@@ -79,12 +74,37 @@ public class OcopController {
             ObjectNode properties = feature.putObject("properties");
             properties.put("id", product.getId());
             properties.put("name", product.getName());
-            if (product.getProductType() != null) {
-                properties.put("productType", product.getProductType());
+
+            if (product.getProductTypes() != null && !product.getProductTypes().isEmpty()) {
+                ArrayNode typesArray = properties.putArray("productTypes");
+                product.getProductTypes().forEach(typesArray::add);
+                properties.put("productType", product.getProductTypes().get(0));
             } else {
+                properties.putNull("productTypes");
                 properties.putNull("productType");
             }
+
+            if (product.getStarRating() != null) {
+                properties.put("starRating", product.getStarRating());
+            } else {
+                properties.putNull("starRating");
+            }
+
+            if (product.getContactPhone() != null) {
+                properties.put("contactPhone", product.getContactPhone());
+            } else {
+                properties.putNull("contactPhone");
+            }
+
+            if (product.getLocationAddress() != null) {
+                properties.put("locationAddress", product.getLocationAddress());
+            } else {
+                properties.putNull("locationAddress");
+            }
+
             properties.put("wardCode", product.getWard() != null ? product.getWard().getCode() : null);
+            properties.put("wardName", product.getWard() != null ? product.getWard().getFullName() : null);
+
             if (product.getImageUrl() != null) {
                 properties.put("imageUrl", product.getImageUrl());
             } else {
@@ -161,14 +181,16 @@ public class OcopController {
     @PostMapping
     public ResponseEntity<OcopProductDto> createOcopProduct(@Valid @RequestBody OcopProductCreateRequest request) {
         Ward ward = wardRepository.findById(request.getWardCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + request.getWardCode()));
+                .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
 
-        Point geom = createPoint(request.getLongitude(), request.getLatitude());
+        Point geom = GisPointUtils.createPoint(request.getLatitude(), request.getLongitude());
 
         OcopProduct product = OcopProduct.builder()
                 .name(request.getName().trim())
-                .productType(request.getProductType())
-                .description(request.getDescription())
+                .productTypes(request.getProductTypes())
+                .starRating(request.getStarRating())
+                .contactPhone(request.getContactPhone() != null ? request.getContactPhone().trim() : null)
+                .locationAddress(request.getLocationAddress() != null ? request.getLocationAddress().trim() : null)
                 .ward(ward)
                 .geom(geom)
                 .imageUrl(request.getImageUrl())
@@ -187,13 +209,15 @@ public class OcopController {
                 .orElseThrow(() -> new ResourceNotFoundException("OCOP product not found with ID: " + id));
 
         Ward ward = wardRepository.findById(request.getWardCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + request.getWardCode()));
+                .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
 
-        Point geom = createPoint(request.getLongitude(), request.getLatitude());
+        Point geom = GisPointUtils.createPoint(request.getLatitude(), request.getLongitude());
 
         product.setName(request.getName().trim());
-        product.setProductType(request.getProductType());
-        product.setDescription(request.getDescription());
+        product.setProductTypes(request.getProductTypes());
+        product.setStarRating(request.getStarRating());
+        product.setContactPhone(request.getContactPhone() != null ? request.getContactPhone().trim() : null);
+        product.setLocationAddress(request.getLocationAddress() != null ? request.getLocationAddress().trim() : null);
         product.setWard(ward);
         product.setGeom(geom);
         product.setImageUrl(request.getImageUrl());
@@ -209,12 +233,5 @@ public class OcopController {
 
         ocopProductRepository.delete(product);
         return ResponseEntity.ok(Map.of("message", "OCOP product deleted successfully"));
-    }
-
-    private static Point createPoint(BigDecimal longitude, BigDecimal latitude) {
-        if (longitude == null || latitude == null) {
-            return null;
-        }
-        return GEOMETRY_FACTORY.createPoint(new Coordinate(longitude.doubleValue(), latitude.doubleValue()));
     }
 }

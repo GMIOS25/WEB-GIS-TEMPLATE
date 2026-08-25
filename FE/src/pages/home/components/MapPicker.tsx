@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 
+import { GIA_LAI_CENTER } from '../../../config/gisConstants';
+
 interface MapPickerProps {
   latitude: string;
   longitude: string;
@@ -62,7 +64,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
     return null;
   }, [latitude, longitude]);
 
-  const defaultCenter: [number, number] = position || [13.9833, 108.0]; // Gia Lai center
+  const defaultCenter: [number, number] = position || GIA_LAI_CENTER;
 
   return (
     <div className="space-y-2">
@@ -80,6 +82,8 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           <MapContainer
             center={defaultCenter}
             zoom={position ? 12 : 9}
+            minZoom={6}
+            maxZoom={18}
             style={{ height: '100%', width: '100%' }}
             attributionControl={false}
           >

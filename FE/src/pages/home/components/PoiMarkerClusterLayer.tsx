@@ -35,9 +35,12 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
   useEffect(() => {
     // 1. Defensively clear any existing cluster layer
     if (clusterGroupRef.current) {
-      clusterGroupRef.current.clearLayers();
-      map.removeLayer(clusterGroupRef.current);
+      const prevCluster = clusterGroupRef.current;
       clusterGroupRef.current = null;
+      if (map.hasLayer(prevCluster)) {
+        map.removeLayer(prevCluster);
+      }
+      prevCluster.clearLayers();
     }
 
     if (!enabled || !data || !data.features || data.features.length === 0) {
@@ -133,6 +136,13 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
 
       // Build popup content
       const typeDisplay = props.productType || props.unitType || moduleLabel;
+      const starsHtml = props.starRating
+        ? `<div style="margin-top: 3px; color: #F59E0B; font-size: 13px; letter-spacing: 1px;">
+            ${'★'.repeat(props.starRating)}${'<span style="color:#D1D5DB">☆</span>'.repeat(5 - props.starRating)}
+            <span style="font-size: 11px; font-weight: 700; color: #D97706; margin-left: 2px;">(${props.starRating}★)</span>
+           </div>`
+        : '';
+
       const popupContainer = document.createElement('div');
       popupContainer.style.fontFamily = 'ui-sans-serif, system-ui, sans-serif';
       popupContainer.style.fontSize = '13px';
@@ -157,6 +167,7 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
           <div style="font-weight: 700; color: #111827; font-size: 14px; margin-top: 2px;">
             ${props.name}
           </div>
+          ${starsHtml}
           ${
             props.wardCode
               ? `<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Mã xã: ${props.wardCode}</div>`
@@ -213,9 +224,11 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
 
     // Cleanup on unmount, data change, or layer toggle
     return () => {
-      clusterGroup.clearLayers();
-      map.removeLayer(clusterGroup);
       clusterGroupRef.current = null;
+      if (map.hasLayer(clusterGroup)) {
+        map.removeLayer(clusterGroup);
+      }
+      clusterGroup.clearLayers();
     };
   }, [map, enabled, data, color, moduleType, moduleLabel, highlightedIds]);
 

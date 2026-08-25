@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -12,29 +13,35 @@ import java.math.BigDecimal;
 @Builder
 public class OcopProductCreateRequest {
 
-    @NotBlank(message = "Product name is required")
-    @Size(max = 255, message = "Product name cannot exceed 255 characters")
+    @NotBlank(message = "Tên sản phẩm OCOP không được để trống")
+    @Size(max = 255, message = "Tên sản phẩm không vượt quá 255 ký tự")
     private String name;
 
-    @Size(max = 100, message = "Product type cannot exceed 100 characters")
-    private String productType;
+    private List<String> productTypes;
 
-    private String description;
+    @Min(value = 1, message = "Số sao OCOP phải từ 1 đến 5 sao")
+    @Max(value = 5, message = "Số sao OCOP phải từ 1 đến 5 sao")
+    private Integer starRating;
 
-    @NotBlank(message = "Ward code is required")
-    @Size(max = 20, message = "Ward code cannot exceed 20 characters")
+    @Size(max = 13, message = "Số điện thoại liên hệ không vượt quá 13 ký tự")
+    private String contactPhone;
+
+    private String locationAddress;
+
+    @NotBlank(message = "Mã xã/phường không được để trống")
+    @Size(max = 20, message = "Mã xã/phường không vượt quá 20 ký tự")
     private String wardCode;
 
-    @NotNull(message = "Latitude is required")
-    @DecimalMin(value = "-90.0", message = "Latitude must be >= -90.0")
-    @DecimalMax(value = "90.0", message = "Latitude must be <= 90.0")
+    @NotNull(message = "Vĩ độ (latitude) là bắt buộc")
+    @DecimalMin(value = "-90.0", message = "Vĩ độ phải từ -90.0 đến 90.0")
+    @DecimalMax(value = "90.0", message = "Vĩ độ phải từ -90.0 đến 90.0")
     private BigDecimal latitude;
 
-    @NotNull(message = "Longitude is required")
-    @DecimalMin(value = "-180.0", message = "Longitude must be >= -180.0")
-    @DecimalMax(value = "180.0", message = "Longitude must be <= 180.0")
+    @NotNull(message = "Kinh độ (longitude) là bắt buộc")
+    @DecimalMin(value = "-180.0", message = "Kinh độ phải từ -180.0 đến 180.0")
+    @DecimalMax(value = "180.0", message = "Kinh độ phải từ -180.0 đến 180.0")
     private BigDecimal longitude;
 
-    @Size(max = 500, message = "Image URL cannot exceed 500 characters")
+    @Size(max = 500, message = "Đường dẫn ảnh không vượt quá 500 ký tự")
     private String imageUrl;
 }

@@ -15,8 +15,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -25,6 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -126,8 +127,10 @@ class OcopControllerIntegrationTest {
         // 1. Viewer cannot create (403)
         OcopProductCreateRequest createRequest = OcopProductCreateRequest.builder()
                 .name("Tiêu Đắk Đoa")
-                .productType("Gia vị")
-                .description("Hồ tiêu hữu cơ Gia Lai")
+                .productTypes(List.of("Gia vị", "Nông sản"))
+                .starRating(4)
+                .contactPhone("0905123456")
+                .locationAddress("Đắk Đoa, Gia Lai")
                 .wardCode(existingWardCode)
                 .latitude(new BigDecimal("13.9850"))
                 .longitude(new BigDecimal("108.0150"))
@@ -147,6 +150,8 @@ class OcopControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Tiêu Đắk Đoa"))
+                .andExpect(jsonPath("$.starRating").value(4))
+                .andExpect(jsonPath("$.contactPhone").value("0905123456"))
                 .andExpect(jsonPath("$.latitude").value(13.9850))
                 .andExpect(jsonPath("$.longitude").value(108.0150))
                 .andReturn();
@@ -162,7 +167,8 @@ class OcopControllerIntegrationTest {
         mockMvc.perform(get("/api/ocop/" + createdId).cookie(viewerCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(createdId))
-                .andExpect(jsonPath("$.name").value("Tiêu Đắk Đoa"));
+                .andExpect(jsonPath("$.name").value("Tiêu Đắk Đoa"))
+                .andExpect(jsonPath("$.starRating").value(4));
 
         // 4. Admin can delete (200)
         mockMvc.perform(delete("/api/ocop/" + createdId).cookie(adminCookie))

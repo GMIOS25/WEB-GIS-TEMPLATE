@@ -12,10 +12,8 @@ import com.website.gis.features.science.entity.ScienceUnit;
 import com.website.gis.features.science.mapper.ScienceUnitMapper;
 import com.website.gis.features.science.repository.ScienceUnitRepository;
 import jakarta.validation.Valid;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
+import com.website.gis.core.util.GisPointUtils;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,7 +43,6 @@ public class ScienceController {
     private final ScienceUnitRepository scienceUnitRepository;
     private final WardRepository wardRepository;
     private final ScienceUnitMapper scienceUnitMapper;
-    private final GeometryFactory geometryFactory;
     private final ObjectMapper objectMapper;
 
     public ScienceController(ScienceUnitRepository scienceUnitRepository,
@@ -55,7 +52,6 @@ public class ScienceController {
         this.scienceUnitRepository = scienceUnitRepository;
         this.wardRepository = wardRepository;
         this.scienceUnitMapper = scienceUnitMapper;
-        this.geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         this.objectMapper = objectMapper;
     }
 
@@ -157,7 +153,7 @@ public class ScienceController {
         Ward ward = wardRepository.findById(request.getWardCode())
                 .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
 
-        Point point = createPoint(request.getLatitude(), request.getLongitude());
+        Point point = GisPointUtils.createPoint(request.getLatitude(), request.getLongitude());
 
         ScienceUnit unit = ScienceUnit.builder()
                 .name(request.getName())
@@ -193,7 +189,7 @@ public class ScienceController {
             unit.setWard(ward);
         }
         if (request.getLatitude() != null && request.getLongitude() != null) {
-            unit.setGeom(createPoint(request.getLatitude(), request.getLongitude()));
+            unit.setGeom(GisPointUtils.createPoint(request.getLatitude(), request.getLongitude()));
         }
         if (request.getImageUrl() != null) {
             unit.setImageUrl(request.getImageUrl());
@@ -210,10 +206,5 @@ public class ScienceController {
 
         scienceUnitRepository.delete(unit);
         return ResponseEntity.ok(java.util.Map.of("message", "Xóa đơn vị khoa học thành công"));
-    }
-
-
-    private Point createPoint(BigDecimal lat, BigDecimal lng) {
-        return geometryFactory.createPoint(new Coordinate(lng.doubleValue(), lat.doubleValue()));
     }
 }

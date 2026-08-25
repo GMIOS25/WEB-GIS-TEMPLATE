@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, Circle, Marker, useMap, useMapEvents 
 import L from 'leaflet';
 
 import type { GeoJsonFeature, GeoJsonData, PoiGeoJsonData } from '../../../types/gis';
+import { GIA_LAI_CENTER, DEFAULT_MAP_ZOOM } from '../../../config/gisConstants';
 import { PoiMarkerClusterLayer } from './PoiMarkerClusterLayer';
 import type { RadiusSearchState } from './RadiusSearchControl';
 import { FEATURE_FLAGS } from '../../../config/features';
@@ -203,8 +204,10 @@ const GisMap: React.FC<GisMapProps> = ({
 
   return (
     <MapContainer
-      center={[13.883358, 108.542896]}
-      zoom={9}
+      center={GIA_LAI_CENTER}
+      zoom={DEFAULT_MAP_ZOOM}
+      minZoom={6}
+      maxZoom={18}
       scrollWheelZoom={true}
       zoomControl={false}
       className="w-full h-full"

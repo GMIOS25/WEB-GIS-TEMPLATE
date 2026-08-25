@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -82,8 +81,10 @@ class OcopControllerTest {
         testProduct = OcopProduct.builder()
                 .id(1)
                 .name("Cà phê Robusta Pleiku")
-                .productType("Đồ uống")
-                .description("Cà phê đặc sản Gia Lai")
+                .productTypes(List.of("Đồ uống", "Nông sản"))
+                .starRating(4)
+                .contactPhone("0905123456")
+                .locationAddress("123 Hùng Vương, Pleiku")
                 .ward(testWard)
                 .geom(point)
                 .imageUrl("https://example.com/coffee.jpg")
@@ -106,6 +107,8 @@ class OcopControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Cà phê Robusta Pleiku"))
+                .andExpect(jsonPath("$.content[0].starRating").value(4))
+                .andExpect(jsonPath("$.content[0].contactPhone").value("0905123456"))
                 .andExpect(jsonPath("$.content[0].wardCode").value("21112"))
                 .andExpect(jsonPath("$.content[0].latitude").value(13.9723))
                 .andExpect(jsonPath("$.content[0].longitude").value(107.9812))
@@ -127,7 +130,8 @@ class OcopControllerTest {
                 .andExpect(jsonPath("$.features[0].geometry.coordinates[1]").value(13.9723))
                 .andExpect(jsonPath("$.features[0].properties.id").value(1))
                 .andExpect(jsonPath("$.features[0].properties.name").value("Cà phê Robusta Pleiku"))
-                .andExpect(jsonPath("$.features[0].properties.productType").value("Đồ uống"))
+                .andExpect(jsonPath("$.features[0].properties.starRating").value(4))
+                .andExpect(jsonPath("$.features[0].properties.productTypes[0]").value("Đồ uống"))
                 .andExpect(jsonPath("$.features[0].properties.wardCode").value("21112"))
                 .andExpect(jsonPath("$.features[0].properties.imageUrl").value("https://example.com/coffee.jpg"));
     }
@@ -188,7 +192,7 @@ class OcopControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Cà phê Robusta Pleiku"))
-                .andExpect(jsonPath("$.productType").value("Đồ uống"));
+                .andExpect(jsonPath("$.starRating").value(4));
     }
 
     @Test
@@ -221,8 +225,10 @@ class OcopControllerTest {
     void whenCreateOcopProduct_asAdmin_thenReturn201() throws Exception {
         OcopProductCreateRequest request = OcopProductCreateRequest.builder()
                 .name("Mật ong rừng Gia Lai")
-                .productType("Thực phẩm")
-                .description("Mật ong hoa rừng nguyên chất")
+                .productTypes(List.of("Thực phẩm"))
+                .starRating(4)
+                .contactPhone("0905999888")
+                .locationAddress("Ia Kring, Pleiku")
                 .wardCode("21112")
                 .latitude(new BigDecimal("13.9723"))
                 .longitude(new BigDecimal("107.9812"))
@@ -261,7 +267,10 @@ class OcopControllerTest {
     void whenUpdateOcopProduct_asAdmin_thenReturn200() throws Exception {
         OcopProductUpdateRequest request = OcopProductUpdateRequest.builder()
                 .name("Cà phê Robusta Pleiku Chế biến sâu")
-                .productType("Đồ uống cao cấp")
+                .productTypes(List.of("Đồ uống cao cấp"))
+                .starRating(5)
+                .contactPhone("0905123456")
+                .locationAddress("123 Hùng Vương")
                 .wardCode("21112")
                 .latitude(new BigDecimal("13.9723"))
                 .longitude(new BigDecimal("107.9812"))
