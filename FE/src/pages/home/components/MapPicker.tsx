@@ -82,6 +82,8 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           <MapContainer
             center={defaultCenter}
             zoom={position ? 12 : 9}
+            minZoom={6}
+            maxZoom={18}
             style={{ height: '100%', width: '100%' }}
             attributionControl={false}
           >

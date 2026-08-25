@@ -35,9 +35,12 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
   useEffect(() => {
     // 1. Defensively clear any existing cluster layer
     if (clusterGroupRef.current) {
-      clusterGroupRef.current.clearLayers();
-      map.removeLayer(clusterGroupRef.current);
+      const prevCluster = clusterGroupRef.current;
       clusterGroupRef.current = null;
+      if (map.hasLayer(prevCluster)) {
+        map.removeLayer(prevCluster);
+      }
+      prevCluster.clearLayers();
     }
 
     if (!enabled || !data || !data.features || data.features.length === 0) {
@@ -221,9 +224,11 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
 
     // Cleanup on unmount, data change, or layer toggle
     return () => {
-      clusterGroup.clearLayers();
-      map.removeLayer(clusterGroup);
       clusterGroupRef.current = null;
+      if (map.hasLayer(clusterGroup)) {
+        map.removeLayer(clusterGroup);
+      }
+      clusterGroup.clearLayers();
     };
   }, [map, enabled, data, color, moduleType, moduleLabel, highlightedIds]);
 

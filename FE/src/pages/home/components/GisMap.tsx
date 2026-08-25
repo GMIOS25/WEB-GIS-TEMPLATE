@@ -206,6 +206,8 @@ const GisMap: React.FC<GisMapProps> = ({
     <MapContainer
       center={GIA_LAI_CENTER}
       zoom={DEFAULT_MAP_ZOOM}
+      minZoom={6}
+      maxZoom={18}
       scrollWheelZoom={true}
       zoomControl={false}
       className="w-full h-full"
