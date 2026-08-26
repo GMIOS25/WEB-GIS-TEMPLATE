@@ -139,7 +139,9 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_validParams_thenReturnList() throws Exception {
-        Mockito.when(ocopProductRepository.findNearby(13.9723, 107.9812, 10000.0))
+        Mockito.when(ocopProductRepository.findNearbyIds(13.9723, 107.9812, 10000.0))
+                .thenReturn(List.of(1));
+        Mockito.when(ocopProductRepository.findByIdIn(List.of(1)))
                 .thenReturn(List.of(testProduct));
 
         mockMvc.perform(get("/api/ocop/nearby")
@@ -151,6 +153,21 @@ class OcopControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Cà phê Robusta Pleiku"))
                 .andExpect(jsonPath("$[0].latitude").value(13.9723))
                 .andExpect(jsonPath("$[0].longitude").value(107.9812));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyOcopProducts_emptyResults_thenReturnEmptyList() throws Exception {
+        Mockito.when(ocopProductRepository.findNearbyIds(13.9723, 107.9812, 10000.0))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/ocop/nearby")
+                        .param("lat", "13.9723")
+                        .param("lng", "107.9812")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

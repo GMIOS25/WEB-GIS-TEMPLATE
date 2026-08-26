@@ -32,8 +32,11 @@ public interface ScienceUnitRepository extends JpaRepository<ScienceUnit, Intege
     @EntityGraph(attributePaths = {"ward"})
     Optional<ScienceUnit> findById(Integer id);
 
-    @Query(value = "SELECT * FROM science_units WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
-    List<ScienceUnit> findNearby(@Param("lat") double lat,
-                                 @Param("lng") double lng,
-                                 @Param("radiusMeters") double radiusMeters);
+    @Query(value = "SELECT id FROM science_units WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
+    List<Integer> findNearbyIds(@Param("lat") double lat,
+                                @Param("lng") double lng,
+                                @Param("radiusMeters") double radiusMeters);
+
+    @EntityGraph(attributePaths = {"ward"})
+    List<ScienceUnit> findByIdIn(List<Integer> ids);
 }

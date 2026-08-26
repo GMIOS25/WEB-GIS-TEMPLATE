@@ -132,7 +132,9 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_validParams_thenReturnList() throws Exception {
-        Mockito.when(scienceUnitRepository.findNearby(13.9876, 108.0123, 10000.0))
+        Mockito.when(scienceUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
+                .thenReturn(List.of(1));
+        Mockito.when(scienceUnitRepository.findByIdIn(List.of(1)))
                 .thenReturn(List.of(sampleUnit));
 
         mockMvc.perform(get("/api/science/nearby")
@@ -144,6 +146,21 @@ class ScienceControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Trung tâm Ứng dụng Tiến bộ KH&CN Gia Lai"))
                 .andExpect(jsonPath("$[0].latitude").value(13.9876))
                 .andExpect(jsonPath("$[0].longitude").value(108.0123));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetNearbyScienceUnits_emptyResults_thenReturnEmptyList() throws Exception {
+        Mockito.when(scienceUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/science/nearby")
+                        .param("lat", "13.9876")
+                        .param("lng", "108.0123")
+                        .param("radiusKm", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test

@@ -108,7 +108,12 @@ public class AgricultureController {
 
         validateNearbyParams(lat, lng, radiusKm);
 
-        List<AgricultureUnit> units = agricultureUnitRepository.findNearby(lat, lng, radiusKm * 1000.0);
+        List<Integer> nearbyIds = agricultureUnitRepository.findNearbyIds(lat, lng, radiusKm * 1000.0);
+        if (nearbyIds.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<AgricultureUnit> units = agricultureUnitRepository.findByIdIn(nearbyIds);
         return ResponseEntity.ok(units.stream().map(agricultureUnitMapper::toDto).toList());
     }
 

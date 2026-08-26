@@ -109,7 +109,12 @@ public class ScienceController {
 
         validateNearbyParams(lat, lng, radiusKm);
 
-        List<ScienceUnit> units = scienceUnitRepository.findNearby(lat, lng, radiusKm * 1000.0);
+        List<Integer> nearbyIds = scienceUnitRepository.findNearbyIds(lat, lng, radiusKm * 1000.0);
+        if (nearbyIds.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<ScienceUnit> units = scienceUnitRepository.findByIdIn(nearbyIds);
         return ResponseEntity.ok(units.stream().map(scienceUnitMapper::toDto).toList());
     }
 

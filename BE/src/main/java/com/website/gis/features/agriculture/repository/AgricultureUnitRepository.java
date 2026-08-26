@@ -32,8 +32,11 @@ public interface AgricultureUnitRepository extends JpaRepository<AgricultureUnit
     @EntityGraph(attributePaths = {"ward"})
     Optional<AgricultureUnit> findById(Integer id);
 
-    @Query(value = "SELECT * FROM agriculture_units WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
-    List<AgricultureUnit> findNearby(@Param("lat") double lat,
-                                     @Param("lng") double lng,
-                                     @Param("radiusMeters") double radiusMeters);
+    @Query(value = "SELECT id FROM agriculture_units WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
+    List<Integer> findNearbyIds(@Param("lat") double lat,
+                                @Param("lng") double lng,
+                                @Param("radiusMeters") double radiusMeters);
+
+    @EntityGraph(attributePaths = {"ward"})
+    List<AgricultureUnit> findByIdIn(List<Integer> ids);
 }

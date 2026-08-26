@@ -131,7 +131,12 @@ public class OcopController {
 
         validateNearbyParams(lat, lng, radiusKm);
 
-        List<OcopProduct> products = ocopProductRepository.findNearby(lat, lng, radiusKm * 1000.0);
+        List<Integer> nearbyIds = ocopProductRepository.findNearbyIds(lat, lng, radiusKm * 1000.0);
+        if (nearbyIds.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<OcopProduct> products = ocopProductRepository.findByIdIn(nearbyIds);
         return ResponseEntity.ok(products.stream().map(ocopProductMapper::toDto).toList());
     }
 
