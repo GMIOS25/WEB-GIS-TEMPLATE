@@ -62,7 +62,7 @@ sequenceDiagram
     Config->>DB: Scan locations depending on active feature profiles
 
     Note over FE: Treeshakes/disables OCOP routes & menus
-    Note over BE: Only initializes OCOP Controllers/Services/Repositories
+    Note over BE: Only initializes OCOP Controllers/Mappers/Repositories
     Note over DB: Only executes core + OCOP migrations
 ```
 
@@ -168,32 +168,50 @@ Core administrative capabilities are separated from feature packages. This struc
 
 ```
 BE/src/main/java/com/website/gis/
-|── config/
+├── config/
 ├── core/                         # Core administrative packages
 │   ├── controller/               # Administrative Unit Controllers
 │   ├── dto/                      # Data Transfer Objects
-│   ├── exception/                # Handling Errors
 │   ├── entity/                   # Administrative Unit & User Entities
+│   ├── exception/                # Handling Errors
+│   ├── mapper/                   # MapStruct Mappers
 │   ├── repository/               # Basic JpaRepositories
-│   └── security/                 # Spring Security & JWT components
+│   ├── security/                 # Spring Security & JWT components
+│   ├── storage/                  # Local file storage
+│   ├── util/                     # Spatial/Geometry utilities
+│   └── validation/               # Validation annotations & validators
 └── features/                     # Pluggable features/modules
+    ├── agriculture/
+    │   ├── controller/           # AgricultureController.java
+    │   ├── dto/                  # AgricultureUnitDto, Create/Update requests
+    │   ├── entity/               # AgricultureUnit.java
+    │   ├── mapper/               # AgricultureUnitMapper.java
+    │   └── repository/           # AgricultureUnitRepository.java
     ├── ocop/
-    │   ├── OcopController.java
-    │   ├── OcopService.java
-    │   └── OcopRepository.java
+    │   ├── controller/           # OcopController.java
+    │   ├── dto/                  # OcopProductDto, Create/Update requests
+    │   ├── entity/               # OcopProduct.java
+    │   ├── mapper/               # OcopProductMapper.java
+    │   └── repository/           # OcopProductRepository.java
     └── science/
-        ├── ScienceController.java
-        ├── ScienceService.java
-        └── ScienceRepository.java
+        ├── controller/           # ScienceController.java
+        ├── dto/                  # ScienceUnitDto, Create/Update requests
+        ├── entity/               # ScienceUnit.java
+        ├── mapper/               # ScienceUnitMapper.java
+        └── repository/           # ScienceUnitRepository.java
 ```
+
+> **Design Choice (No Intermediate Service Layer):** For straightforward CRUD operations and spatial queries, controllers inject repositories and MapStruct mappers directly without an intermediate `@Service` layer. This keeps the codebase lean, reduces boilerplate, and matches `CODING_CONVENTIONS.md`. A dedicated service layer is only introduced if complex multi-entity transaction orchestration is required.
 
 ### 4.2. Conditional Spring Bean Initialization
 
-Controllers, services, and repositories for optional features use Spring Boot's `@ConditionalOnProperty` annotation. If disabled, Spring will not create these beans, meaning their REST endpoints are never registered:
+Controllers and repositories for optional features use Spring Boot's `@ConditionalOnProperty` annotation. If disabled, Spring will not create these beans, meaning their REST endpoints are never registered:
 
 ```java
-package com.website.gis.features.ocop;
+package com.website.gis.features.ocop.controller;
 
+import com.website.gis.features.ocop.mapper.OcopProductMapper;
+import com.website.gis.features.ocop.repository.OcopProductRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -202,10 +220,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/ocop")
 @ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
 public class OcopController {
-    private final OcopService ocopService;
 
-    public OcopController(OcopService ocopService) {
-        this.ocopService = ocopService;
+    private final OcopProductRepository ocopProductRepository;
+    private final OcopProductMapper ocopProductMapper;
+
+    public OcopController(OcopProductRepository ocopProductRepository,
+                          OcopProductMapper ocopProductMapper) {
+        this.ocopProductRepository = ocopProductRepository;
+        this.ocopProductMapper = ocopProductMapper;
     }
 
     // Endpoints mapped here return 404 (Not Found) if disabled,
@@ -233,20 +255,39 @@ features:
 
 To ensure client databases do not have ghost tables for features they did not request (e.g. creating the `science` table for a client that only wants `ocop`), Flyway migrations are partitioned by folder directories.
 
-### 5.1. Flyway Directory Structure
+### 5.1. Flyway Directory Structure & Namespaced Versioning
 
 ```
 BE/src/main/resources/db/migration/
 ├── core/
-│   ├── V1__init_auth_schema.sql         # Base user authentication schema
-│   └── V2__init_admin_units_schema.sql  # Administrative boundaries
-├── science/
-│   └── V1__create_science_units.sql     # Specific schema for science
+│   ├── V1__create_schema_admin_units.sql         # Base admin schema (provinces, wards, local_leaders, users)
+│   ├── V2__import_data_admin_units.sql          # Seed admin units & 135 local leaders
+│   ├── V3__create_gis_tables.sql                # Spatial GIS tables (gis_provinces, gis_wards)
+│   └── V4__import_gis_data_gialai.sql           # PostGIS boundaries & geometries (Gia Lai code 52)
 ├── ocop/
-│   └── V1__create_ocop_products.sql     # Specific schema for ocop
+│   ├── V5_1__create_ocop_products.sql           # Specific schema for OCOP products
+│   └── V5_1_1__insert_data_ocop.sql             # Sample/seed OCOP POI data
+├── science/
+│   ├── V5_2__create_science_units.sql           # Specific schema for science units
+│   └── V5_2_1__add_geog_gist_index_science.sql  # Spatial geography index
 └── agriculture/
-    └── V1__create_agriculture_units.sql # Specific schema for agriculture
+    ├── V5_3__create_agriculture_units.sql       # Specific schema for agriculture units
+    └── V5_3_1__add_geog_gist_index_agriculture.sql # Spatial geography index
 ```
+
+> **Why Namespaced Migration Versions (`V5_1.x`, `V5_2.x`, `V5_3.x`)?**
+>
+> When Flyway scans multiple locations, all migrations are merged into a single global version registry. If each module used local versions starting from `V1` (e.g. `science/V1__...` and `ocop/V1__...`), enabling more than one module in a single deployment would cause Flyway startup to fail with:
+> ```
+> org.flywaydb.core.api.FlywayException: Found more than one migration with version 1
+> ```
+> To prevent collision across any combination of active feature modules, the codebase uses partitioned version prefixes:
+> - `core/`: `V1` – `V4`
+> - `ocop/`: `V5_1.x`
+> - `science/`: `V5_2.x`
+> - `agriculture/`: `V5_3.x`
+>
+> Any future module (e.g., tourism, health) MUST follow this pattern by claiming a dedicated prefix (e.g. `V5_4.x`) rather than restarting at `V1`.
 
 ### 5.2. Dynamic Flyway Scan Locations Configuration
 

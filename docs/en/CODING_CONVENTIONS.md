@@ -337,8 +337,7 @@ FE/
 When implementing a pluggable feature module (`ocop`, `science`, `agriculture`), the package/class naming must follow the same conventions above, applied consistently per module:
 
 - Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.science`, `features.agriculture`).
-- Controller: `<Module>Controller` (e.g. `OcopController`, `ScienceController`, `AgricultureController`).
-- Service: `<Module>Service`, Repository: `<Module>Repository`.
+- Controller: `<Module>Controller`, Repository: `<Module>Repository` (and `<Module>Service` only if complex business logic requires a dedicated service layer per Section 3.2).
 - Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `science` → entity `ScienceUnit`, module `agriculture` → entity `AgricultureUnit`.
 - DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `ScienceUnitDto`, `AgricultureUnitDto`).
 - Mappers live inside the module's own package, `com.website.gis.features.<module>.mapper` (per Section 3.1) — kept self-contained within the module, not in a shared top-level package, so the module stays independently removable.

@@ -12,17 +12,12 @@ import java.util.List;
  * Modular schema strategy (Flyway) - xem docs/en/ARCHITECTURE SPECIFICATION.md
  * muc 5.
  *
- * Core migrations (auth, admin units, GIS) luon chay. Cac module theo tinh nang
- * (science/ocop/agriculture) chi duoc bat khi co feature flag tuong ung VA
- * thu muc db/migration/<feature> da ton tai voi it nhat 1 file V*.sql.
+ * Core migrations (db/migration/core: V1->V4) luon chay. Cac module theo tinh nang
+ * (db/migration/ocop: V5_1.x, db/migration/science: V5_2.x, db/migration/agriculture: V5_3.x)
+ * duoc dynamically nap vao scan path khi co feature flag tuong ung duoc bat (= true).
  *
- * LUU Y: cac thu muc science/ocop/agriculture hien CHUA duoc tao vi entity
- * tuong ung (Science, Ocop, Agriculture) chua duoc trien khai trong code (Giai doan 2
- * - roadmap).
- * Khi implement entity nao, hay tao thu muc db/migration/<feature> voi file
- * V*.sql
- * tuong ung TRUOC KHI bat feature flag do, neu khong Flyway se bao loi
- * "Unable to resolve location" khi khoi dong.
+ * Cac entity (OcopProduct, ScienceUnit, AgricultureUnit) va cac script migration
+ * tuong ung da duoc trien khai san sang trong codebase.
  */
 @Configuration
 public class DynamicFlywayConfig {

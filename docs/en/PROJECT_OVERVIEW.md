@@ -175,7 +175,7 @@ The system is designed to facilitate quick packaging and exclusion of unnecessar
    - The Routing system and Menu Sidebar automatically inspect these environment variables to register or hide corresponding pages/functionalities.
 2. **Backend (Spring Boot):**
    - Isolates specific feature modules into designated packages (e.g., `com.website.gis.features.ocop`).
-   - Uses Spring Profiles along with conditional annotations like `@ConditionalOnProperty` to only instantiate controllers, services, and repositories when their respective feature toggles are enabled in the configuration file. If a feature is disabled, the corresponding endpoints will return 404.
+   - Uses Spring Profiles along with conditional annotations like `@ConditionalOnProperty` to only instantiate controllers, mappers, and repositories when their respective feature toggles are enabled in the configuration file. If a feature is disabled, the corresponding endpoints will return 404.
 3. **Database (PostgreSQL & Flyway):**
    - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`, etc.).
    - During application startup, depending on active profiles, the system dynamically appends corresponding path locations to Flyway scan targets, avoiding the creation of unused tables in client databases.

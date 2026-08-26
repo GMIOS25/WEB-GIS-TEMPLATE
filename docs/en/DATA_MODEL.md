@@ -192,7 +192,7 @@ Leadership info per ward (e.g. Chủ tịch UBND, Phó Chủ tịch). Implemente
 | `phone_number` | `varchar(20)`      | Optional                       |
 | `ward_code`    | `varchar(20)`      | FK → `wards.code`              |
 
-> **Note on Data Ingestion:** The table structure and backend mapping are fully ready. Currently, no cadre data is populated (`local_leaders` has 0 rows, returning `[]` in `GET /api/wards/{code}`). Whenever data is inserted into `local_leaders`, the frontend will immediately display the leadership info without requiring any code modifications.
+> **Note on Data Ingestion:** All 135 local leader records (commune/ward chairpersons and leadership) are fully seeded via `V2__import_data_admin_units.sql` (one record per ward in Gia Lai, mapped via `ward_code`). `GET /api/wards/{code}` returns this leadership list, and the frontend `DetailsPanel.tsx` renders them under "Ban Lãnh đạo xã/phường".
 
 ### 3.8. `users`
 

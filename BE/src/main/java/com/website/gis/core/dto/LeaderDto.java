@@ -8,8 +8,7 @@ import lombok.Setter;
 
 /**
  * Shape for a single local leader entry, nested under {@code WardDetailDto.leaders}
- * once the {@code local_leaders} table is seeded — see API_CONTRACT.md
- * "Planned shape" note under GET /api/wards/{code}.
+ * populated from the {@code local_leaders} table (e.g., commune/ward chairperson or vice-chairperson).
  */
 @Getter
 @Setter

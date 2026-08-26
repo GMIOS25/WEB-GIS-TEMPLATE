@@ -54,8 +54,7 @@ Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho 
 
 - 🏛️ **Quản Lý Đơn Vị Hành Chính & Cán Bộ:**
   - Tìm kiếm nhanh thông tin đơn vị hành chính theo tên hoặc mã định danh.
-  - Quản lý danh sách cán bộ lãnh đạo địa phương (Chủ tịch UBND, Phó Chủ tịch...).
-    Note : Chưa triển khai data cán bộ.
+  - Quản lý danh sách cán bộ lãnh đạo địa phương (Chủ tịch UBND, Phó Chủ tịch... từ bảng `local_leaders`). Đã nạp đầy đủ dữ liệu 135 xã/phường và hiển thị trực tiếp trên giao diện tra cứu.
 
 - 🔐 **Xác Thực & Phân Quyền Người Dùng (RBAC):**
   - Bảo mật bằng Spring Security + JWT đóng gói an toàn trong **HttpOnly Cookie** (`gis_token`).
@@ -277,7 +276,7 @@ Khi bật tùy chọn khởi tạo tài khoản mặc định cho môi trường
 ### 🗺️ Administrative Units & GIS (Đơn Vị Hành Chính & Dữ Liệu Bản Đồ)
 
 - `GET /api/wards` - Tra cứu danh sách Xã/Phường/Thị trấn (Hỗ trợ lọc theo query `q`).
-- `GET /api/wards/{code}` - Lấy chi tiết thông tin hành chính & danh sách lãnh đạo đơn vị (Hiện tại không trả leader).
+- `GET /api/wards/{code}` - Lấy chi tiết thông tin hành chính & danh sách ban lãnh đạo đơn vị (Chủ tịch UBND, Phó Chủ tịch... từ bảng `local_leaders`).
 - `GET /api/wards/{code}/geojson` - Lấy tọa độ ranh giới định dạng GeoJSON MultiPolygon của 1 đơn vị.
 - `GET /api/wards/geojson` - Lấy toàn bộ GeoJSON `FeatureCollection` ranh giới các đơn vị trong tỉnh.
 

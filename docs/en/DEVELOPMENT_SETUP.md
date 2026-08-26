@@ -47,7 +47,7 @@ When you start the Spring Boot application (described in [Section 3](#3-backend-
 1. **`V1__create_schema_admin_units.sql`**
    - _Description:_ Creates core administrative schema tables (`provinces`, `wards`).
 2. **`V2__import_data_admin_units.sql`**
-   - _Description:_ Seeds national administrative unit dictionary data.
+   - _Description:_ Seeds national administrative unit dictionary data and 135 local leader records for Gia Lai wards/communes into `local_leaders`.
 3. **`V3__create_gis_tables.sql`**
    - _Description:_ Creates the spatial GIS tables (`gis_provinces`, `gis_wards`) with PostGIS geography types.
 4. **`V4__import_gis_data_gialai.sql`**
