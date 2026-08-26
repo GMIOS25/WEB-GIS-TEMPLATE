@@ -96,8 +96,8 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
       const isSelected = selectedPoiId === props.id;
       const isHighlighted = highlightedIds.includes(props.id);
 
-      let markerSize = 18;
-      let markerHtml = '';
+      let markerSize: number;
+      let markerHtml: string;
 
       if (isSelected) {
         markerSize = 24;
