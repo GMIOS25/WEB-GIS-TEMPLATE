@@ -61,6 +61,7 @@ out/
 
 # User specific files
 #docs/
+docs/secret
 
 # Testing API
 Bruno/
