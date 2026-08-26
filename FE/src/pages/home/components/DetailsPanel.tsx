@@ -1,6 +1,21 @@
 import React from 'react';
-import { X, Sparkles, FlaskConical, Trees, MapPin, Tag, FileText, Star, Phone, Home } from 'lucide-react';
-import type { GeoJsonFeature } from '../../../types/gis';
+import {
+  X,
+  Sparkles,
+  FlaskConical,
+  Trees,
+  MapPin,
+  Tag,
+  FileText,
+  Star,
+  Phone,
+  Home,
+  UserCheck,
+} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../../api/axiosInstance';
+import { queryKeys } from '../../../api/queryKeys';
+import type { GeoJsonFeature, WardDetail } from '../../../types/gis';
 
 export interface SelectedPoiDetail {
   moduleType: 'ocop' | 'science' | 'agriculture';
@@ -32,6 +47,19 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
   selectedPoi,
   setSelectedPoi,
 }) => {
+  const wardCode = selectedWard?.properties.code;
+
+  // Fetch full ward details including local leaders
+  const { data: wardDetail, isLoading: isWardDetailLoading } = useQuery<WardDetail>({
+    queryKey: queryKeys.wards.detail(wardCode || ''),
+    queryFn: async () => {
+      const res = await api.get<WardDetail>(`/api/wards/${wardCode}`);
+      return res.data;
+    },
+    enabled: !!wardCode,
+    staleTime: 1000 * 60 * 5, // 5 mins
+  });
+
   if (!selectedWard && !selectedPoi) return null;
 
   // Render POI Detail
@@ -57,7 +85,9 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         <div className="space-y-4">
           <div className="flex justify-between items-start pb-3 border-b border-neutral-100">
             <div>
-              <span className={`inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor}`}>
+              <span
+                className={`inline-flex items-center space-x-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${badgeColor}`}
+              >
                 {isOcop && <Sparkles size={11} />}
                 {isScience && <FlaskConical size={11} />}
                 {isAgriculture && <Trees size={11} />}
@@ -145,7 +175,9 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 <Home size={15} className="text-neutral-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-[11px] text-neutral-400 font-medium">Địa chỉ cơ sở</p>
-                  <p className="text-xs font-semibold text-neutral-800">{selectedPoi.locationAddress}</p>
+                  <p className="text-xs font-semibold text-neutral-800">
+                    {selectedPoi.locationAddress}
+                  </p>
                 </div>
               </div>
             )}
@@ -195,23 +227,29 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
         </div>
 
         <div className="pt-3 border-t border-neutral-100 text-center">
-          <p className="text-[10px] text-neutral-400 font-medium">Hệ thống thông tin GIS tỉnh Gia Lai</p>
+          <p className="text-[10px] text-neutral-400 font-medium">
+            Hệ thống thông tin GIS tỉnh Gia Lai
+          </p>
         </div>
       </div>
     );
   }
 
   // Render Ward Detail
+  const leaders = wardDetail?.leaders || [];
+
   return (
-    <div className="absolute top-24 bottom-24 right-6 w-[340px] bg-white border border-neutral-200 rounded-2xl shadow-lg p-6 flex flex-col justify-between z-30 animate-slideLeft">
-      <div className="space-y-6">
-        <div className="flex justify-between items-start pb-4 border-b border-neutral-100">
+    <div className="absolute top-24 bottom-24 right-6 w-[360px] bg-white border border-neutral-200 rounded-2xl shadow-xl p-6 flex flex-col justify-between z-30 animate-slideLeft overflow-y-auto">
+      <div className="space-y-4">
+        <div className="flex justify-between items-start pb-3 border-b border-neutral-100">
           <div>
-            <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-100">
+            <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-primary-50 text-primary-700 px-2.5 py-0.5 rounded-full border border-primary-100">
               Chi tiết địa giới
             </span>
-            <h3 className="text-lg font-bold text-neutral-900 mt-2">
-              {selectedWard!.properties.fullName || selectedWard!.properties.name}
+            <h3 className="text-base font-bold text-neutral-900 mt-2">
+              {wardDetail?.fullName ||
+                selectedWard!.properties.fullName ||
+                selectedWard!.properties.name}
             </h3>
           </div>
           <button
@@ -222,28 +260,93 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-            <p className="text-xs text-neutral-400 font-medium">Mã hành chính</p>
-            <p className="text-sm font-bold text-neutral-800">{selectedWard!.properties.code}</p>
+        <div className="space-y-2.5">
+          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+            <MapPin size={15} className="text-neutral-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[11px] text-neutral-400 font-medium">Mã hành chính</p>
+              <p className="text-xs font-bold text-neutral-800">{selectedWard!.properties.code}</p>
+            </div>
           </div>
 
-          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-            <p className="text-xs text-neutral-400 font-medium">Tỉnh thành</p>
-            <p className="text-sm font-bold text-neutral-800">Tỉnh Gia Lai (mã 52)</p>
+          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+            <Home size={15} className="text-neutral-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[11px] text-neutral-400 font-medium">Tỉnh thành</p>
+              <p className="text-xs font-bold text-neutral-800">
+                {wardDetail?.provinceName || 'Tỉnh Gia Lai (mã 52)'}
+              </p>
+            </div>
           </div>
 
-          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-            <p className="text-xs text-neutral-400 font-medium">Diện tích xã/phường</p>
-            <p className="text-sm font-bold text-neutral-800">
-              {selectedWard!.properties.areaKm2 ? Number(selectedWard!.properties.areaKm2).toFixed(2) : '---'} km²
-            </p>
+          <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 flex items-start space-x-2.5">
+            <Tag size={15} className="text-neutral-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[11px] text-neutral-400 font-medium">Diện tích xã/phường</p>
+              <p className="text-xs font-bold text-neutral-800">
+                {(wardDetail?.areaKm2 ?? selectedWard!.properties.areaKm2)
+                  ? `${Number(wardDetail?.areaKm2 ?? selectedWard!.properties.areaKm2).toFixed(2)} km²`
+                  : '---'}
+              </p>
+            </div>
+          </div>
+
+          {/* Leadership Section */}
+          <div className="pt-2">
+            <div className="flex items-center space-x-1.5 mb-2 px-1">
+              <UserCheck size={15} className="text-primary-600" />
+              <h4 className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
+                Ban Lãnh đạo xã/phường
+              </h4>
+            </div>
+
+            {isWardDetailLoading ? (
+              <div className="p-4 text-center bg-neutral-50 rounded-xl border border-neutral-100">
+                <div className="inline-block w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[11px] text-neutral-400 mt-1">Đang tải thông tin lãnh đạo...</p>
+              </div>
+            ) : leaders.length > 0 ? (
+              <div className="space-y-2">
+                {leaders.map((leader, idx) => (
+                  <div
+                    key={leader.id || idx}
+                    className="p-3 bg-gradient-to-br from-primary-50/40 to-neutral-50 rounded-xl border border-primary-100/70 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-neutral-900">{leader.fullName}</span>
+                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-primary-100/80 text-primary-800 border border-primary-200 rounded-md">
+                        {leader.position}
+                      </span>
+                    </div>
+                    {leader.phoneNumber ? (
+                      <div className="flex items-center space-x-1.5 text-xs text-neutral-600">
+                        <Phone size={12} className="text-emerald-600 shrink-0" />
+                        <a
+                          href={`tel:${leader.phoneNumber}`}
+                          className="font-semibold text-emerald-700 hover:underline font-mono text-[11px]"
+                        >
+                          {leader.phoneNumber}
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-neutral-400 italic">Chưa cập nhật SĐT</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-100 text-center">
+                <p className="text-xs text-neutral-400 italic">Chưa có thông tin lãnh đạo</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="pt-4 border-t border-neutral-100 text-center">
-        <p className="text-[11px] text-neutral-400 font-medium">Bản đồ địa giới Gia Lai chính thức</p>
+      <div className="pt-3 border-t border-neutral-100 text-center mt-4">
+        <p className="text-[10px] text-neutral-400 font-medium">
+          Hệ thống thông tin GIS tỉnh Gia Lai
+        </p>
       </div>
     </div>
   );
