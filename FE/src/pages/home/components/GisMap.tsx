@@ -6,6 +6,7 @@ import type { GeoJsonFeature, GeoJsonData, PoiGeoJsonData } from '../../../types
 import { GIA_LAI_CENTER, DEFAULT_MAP_ZOOM } from '../../../config/gisConstants';
 import { PoiMarkerClusterLayer } from './PoiMarkerClusterLayer';
 import type { RadiusSearchState } from './RadiusSearchControl';
+import type { SelectedPoiDetail } from './DetailsPanel';
 import { FEATURE_FLAGS } from '../../../config/features';
 
 export type { GeoJsonFeature, GeoJsonData };
@@ -49,6 +50,19 @@ const MapController: React.FC<{ selectedWard: GeoJsonFeature | null }> = ({ sele
   return null;
 };
 
+// Sub-component to smoothly center the map on selected POI point
+const PoiFocusController: React.FC<{ selectedPoi: SelectedPoiDetail | null }> = ({ selectedPoi }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedPoi && selectedPoi.latitude && selectedPoi.longitude) {
+      map.flyTo([selectedPoi.latitude, selectedPoi.longitude], Math.max(map.getZoom(), 14), {
+        duration: 1.0,
+      });
+    }
+  }, [selectedPoi, map]);
+  return null;
+};
+
 // Sub-component to capture map clicks for radius search center picking
 const MapClickHandler: React.FC<{
   isPickingCenter?: boolean;
@@ -79,6 +93,7 @@ interface GisMapProps {
   agricultureGeoJson?: PoiGeoJsonData | null;
   selectedWard: GeoJsonFeature | null;
   setSelectedWard: (ward: GeoJsonFeature | null) => void;
+  selectedPoi?: SelectedPoiDetail | null;
   radiusSearchState?: RadiusSearchState | null;
   isPickingCenter?: boolean;
   onMapCenterPicked?: (lat: number, lng: number) => void;
@@ -94,6 +109,7 @@ const GisMap: React.FC<GisMapProps> = ({
   agricultureGeoJson,
   selectedWard,
   setSelectedWard,
+  selectedPoi = null,
   radiusSearchState,
   isPickingCenter,
   onMapCenterPicked,
@@ -265,6 +281,7 @@ const GisMap: React.FC<GisMapProps> = ({
           enabled={layers.ocop}
           data={ocopGeoJson}
           highlightedIds={radiusSearchState?.module === 'ocop' ? radiusSearchState.resultIds : []}
+          selectedPoiId={selectedPoi?.moduleType === 'ocop' ? selectedPoi.id : null}
           onSelectDetail={onSelectDetail}
         />
       )}
@@ -277,6 +294,7 @@ const GisMap: React.FC<GisMapProps> = ({
           enabled={layers.science}
           data={scienceGeoJson}
           highlightedIds={radiusSearchState?.module === 'science' ? radiusSearchState.resultIds : []}
+          selectedPoiId={selectedPoi?.moduleType === 'science' ? selectedPoi.id : null}
           onSelectDetail={onSelectDetail}
         />
       )}
@@ -289,6 +307,7 @@ const GisMap: React.FC<GisMapProps> = ({
           enabled={layers.agriculture}
           data={agricultureGeoJson}
           highlightedIds={radiusSearchState?.module === 'agriculture' ? radiusSearchState.resultIds : []}
+          selectedPoiId={selectedPoi?.moduleType === 'agriculture' ? selectedPoi.id : null}
           onSelectDetail={onSelectDetail}
         />
       )}
@@ -334,6 +353,7 @@ const GisMap: React.FC<GisMapProps> = ({
       />
 
       <MapController selectedWard={selectedWard} />
+      <PoiFocusController selectedPoi={selectedPoi} />
     </MapContainer>
   );
 };

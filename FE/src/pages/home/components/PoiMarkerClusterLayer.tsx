@@ -11,6 +11,7 @@ interface PoiMarkerClusterLayerProps {
   enabled: boolean;
   data?: PoiGeoJsonData | null;
   highlightedIds?: number[];
+  selectedPoiId?: number | null;
   onSelectDetail?: (type: 'ocop' | 'science' | 'agriculture', id: number) => void;
 }
 
@@ -21,6 +22,7 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
   enabled,
   data,
   highlightedIds = [],
+  selectedPoiId = null,
   onSelectDetail,
 }) => {
   const map = useMap();
@@ -91,48 +93,78 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
       const lng = coords[0];
       const lat = coords[1];
       const props = feature.properties;
+      const isSelected = selectedPoiId === props.id;
       const isHighlighted = highlightedIds.includes(props.id);
 
-      const markerSize = isHighlighted ? 24 : 18;
-      const markerHtml = `
-        <div style="
-          width: ${markerSize}px;
-          height: ${markerSize}px;
-          background-color: ${color};
-          border: 2.5px solid #FFFFFF;
-          border-radius: 50%;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35)${
-            isHighlighted ? `, 0 0 0 6px ${color}55, 0 0 14px ${color}` : ''
-          };
-          cursor: pointer;
-          position: relative;
-          transition: transform 0.2s ease;
-        ">
-          ${
-            isHighlighted
-              ? `<div style="
-                  position: absolute;
-                  top: -6px;
-                  left: -6px;
-                  right: -6px;
-                  bottom: -6px;
-                  border-radius: 50%;
-                  border: 2px solid ${color};
-                  animation: pulse 1.5s infinite;
-                "></div>`
-              : ''
-          }
-        </div>
-      `;
+      let markerSize = 18;
+      let markerHtml = '';
+
+      if (isSelected) {
+        markerSize = 24;
+        markerHtml = `
+          <div style="
+            width: ${markerSize}px;
+            height: ${markerSize}px;
+            background-color: ${color};
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 3px ${color}90;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+          ">
+            <div style="width: 6px; height: 6px; background-color: #FFFFFF; border-radius: 50%;"></div>
+            <!-- Water drop concentric ripple waves -->
+            <div class="poi-water-ripple-ring poi-water-ripple-ring-1" style="border: 2.5px solid ${color}; background-color: ${color}18;"></div>
+            <div class="poi-water-ripple-ring poi-water-ripple-ring-2" style="border: 2px solid ${color}; background-color: ${color}10;"></div>
+            <div class="poi-water-ripple-ring poi-water-ripple-ring-3" style="border: 1.5px solid ${color};"></div>
+          </div>
+        `;
+      } else if (isHighlighted) {
+        markerSize = 20;
+        markerHtml = `
+          <div style="
+            width: ${markerSize}px;
+            height: ${markerSize}px;
+            background-color: ${color};
+            border: 2.5px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 4px ${color}50;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s ease;
+          "></div>
+        `;
+      } else {
+        markerSize = 18;
+        markerHtml = `
+          <div style="
+            width: ${markerSize}px;
+            height: ${markerSize}px;
+            background-color: ${color};
+            border: 2px solid #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+          "></div>
+        `;
+      }
 
       const customIcon = L.divIcon({
         html: markerHtml,
-        className: `custom-marker-${moduleType}`,
+        className: `custom-marker-${moduleType}${isSelected ? ' poi-marker-selected' : ''}`,
         iconSize: L.point(markerSize, markerSize),
         iconAnchor: L.point(markerSize / 2, markerSize / 2),
       });
 
-      const marker = L.marker([lat, lng], { icon: customIcon });
+      const marker = L.marker([lat, lng], {
+        icon: customIcon,
+        zIndexOffset: isSelected ? 1000 : isHighlighted ? 500 : 0,
+      });
 
       // Build popup content
       const typeDisplay = props.productType || props.unitType || moduleLabel;
@@ -230,7 +262,7 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
       }
       clusterGroup.clearLayers();
     };
-  }, [map, enabled, data, color, moduleType, moduleLabel, highlightedIds]);
+  }, [map, enabled, data, color, moduleType, moduleLabel, highlightedIds, selectedPoiId]);
 
   return null;
 };

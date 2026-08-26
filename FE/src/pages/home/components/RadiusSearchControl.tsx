@@ -25,6 +25,7 @@ interface RadiusSearchControlProps {
   setRadiusSearchState: React.Dispatch<React.SetStateAction<RadiusSearchState>>;
   isPickingCenter: boolean;
   setIsPickingCenter: (picking: boolean) => void;
+  selectedPoiId?: number | null;
   onSelectDetail?: (type: 'ocop' | 'science' | 'agriculture', id: number) => void;
 }
 
@@ -33,6 +34,7 @@ export const RadiusSearchControl: React.FC<RadiusSearchControlProps> = ({
   setRadiusSearchState,
   isPickingCenter,
   setIsPickingCenter,
+  selectedPoiId = null,
   onSelectDetail,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -263,18 +265,32 @@ export const RadiusSearchControl: React.FC<RadiusSearchControlProps> = ({
                 <span className="text-emerald-600 text-[10px]">Đang sáng trên bản đồ</span>
               </div>
               <div className="max-h-[140px] overflow-y-auto space-y-1 pr-1">
-                {results.map((r) => (
-                  <div
-                    key={r.id}
-                    onClick={() => onSelectDetail && onSelectDetail(radiusSearchState.module, r.id)}
-                    className="p-2 rounded-lg bg-neutral-50 hover:bg-emerald-50 border border-neutral-200 hover:border-emerald-300 text-xs cursor-pointer transition-colors"
-                  >
-                    <div className="font-semibold text-neutral-800 truncate">{r.name}</div>
-                    {r.wardCode && (
-                      <div className="text-[10px] text-neutral-500">Mã xã: {r.wardCode}</div>
-                    )}
-                  </div>
-                ))}
+                {results.map((r) => {
+                  const isSelected = selectedPoiId === r.id;
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => onSelectDetail && onSelectDetail(radiusSearchState.module, r.id)}
+                      className={`p-2 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-emerald-50 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                          : 'bg-neutral-50 hover:bg-emerald-50/60 border-neutral-200 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-1.5 flex-1">
+                        <div className={`truncate ${isSelected ? 'font-bold text-emerald-900' : 'font-semibold text-neutral-800'}`}>
+                          {r.name}
+                        </div>
+                        {r.wardCode && (
+                          <div className="text-[10px] text-neutral-500">Mã xã: {r.wardCode}</div>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

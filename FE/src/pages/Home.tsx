@@ -193,6 +193,7 @@ const Home: React.FC = () => {
               setSelectedWard(ward);
               if (ward) setSelectedPoi(null);
             }}
+            selectedPoi={selectedPoi}
             radiusSearchState={radiusSearchState}
             isPickingCenter={isPickingCenter}
             onMapCenterPicked={handleMapCenterPicked}
@@ -236,6 +237,7 @@ const Home: React.FC = () => {
             setRadiusSearchState={setRadiusSearchState}
             isPickingCenter={isPickingCenter}
             setIsPickingCenter={setIsPickingCenter}
+            selectedPoiId={selectedPoi?.id}
             onSelectDetail={handleSelectPoiDetail}
           />
 
