@@ -378,7 +378,16 @@ These modules are implemented as independent pluggable feature extensions. Each 
 
 #### `GET /api/{ocop|science|agriculture}`
 - **Access:** Authenticated Users (`ADMIN`, `VIEWER`)
-- **Query Parameters:** `page`, `size`, `sort`, `wardCode` (optional filter)
+- **Query Parameters:**
+  - **Shared parameters:**
+    - `page` (optional, integer): 0-indexed page index (default: `0`).
+    - `size` (optional, integer): Number of elements per page (default: `10` for OCOP and Agriculture; `20` for Science).
+    - `sort` (optional, string): Field name and direction (default: `id,desc` for OCOP and Agriculture; `id,asc` for Science).
+    - `wardCode` (optional, string): Administrative commune/ward code filter (e.g. `21112`).
+  - **Module-specific parameters:**
+    - `q` (optional, string) — **OCOP only (`/api/ocop`)**: Search keyword for product name (case-insensitive substring match via `findByNameContainingIgnoreCase` or `findByWardCodeAndNameContainingIgnoreCase`).
+    - > [!NOTE]
+    - > `GET /api/science` and `GET /api/agriculture` currently do **not** support the `q` search parameter (they only filter by `wardCode`).
 - **Response Body:** Paginated list of DTOs (Section 3).
 
 #### `GET /api/{ocop|science|agriculture}/geojson`
@@ -443,18 +452,95 @@ These modules are implemented as independent pluggable feature extensions. Each 
 #### `POST /api/{ocop|science|agriculture}`
 - **Access:** `ADMIN` only
 - **Request Body:** 
-  - For `ocop`: `{ "name": "...", "productTypes": ["..."], "starRating": 4, "contactPhone": "...", "locationAddress": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
-  - For `science`/`agriculture`: `{ "name": "...", "unitType": "...", "description": "...", "wardCode": "21112", "latitude": 13.985, "longitude": 108.015, "imageUrl": "..." }`
+  - **For `ocop` (`OcopProductCreateRequest`):**
+    - `name` (required, string, max 255)
+    - `productTypes` (optional, array of strings)
+    - `starRating` (optional, integer, min 1, max 5)
+    - `contactPhone` (optional, string, max 13)
+    - `locationAddress` (optional, string)
+    - `wardCode` (required, string, max 20)
+    - `latitude` (required, BigDecimal, -90.0 to 90.0)
+    - `longitude` (required, BigDecimal, -180.0 to 180.0)
+    - `imageUrl` (optional, string, max 500)
+    ```json
+    {
+      "name": "Cà phê Robusta Pleiku",
+      "productTypes": ["Đồ uống", "Nông sản"],
+      "starRating": 4,
+      "contactPhone": "0905123456",
+      "locationAddress": "123 Đường Hùng Vương, TP Pleiku",
+      "wardCode": "21112",
+      "latitude": 13.985,
+      "longitude": 108.015,
+      "imageUrl": "/api/files/ocop/sample.jpg"
+    }
+    ```
+  - **For `science` (`ScienceUnitCreateRequest`) & `agriculture` (`AgricultureUnitCreateRequest`):**
+    - `name` (required, string, max 255)
+    - `unitType` (optional, string, max 100)
+    - `description` (optional, string)
+    - `wardCode` (required, string, max 20)
+    - `latitude` (required, BigDecimal, -90.0 to 90.0)
+    - `longitude` (required, BigDecimal, -180.0 to 180.0)
+    - `imageUrl` (optional, string, max 500)
+    ```json
+    {
+      "name": "Trung tâm Ứng dụng Tiến bộ KH&CN",
+      "unitType": "Trung tâm nghiên cứu",
+      "description": "Nghiên cứu ứng dụng công nghệ sinh học",
+      "wardCode": "21112",
+      "latitude": 13.985,
+      "longitude": 108.015,
+      "imageUrl": "/api/files/science/sample.jpg"
+    }
+    ```
 - **Response Body:** Created item DTO with status `201 Created`.
 
 #### `PUT /api/{ocop|science|agriculture}/{id}`
 - **Access:** `ADMIN` only
-- **Request Body:** 
-  - For `ocop`: Update fields (`name`, `productTypes`, `starRating`, `contactPhone`, `locationAddress`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
-  - For `science`/`agriculture`: Update fields (`name`, `unitType`, `description`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
+
+> [!WARNING]
+> **Important Semantic Difference Between Modules:**
+> - **OCOP (`PUT /api/ocop/{id}`) — Full Replacement Semantics (Strict PUT):**
+>   - Required fields: `name` (`@NotBlank`), `wardCode` (`@NotBlank`), `latitude` (`@NotNull`), `longitude` (`@NotNull`).
+>   - Optional fields: `productTypes`, `starRating` (1..5), `contactPhone`, `locationAddress`, `imageUrl`.
+>   - **Overwrites all fields on the entity.** If an optional field is omitted or passed as `null` in the request body, it **will be cleared / set to `null`** in the database.
+> - **Science & Agriculture (`PUT /api/science/{id}`, `PUT /api/agriculture/{id}`) — Partial Update Semantics (PATCH-like behavior):**
+>   - All fields in `ScienceUnitUpdateRequest` / `AgricultureUnitUpdateRequest` are optional (`name`, `unitType`, `description`, `wardCode`, `latitude`, `longitude`, `imageUrl`).
+>   - **Only updates non-null / non-empty fields.** Any field omitted or passed as `null` in the request body **retains its existing value** in the database.
+> - **Client Integration Risk:** When calling `PUT /api/ocop/{id}`, frontend/API clients must supply the complete object state to avoid unintentionally erasing optional fields. Conversely, calls to `PUT /api/science/{id}` or `PUT /api/agriculture/{id}` can safely send only modified fields.
+
+- **Request Body:**
+  - **For `ocop` (`OcopProductUpdateRequest` — Full Replacement):**
+    ```json
+    {
+      "name": "Cà phê Robusta Pleiku",
+      "productTypes": ["Đồ uống", "Nông sản"],
+      "starRating": 4,
+      "contactPhone": "0905123456",
+      "locationAddress": "123 Đường Hùng Vương, TP Pleiku",
+      "wardCode": "21112",
+      "latitude": 13.985,
+      "longitude": 108.015,
+      "imageUrl": "/api/files/ocop/sample.jpg"
+    }
+    ```
+  - **For `science` (`ScienceUnitUpdateRequest`) & `agriculture` (`AgricultureUnitUpdateRequest`) — Partial Update:**
+    ```json
+    {
+      "name": "Trung tâm Ứng dụng Tiến bộ KH&CN (Cập nhật)",
+      "unitType": "Trung tâm nghiên cứu",
+      "description": "Nghiên cứu ứng dụng công nghệ sinh học nông nghiệp",
+      "wardCode": "21112",
+      "latitude": 13.985,
+      "longitude": 108.015,
+      "imageUrl": "/api/files/science/sample.jpg"
+    }
+    ```
 - **Response Body:** Updated item DTO with status `200 OK`.
 
 #### `DELETE /api/{ocop|science|agriculture}/{id}`
 - **Access:** `ADMIN` only
 - **Response Body:** Status `200 OK`, `{ "message": "... deleted successfully" }`.
+
 
