@@ -61,7 +61,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-neutral-900/55 z-50 flex items-center justify-center p-4">
       <div className="bg-white border border-neutral-200 rounded-2xl shadow-xl max-w-md w-full p-6 relative animate-zoomIn">
         <button
           onClick={onClose}

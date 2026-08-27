@@ -116,14 +116,14 @@ export const RadiusSearchControl: React.FC<RadiusSearchControlProps> = ({
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-md border border-neutral-200/80 text-xs font-bold text-neutral-800 hover:text-emerald-600 hover:bg-white flex items-center space-x-2 transition-all cursor-pointer"
+          className="bg-white px-4 py-2.5 rounded-2xl shadow-md border border-neutral-200/80 text-xs font-bold text-neutral-800 hover:text-emerald-600 flex items-center space-x-2 transition-colors cursor-pointer"
         >
-          <Radar size={16} className="text-emerald-600 animate-pulse" />
+          <Radar size={16} className="text-emerald-600" />
           <span>Tìm kiếm theo bán kính</span>
         </button>
       ) : (
         /* Expanded Search Box */
-        <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-neutral-200 w-[320px] space-y-3.5 animate-fadeIn">
+        <div className="bg-white p-4 rounded-2xl shadow-xl border border-neutral-200 w-[320px] space-y-3.5">
           <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
             <div className="flex items-center space-x-2">
               <Radar size={16} className="text-emerald-600" />

@@ -26,7 +26,7 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
   }, [geoJsonData]);
 
   return (
-    <div className="absolute bottom-6 right-6 z-30 bg-white/95 backdrop-blur-md border border-neutral-200 rounded-2xl shadow-lg p-4 w-[300px] hidden sm:block select-none">
+    <div className="absolute bottom-6 right-6 z-30 bg-white border border-neutral-200 rounded-2xl shadow-lg p-4 w-[300px] hidden sm:block select-none">
       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2.5">
         Tổng quan dữ liệu GIS Gia Lai
       </h4>

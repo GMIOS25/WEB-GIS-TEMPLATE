@@ -94,7 +94,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
               accentColor={accentColor}
             />
           </MapContainer>
-          <div className="absolute bottom-2 left-2 right-2 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-md text-[11px] text-neutral-600 z-1000 shadow-xs flex items-center justify-between pointer-events-none">
+          <div className="absolute bottom-2 left-2 right-2 bg-white px-2.5 py-1 rounded-md text-[11px] text-neutral-600 z-1000 shadow-xs flex items-center justify-between pointer-events-none">
             <span>💡 Click vào bản đồ để chọn tọa độ</span>
             {position && (
               <span className="font-mono font-semibold text-neutral-800">

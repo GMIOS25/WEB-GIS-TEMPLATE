@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useTransition } from 'react';
+import React, { useState, useCallback, useTransition, Suspense, lazy } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Map, X } from 'lucide-react';
 import GisMap, { type GeoJsonData, type GeoJsonFeature } from './home/components/GisMap';
@@ -8,10 +8,23 @@ import ProfileCard from './home/components/ProfileCard';
 import StatsBoard from './home/components/StatsBoard';
 import DetailsPanel, { type SelectedPoiDetail } from './home/components/DetailsPanel';
 import RadiusSearchControl, { type RadiusSearchState } from './home/components/RadiusSearchControl';
-import AdminPanel from './home/components/AdminPanel';
-import OcopPanel from './home/components/OcopPanel';
-import SciencePanel from './home/components/SciencePanel';
-import AgriculturePanel from './home/components/AgriculturePanel';
+
+// These 4 panels (+ every modal each of them imports: AddUserModal, EditUserModal,
+// DeleteUserModal, OcopFormModal, ScienceFormModal, AgricultureFormModal) are only
+// ever needed after the user actively navigates to them from the sidebar. Loading
+// them lazily keeps them out of the initial JS bundle the browser has to download,
+// parse and execute before the map becomes interactive — on a slower CPU that
+// parse/compile step is a real, measurable chunk of the "lag" on first load.
+const AdminPanel = lazy(() => import('./home/components/AdminPanel'));
+const OcopPanel = lazy(() => import('./home/components/OcopPanel'));
+const SciencePanel = lazy(() => import('./home/components/SciencePanel'));
+const AgriculturePanel = lazy(() => import('./home/components/AgriculturePanel'));
+
+const PanelLoadingFallback: React.FC = () => (
+  <div className="w-full h-full flex items-center justify-center">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+  </div>
+);
 
 import api from '../api/axiosInstance';
 import { queryKeys } from '../api/queryKeys';
@@ -171,13 +184,29 @@ const Home: React.FC = () => {
   const renderActiveView = () => {
     switch (activeView) {
       case 'admin':
-        return <AdminPanel setActiveView={(view) => setActiveView(view as ActiveViewType)} />;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <AdminPanel setActiveView={(view) => setActiveView(view as ActiveViewType)} />
+          </Suspense>
+        );
       case 'ocop':
-        return <OcopPanel setActiveView={setActiveView} />;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <OcopPanel setActiveView={setActiveView} />
+          </Suspense>
+        );
       case 'science':
-        return <SciencePanel setActiveView={setActiveView} />;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <SciencePanel setActiveView={setActiveView} />
+          </Suspense>
+        );
       case 'agriculture':
-        return <AgriculturePanel setActiveView={setActiveView} />;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <AgriculturePanel setActiveView={setActiveView} />
+          </Suspense>
+        );
       case 'map':
       default:
         return (
@@ -208,7 +237,7 @@ const Home: React.FC = () => {
       {/* 1. VIEW PORT ROUTER */}
       <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
         {isWardsLoading && activeView === 'map' && (
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center space-y-4 transition-all duration-300">
+          <div className="absolute inset-0 bg-white/90 z-30 flex flex-col items-center justify-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
             <span className="text-sm font-semibold text-neutral-600">Đang tải bản đồ địa giới Gia Lai...</span>
           </div>
@@ -260,7 +289,7 @@ const Home: React.FC = () => {
             {isDrawerOpen ? (
               <X size={32} className="stroke-[2.5]" />
             ) : (
-              <Map size={32} className="stroke-[2] animate-pulse" />
+              <Map size={32} className="stroke-[2]" />
             )}
           </button>
 

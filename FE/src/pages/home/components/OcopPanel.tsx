@@ -392,7 +392,7 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
 
       {/* Delete Confirmation Modal */}
       {deletingProduct && (
-        <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-neutral-900/55 z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-neutral-200 rounded-2xl shadow-xl max-w-sm w-full p-6 relative animate-zoomIn">
             <h3 className="text-base font-bold text-neutral-900 mb-2">Xác nhận xóa sản phẩm</h3>
             <p className="text-xs text-neutral-500 mb-6">

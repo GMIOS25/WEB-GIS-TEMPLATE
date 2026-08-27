@@ -241,10 +241,12 @@ const GisMap: React.FC<GisMapProps> = ({
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        // Keep more previously-loaded tiles around the edges instead of discarding
-        // them immediately, so panning/zooming shows fewer blank/gray tiles while
-        // new ones load.
-        keepBuffer={4}
+        // Keep a couple of rings of previously-loaded tiles around the edges so
+        // panning shows fewer blank tiles while new ones load. Kept at Leaflet's
+        // own default (2) rather than a wider buffer: each extra ring is more
+        // <img> tile nodes the browser has to keep positioned/composited at once,
+        // which adds up on low-RAM/integrated-GPU machines.
+        keepBuffer={2}
       />
 
       {/* Wards Boundary layer */}
