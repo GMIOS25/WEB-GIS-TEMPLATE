@@ -18,7 +18,7 @@ The system follows a standard three-tier architecture split into:
 graph TD
     subgraph Client [Client Browser]
         Vite[Vite Build Engine]
-        React[React Router / Sidebar Menu]
+        React[React Workspace / Sidebar Drawer]
         Map[React Leaflet / GeoJSON Layers]
     end
 
@@ -61,7 +61,7 @@ sequenceDiagram
     Config->>BE: Set active profiles or configurations (e.g., features.ocop.enabled=true)
     Config->>DB: Scan locations depending on active feature profiles
 
-    Note over FE: Treeshakes/disables OCOP routes & menus
+    Note over FE: Treeshakes/disables OCOP panels & menus
     Note over BE: Only initializes OCOP Controllers/Mappers/Repositories
     Note over DB: Only executes core + OCOP migrations
 ```
@@ -87,43 +87,101 @@ VITE_ENABLE_OCOP=true
 VITE_ENABLE_AGRICULTURE=false
 ```
 
-### 3.2. Dynamic Routing & Menu Filtering
+### 3.2. Dynamic View Switching & Component Code Splitting
 
-The sidebar menu and router read environment variables to register paths:
+Rather than navigating away to separate URL routes (which would unmount the Leaflet map instance, reload map tiles, and discard the user's active viewport and cached boundary GeoJSON), the frontend operates as a unified **Single GIS Workspace Canvas** (`Home.tsx`).
+
+Module navigation is orchestrated via an `activeView` state (`'map' | 'admin' | 'ocop' | 'science' | 'agriculture'`) combined with **Component-Level Lazy Loading** (`React.lazy()` + `<Suspense>`). This preserves the interactive map context while code-splitting heavy management panels, forms, and CRUD modals out of the initial bundle.
 
 ```typescript
 // src/config/features.ts
 export const FEATURE_FLAGS = {
-  science: import.meta.env.VITE_ENABLE_SCIENCE === 'true',
   ocop: import.meta.env.VITE_ENABLE_OCOP === 'true',
+  science: import.meta.env.VITE_ENABLE_SCIENCE === 'true',
   agriculture: import.meta.env.VITE_ENABLE_AGRICULTURE === 'true',
+} as const;
+
+export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
+
+export const isFeatureEnabled = (key: FeatureFlagKey): boolean => {
+  return FEATURE_FLAGS[key];
 };
+```
 
-// src/router/index.tsx
-import { RouteObject } from 'react-router-dom';
+```typescript
+// src/pages/Home.tsx
+import React, { useState, Suspense, lazy } from 'react';
 import { FEATURE_FLAGS } from '../config/features';
+import SidebarDrawer, { type ActiveViewType } from './home/components/SidebarDrawer';
+import GisMap from './home/components/GisMap';
 
-const baseRoutes: RouteObject[] = [
-  { path: '/', element: <Dashboard /> },
-  { path: '/admin-map', element: <AdministrativeMap /> },
-];
+// Code-splitting: Management panels (+ all modals & tables each of them imports)
+// are only fetched over the network when the user actively navigates to them from the sidebar.
+const AdminPanel = lazy(() => import('./home/components/AdminPanel'));
+const OcopPanel = lazy(() => import('./home/components/OcopPanel'));
+const SciencePanel = lazy(() => import('./home/components/SciencePanel'));
+const AgriculturePanel = lazy(() => import('./home/components/AgriculturePanel'));
 
-const featureRoutes: RouteObject[] = [];
+const PanelLoadingFallback: React.FC = () => (
+  <div className="w-full h-full flex items-center justify-center">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+  </div>
+);
 
-if (FEATURE_FLAGS.ocop) {
-  featureRoutes.push({
-    path: '/ocop',
-    lazy: () => import('../pages/ocop/OcopManagement'), // Lazy loaded for code splitting
-  });
-}
-if (FEATURE_FLAGS.science) {
-  featureRoutes.push({
-    path: '/science',
-    lazy: () => import('../pages/science/ScienceManagement'),
-  });
-}
+const Home: React.FC = () => {
+  const [activeView, setActiveView] = useState<ActiveViewType>('map');
 
-export const routes = [...baseRoutes, ...featureRoutes];
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'admin':
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <AdminPanel setActiveView={setActiveView} />
+          </Suspense>
+        );
+      case 'ocop':
+        if (!FEATURE_FLAGS.ocop) return null;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <OcopPanel setActiveView={setActiveView} />
+          </Suspense>
+        );
+      case 'science':
+        if (!FEATURE_FLAGS.science) return null;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <SciencePanel setActiveView={setActiveView} />
+          </Suspense>
+        );
+      case 'agriculture':
+        if (!FEATURE_FLAGS.agriculture) return null;
+        return (
+          <Suspense fallback={<PanelLoadingFallback />}>
+            <AgriculturePanel setActiveView={setActiveView} />
+          </Suspense>
+        );
+      case 'map':
+      default:
+        return <GisMap /* ...layers & spatial props */ />;
+    }
+  };
+
+  return (
+    <div className="w-full h-screen relative bg-white overflow-hidden font-sans">
+      <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
+        {renderActiveView()}
+      </div>
+
+      {activeView === 'map' && (
+        <SidebarDrawer
+          activeView={activeView}
+          setActiveView={setActiveView}
+          /* ...layer toggles */
+        />
+      )}
+    </div>
+  );
+};
 ```
 
 ### 3.3. Map Layer Control (Leaflet)
