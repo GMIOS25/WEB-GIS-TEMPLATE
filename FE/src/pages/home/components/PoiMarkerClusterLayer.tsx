@@ -3,6 +3,7 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet.markercluster';
 import type { PoiGeoJsonData, PoiGeoJsonFeature } from '../../../types/gis';
+import { resolveImageUrl, escapeHtml } from '../../../utils/media';
 
 interface PoiMarkerClusterLayerProps {
   moduleType: 'ocop' | 'science' | 'agriculture';
@@ -138,6 +139,7 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
   const buildPopupContent = useCallback((feature: PoiGeoJsonFeature, marker: L.Marker) => {
     const props = feature.properties;
     const typeDisplay = props.productType || props.unitType || moduleLabel;
+    const resolvedImageUrl = resolveImageUrl(props.imageUrl);
     const starsHtml = props.starRating
       ? `<div style="margin-top: 3px; color: #F59E0B; font-size: 13px; letter-spacing: 1px;">
           ${'★'.repeat(props.starRating)}${'<span style="color:#D1D5DB">☆</span>'.repeat(5 - props.starRating)}
@@ -164,22 +166,22 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
           color: ${color};
           margin-bottom: 4px;
         ">
-          ${typeDisplay}
+          ${escapeHtml(typeDisplay)}
         </span>
         <div style="font-weight: 700; color: #111827; font-size: 14px; margin-top: 2px;">
-          ${props.name}
+          ${escapeHtml(props.name)}
         </div>
         ${starsHtml}
         ${
           props.wardCode
-            ? `<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Mã xã: ${props.wardCode}</div>`
+            ? `<div style="font-size: 12px; color: #6B7280; margin-top: 2px;">Mã xã: ${escapeHtml(props.wardCode)}</div>`
             : ''
         }
       </div>
       ${
-        props.imageUrl
-          ? `<div style="margin-bottom: 8px; border-radius: 6px; overflow: hidden; max-height: 100px;">
-              <img src="${props.imageUrl}" alt="${props.name}" style="width: 100%; height: 80px; object-fit: cover;" loading="lazy" />
+        resolvedImageUrl
+          ? `<div id="poi-thumb-${moduleType}-${props.id}" style="margin-bottom: 8px; border-radius: 6px; overflow: hidden; max-height: 100px;">
+              <img src="${escapeHtml(resolvedImageUrl)}" alt="${escapeHtml(props.name)}" style="width: 100%; height: 80px; object-fit: cover; display: block;" loading="lazy" />
              </div>`
           : ''
       }
@@ -201,6 +203,20 @@ export const PoiMarkerClusterLayer: React.FC<PoiMarkerClusterLayerProps> = ({
         Xem chi tiết
       </button>
     `;
+
+    if (resolvedImageUrl) {
+      const thumbWrapper = popupContainer.querySelector<HTMLDivElement>(`#poi-thumb-${moduleType}-${props.id}`);
+      const thumbImg = thumbWrapper?.querySelector('img');
+      if (thumbWrapper && thumbImg) {
+        thumbImg.addEventListener('error', () => {
+          // Stale/incorrect image_url (e.g. a path that doesn't match the
+          // backend's /api/files/** convention, or a file since removed from
+          // disk) — hide the whole image slot rather than leaving the
+          // browser's native broken-image glyph inside the popup.
+          thumbWrapper.style.display = 'none';
+        });
+      }
+    }
 
     const detailBtn = popupContainer.querySelector(`#poi-detail-btn-${moduleType}-${props.id}`);
     if (detailBtn) {

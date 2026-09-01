@@ -4,6 +4,7 @@ import { Trees, Plus, AlertCircle, Info, Edit2, Trash2, MapPin, ChevronLeft, Che
 import { fetchAgricultureUnits, deleteAgricultureUnit } from '../../../api/agriculture';
 import api from '../../../api/axiosInstance';
 import AgricultureFormModal from './AgricultureFormModal';
+import PoiThumbnail from './PoiThumbnail';
 import { extractErrorMessage } from '../../../api/errorUtils';
 import type { AgricultureUnit } from '../../../types/agriculture';
 import type { Ward } from '../../../types/gis';
@@ -238,17 +239,12 @@ const AgriculturePanel: React.FC<AgriculturePanelProps> = ({ setActiveView }) =>
                   <tr key={item.id} className="hover:bg-neutral-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center space-x-3">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-neutral-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-700 text-xs font-bold border border-neutral-200">
-                            {item.name.charAt(0)}
-                          </div>
-                        )}
+                        <PoiThumbnail
+                          imageUrl={item.imageUrl}
+                          name={item.name}
+                          sizeClassName="w-10 h-10"
+                          fallbackClassName="bg-neutral-100 text-neutral-700 border-neutral-200"
+                        />
                         <div>
                           <span className="font-bold text-neutral-900 block">{item.name}</span>
                           {item.description && (

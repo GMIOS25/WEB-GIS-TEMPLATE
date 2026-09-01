@@ -4,6 +4,7 @@ import { Sparkles, Plus, AlertCircle, Info, Edit2, Trash2, MapPin, ChevronLeft, 
 import { fetchOcopProducts, deleteOcopProduct } from '../../../api/ocop';
 import api from '../../../api/axiosInstance';
 import OcopFormModal from './OcopFormModal';
+import PoiThumbnail from './PoiThumbnail';
 import { extractErrorMessage } from '../../../api/errorUtils';
 import type { OcopProduct } from '../../../types/ocop';
 import type { Ward } from '../../../types/gis';
@@ -263,17 +264,12 @@ const OcopPanel: React.FC<OcopPanelProps> = ({ setActiveView }) => {
                   <tr key={item.id} className="hover:bg-neutral-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center space-x-3">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-11 h-11 rounded-lg object-cover border border-neutral-200 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 text-xs font-bold border border-orange-100 shrink-0">
-                            {item.name.charAt(0)}
-                          </div>
-                        )}
+                        <PoiThumbnail
+                          imageUrl={item.imageUrl}
+                          name={item.name}
+                          sizeClassName="w-11 h-11"
+                          fallbackClassName="bg-orange-50 text-orange-600 border-orange-100"
+                        />
                         <div>
                           <span className="font-bold text-neutral-900 block text-sm">{item.name}</span>
                           <div className="mt-1">

@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../../api/axiosInstance';
 import { queryKeys } from '../../../api/queryKeys';
 import type { GeoJsonFeature, WardDetail } from '../../../types/gis';
+import { resolveImageUrl } from '../../../utils/media';
 
 export interface SelectedPoiDetail {
   moduleType: 'ocop' | 'science' | 'agriculture';
@@ -129,7 +130,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({
           {selectedPoi.imageUrl && (
             <div className="rounded-xl overflow-hidden border border-neutral-200 shadow-xs h-[160px] bg-neutral-100 relative">
               <img
-                src={selectedPoi.imageUrl}
+                src={resolveImageUrl(selectedPoi.imageUrl)}
                 alt={selectedPoi.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {

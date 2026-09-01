@@ -4,6 +4,7 @@ import { FlaskConical, Plus, AlertCircle, Info, Edit2, Trash2, MapPin, ChevronLe
 import { fetchScienceUnits, deleteScienceUnit } from '../../../api/science';
 import api from '../../../api/axiosInstance';
 import ScienceFormModal from './ScienceFormModal';
+import PoiThumbnail from './PoiThumbnail';
 import { extractErrorMessage } from '../../../api/errorUtils';
 import type { ScienceUnit } from '../../../types/science';
 import type { Ward } from '../../../types/gis';
@@ -238,17 +239,12 @@ const SciencePanel: React.FC<SciencePanelProps> = ({ setActiveView }) => {
                   <tr key={item.id} className="hover:bg-neutral-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center space-x-3">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-neutral-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 text-xs font-bold border border-slate-200">
-                            {item.name.charAt(0)}
-                          </div>
-                        )}
+                        <PoiThumbnail
+                          imageUrl={item.imageUrl}
+                          name={item.name}
+                          sizeClassName="w-10 h-10"
+                          fallbackClassName="bg-slate-100 text-slate-700 border-slate-200"
+                        />
                         <div>
                           <span className="font-bold text-neutral-900 block">{item.name}</span>
                           {item.description && (
