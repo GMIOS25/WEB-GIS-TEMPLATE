@@ -9,7 +9,7 @@ This document outlines the system architecture design for the Provincial Adminis
 The system follows a standard three-tier architecture split into:
 
 1. **Presentation Layer (Frontend):** React (Vite) + Leaflet (Map rendering) + Tailwind CSS (Styling).
-2. **Application Layer (Backend):** Spring Boot (Java 17) + Spring Security (JWT auth) + Hibernate Spatial.
+2. **Application Layer (Backend):** Spring Boot (Java 21) + Spring Security (JWT auth) + Hibernate Spatial.
 3. **Database Layer (Storage):** PostgreSQL with PostGIS extensions + local file storage.
 
 ### 1.1. System Component Block Diagram

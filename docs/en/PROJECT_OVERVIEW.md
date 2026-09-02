@@ -43,7 +43,7 @@ The system separates the Frontend (FE) and Backend (BE), using popular open-sour
 
 #### 3.2. Backend Stack (Folder `/BE`)
 
-- **Core Tech:** Java 17 + Spring Boot 3.x.
+- **Core Tech:** Java 21 + Spring Boot 3.x.
 - **Security:** Spring Security (JWT-based authentication & authorization).
 - **ORM / Data Access:** Spring Data JPA + Hibernate Spatial (supports PostGIS spatial data types).
 - **API:** Standardized RESTful APIs.

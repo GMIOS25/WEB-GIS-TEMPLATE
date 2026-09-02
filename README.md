@@ -1,6 +1,6 @@
 # Hệ Thống Quản Lý Thông Tin Hành Chính & Tra Cứu Web GIS Cấp Tỉnh
 
-[![Java](https://img.shields.io/badge/Java-17-orange.svg?style=flat-square&logo=openjdk)](https://www.oracle.com/java/)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg?style=flat-square&logo=openjdk)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-brightgreen.svg?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=flat-square&logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.1-646CFF.svg?style=flat-square&logo=vite)](https://vitejs.dev/)
@@ -88,7 +88,7 @@ Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho 
 
 | Công Nghệ                               | Phiên Bản | Vai Trò                                                                  |
 | :-------------------------------------- | :-------- | :----------------------------------------------------------------------- |
-| **Java**                                | `17`      | Ngôn ngữ lập trình chính                                                 |
+| **Java**                                | `21`      | Ngôn ngữ lập trình chính                                                 |
 | **Spring Boot**                         | `v3.5`    | Framework backend phát triển RESTful API                                 |
 | **Spring Security**                     | `v3.5`    | Xử lý xác thực JWT & phân quyền người dùng                               |
 | **Spring Data JPA & Hibernate Spatial** | `v3.5`    | ORM và xử lý kiểu dữ liệu không gian PostGIS                             |
@@ -159,7 +159,7 @@ WEB GIS TEMPLATE/
 
 Dành cho môi trường phát triển local:
 
-- **Java JDK 17** (Eclipse Temurin hoặc OpenJDK)
+- **Java JDK 21** (Eclipse Temurin hoặc OpenJDK)
 - **Node.js** (Phiên bản LTS) & **pnpm** (`npm i -g pnpm`)
 - **PostgreSQL 15+** đã bật extension **PostGIS**
 - **Docker & Docker Compose** (nếu muốn chạy bằng Container)

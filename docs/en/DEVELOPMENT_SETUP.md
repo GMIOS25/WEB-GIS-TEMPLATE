@@ -4,7 +4,7 @@ This guide provides instructions on how to set up the local development environm
 
 The project consists of:
 
-1. **Backend (BE):** Spring Boot (Java 17) web application.
+1. **Backend (BE):** Spring Boot (Java 21) web application.
 2. **Frontend (FE):** React + TypeScript (Vite) single-page application.
 3. **Database:** PostgreSQL with PostGIS spatial extension.
 
@@ -14,7 +14,7 @@ The project consists of:
 
 Ensure you have the following installed on your machine:
 
-- **Java Development Kit (JDK) 17** (e.g., Eclipse Temurin or OpenJDK 17)
+- **Java Development Kit (JDK) 21** (e.g., Eclipse Temurin or OpenJDK 21)
 - **Node.js** (LTS version recommended)
 - **pnpm** (Package manager for Frontend; install via `npm i -g pnpm`)
 - **PostgreSQL 15+** with the **PostGIS** extension enabled

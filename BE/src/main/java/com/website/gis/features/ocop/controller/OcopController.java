@@ -78,7 +78,7 @@ public class OcopController {
             if (product.getProductTypes() != null && !product.getProductTypes().isEmpty()) {
                 ArrayNode typesArray = properties.putArray("productTypes");
                 product.getProductTypes().forEach(typesArray::add);
-                properties.put("productType", product.getProductTypes().get(0));
+                properties.put("productType", product.getProductTypes().getFirst());
             } else {
                 properties.putNull("productTypes");
                 properties.putNull("productType");
@@ -163,7 +163,8 @@ public class OcopController {
         boolean hasWardCode = StringUtils.hasText(wardCode);
 
         if (hasQuery && hasWardCode) {
-            page = ocopProductRepository.findByWardCodeAndNameContainingIgnoreCase(wardCode.trim(), query.trim(), pageable);
+            page = ocopProductRepository.findByWardCodeAndNameContainingIgnoreCase(wardCode.trim(), query.trim(),
+                    pageable);
         } else if (hasWardCode) {
             page = ocopProductRepository.findByWardCode(wardCode.trim(), pageable);
         } else if (hasQuery) {

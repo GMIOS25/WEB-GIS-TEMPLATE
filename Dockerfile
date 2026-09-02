@@ -21,7 +21,7 @@ RUN pnpm build
 # Output: /fe/dist
 
 # ---- Stage 2: Build Backend (Spring Boot) + embed FE assets ----
-FROM maven:3.9-eclipse-temurin-17 AS be-build
+FROM maven:3.9-eclipse-temurin-21 AS be-build
 WORKDIR /be
 COPY BE/pom.xml ./
 COPY BE/.mvn .mvn
@@ -38,7 +38,7 @@ COPY --from=fe-build /fe/dist ./src/main/resources/static
 RUN ./mvnw -B clean package -DskipTests
 
 # ---- Stage 3: Runtime ----
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S gis && adduser -S gis -G gis
 WORKDIR /app
 COPY --from=be-build /be/target/*.jar app.jar

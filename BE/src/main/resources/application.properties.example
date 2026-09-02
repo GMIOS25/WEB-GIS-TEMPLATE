@@ -45,6 +45,18 @@ server.compression.enabled=true
 server.compression.mime-types=application/json,application/xml,text/html,text/plain,text/css,application/javascript
 server.compression.min-response-size=1024
 
+# 2c. Virtual Threads (JDK 21+, Project Loom) - Spring Boot 3.2+ hỗ trợ sẵn qua 1 property,
+# không cần đổi code. App này chủ yếu I/O-bound (chờ JDBC/PostGIS trả kết quả truy vấn
+# không gian, chờ đọc/ghi file upload) - mỗi request đang giữ chết 1 platform thread
+# (Tomcat, nặng ~1MB stack) suốt thời gian chờ đó. Virtual thread rẻ hơn nhiều bậc,
+# giúp server gánh được nhiều request đồng thời hơn khi tải tăng, mà không cần thêm
+# phần cứng hay refactor.
+# Lưu ý: JDK 21 vẫn "pin" (khoá cứng) virtual thread vào carrier thread nếu code chạy
+# trong khối `synchronized` - hạn chế này chỉ được JDK gỡ bỏ hoàn toàn từ JDK 24 (JEP 491).
+# Codebase hiện tại không có `synchronized` nào trong code nghiệp vụ (đã rà soát), nên
+# bật cờ này an toàn ngay trên JDK 21.
+spring.threads.virtual.enabled=true
+
 # 3. Cấu hình JWT
 app.jwt.secret=${JWT_SECRET:your_jwt_secret_key_at_least_64_characters_long_for_security}
 app.jwt.expiration-ms=86400000
