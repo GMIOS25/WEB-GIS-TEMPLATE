@@ -1,6 +1,6 @@
 # SYSTEM ARCHITECTURE & MODULARITY SPECIFICATION
 
-This document outlines the system architecture design for the Provincial Administrative Information Management and GIS Lookup System, detailing how compile-time modularity (Feature Toggling) is implemented across the Frontend, Backend, and Database tiers.
+This document outlines the system architecture design for the Provincial Administrative Information Management and GIS Lookup System, detailing how modular feature toggling is implemented across Frontend (build-time code-splitting & tree-shaking), Backend (deployment-time config-driven beans & isolated JPA scanning), and Database (partitioned Flyway migrations).
 
 ---
 
@@ -46,24 +46,27 @@ graph TD
 
 ---
 
-## 2. Compile-Time Modularity (Feature Toggling)
+## 2. Modular Feature Architecture (Feature Toggling)
 
-To deliver bespoke packages for different clients (e.g., Client A only needs OCOP, Client B only needs science & agriculture) without maintaining separate codebases, the system utilizes a **Compile-time Modularity** pattern. Feature flags are set during the build stage, prompting compilers and dependency injection containers to exclude or ignore deactivated features.
+To deliver bespoke packages for different clients (e.g., Client A only needs OCOP, Client B only needs science & agriculture) while maintaining a single, unified codebase and single Docker base image (12-Factor App), the system utilizes a **Hybrid Modularity** pattern:
+- **Frontend (Build-time / Environment-driven):** Feature flags (`VITE_ENABLE_*`) control UI routes, dynamic sidebar menus, Leaflet layer overlays, and trigger Vite code-splitting (`React.lazy()`) to eliminate unused bundle chunks.
+- **Backend (Deployment-time / Configuration-driven):** Runtime feature flags (`features.*.enabled`) conditionally load Spring REST controllers, MapStruct mappers, Spring Data JPA repositories, and Hibernate Entity scanning via dedicated `*FeatureConfig` classes.
+- **Database (Dynamic Migration Partitioning):** Flyway dynamically calculates the migration classpath scan list, creating only tables corresponding to enabled features.
 
 ```mermaid
 sequenceDiagram
-    participant Config as Build Environment Config
-    participant FE as Vite Compiler (Frontend)
-    participant BE as Spring Boot Compiler & DI (Backend)
-    participant DB as Flyway Schema Migrator (Database)
+    participant Config as Deployment Environment (.env / application.properties)
+    participant FE as Vite Compiler & Bundler (Frontend)
+    participant BE as Spring Boot Bean & JPA Registry (Backend)
+    participant DB as Dynamic Flyway Migrator (Database)
 
-    Config->>FE: Inject .env Variables (e.g., VITE_ENABLE_OCOP=true)
-    Config->>BE: Set active profiles or configurations (e.g., features.ocop.enabled=true)
-    Config->>DB: Scan locations depending on active feature profiles
+    Config->>FE: Inject Build/Runtime Variables (e.g., VITE_ENABLE_OCOP=true)
+    Config->>BE: Set Feature Properties (e.g., features.ocop.enabled=true)
+    Config->>DB: DynamicFlywayConfig appends active migration folders
 
-    Note over FE: Treeshakes/disables OCOP panels & menus
-    Note over BE: Only initializes OCOP Controllers/Mappers/Repositories
-    Note over DB: Only executes core + OCOP migrations
+    Note over FE: Code-splits & conditionally renders OCOP panels & map layers
+    Note over BE: Loads OcopFeatureConfig (EntityScan & JpaRepositories) & OcopController
+    Note over DB: Executes core + active module migrations (e.g., core + ocop)
 ```
 
 ---
@@ -226,8 +229,9 @@ Core administrative capabilities are separated from feature packages. This struc
 
 ```
 BE/src/main/java/com/website/gis/
-├── config/
+├── config/                       # Global configs (Flyway, Security, WebMvc, Storage)
 ├── core/                         # Core administrative packages
+│   ├── config/                   # CoreJpaConfig.java (Scans core entities & repos)
 │   ├── controller/               # Administrative Unit Controllers
 │   ├── dto/                      # Data Transfer Objects
 │   ├── entity/                   # Administrative Unit & User Entities
@@ -240,18 +244,21 @@ BE/src/main/java/com/website/gis/
 │   └── validation/               # Validation annotations & validators
 └── features/                     # Pluggable features/modules
     ├── agriculture/
+    │   ├── config/               # AgricultureFeatureConfig.java (@ConditionalOnProperty)
     │   ├── controller/           # AgricultureController.java
     │   ├── dto/                  # AgricultureUnitDto, Create/Update requests
     │   ├── entity/               # AgricultureUnit.java
     │   ├── mapper/               # AgricultureUnitMapper.java
     │   └── repository/           # AgricultureUnitRepository.java
     ├── ocop/
+    │   ├── config/               # OcopFeatureConfig.java (@ConditionalOnProperty)
     │   ├── controller/           # OcopController.java
     │   ├── dto/                  # OcopProductDto, Create/Update requests
     │   ├── entity/               # OcopProduct.java
     │   ├── mapper/               # OcopProductMapper.java
     │   └── repository/           # OcopProductRepository.java
     └── science/
+        ├── config/               # ScienceFeatureConfig.java (@ConditionalOnProperty)
         ├── controller/           # ScienceController.java
         ├── dto/                  # ScienceUnitDto, Create/Update requests
         ├── entity/               # ScienceUnit.java
@@ -261,9 +268,33 @@ BE/src/main/java/com/website/gis/
 
 > **Design Choice (No Intermediate Service Layer):** For straightforward CRUD operations and spatial queries, controllers inject repositories and MapStruct mappers directly without an intermediate `@Service` layer. This keeps the codebase lean, reduces boilerplate, and matches `CODING_CONVENTIONS.md`. A dedicated service layer is only introduced if complex multi-entity transaction orchestration is required.
 
-### 4.2. Conditional Spring Bean Initialization
+### 4.2. Two-Tier Conditional Spring Bean & JPA Initialization
 
-Controllers and repositories for optional features use Spring Boot's `@ConditionalOnProperty` annotation. If disabled, Spring will not create these beans, meaning their REST endpoints are never registered:
+To ensure absolute runtime safety without ghost beans or schema validation crashes, feature toggling operates at two coordinated levels:
+
+#### Tier 1: Modular JPA & Entity Scanning (`*FeatureConfig`)
+Each module defines an isolated configuration class annotated with `@ConditionalOnProperty`. This controls both `@EntityScan` and `@EnableJpaRepositories`:
+
+```java
+package com.website.gis.features.ocop.config;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@Configuration
+@ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
+@EntityScan(basePackages = "com.website.gis.features.ocop.entity")
+@EnableJpaRepositories(basePackages = "com.website.gis.features.ocop.repository")
+public class OcopFeatureConfig {
+}
+```
+
+- **Why this is critical:** If `features.ocop.enabled=false`, Spring Boot excludes `OcopProduct` from Hibernate's `Metamodel` and skips creating `OcopProductRepository`. As a result, `spring.jpa.hibernate.ddl-auto=validate` executes cleanly against the database without failing on tables omitted by Flyway.
+
+#### Tier 2: Conditional REST Endpoints (`*Controller`)
+Controllers are independently guarded with `@ConditionalOnProperty`:
 
 ```java
 package com.website.gis.features.ocop.controller;

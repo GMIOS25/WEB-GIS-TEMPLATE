@@ -284,7 +284,7 @@ Never place feature tables into `db/migration/core/`.
 
 ## 5. Cross-References
 
-- Compile-time toggling of the entities/repositories built on this schema: `ARCHITECTURE SPECIFICATION.md`, Sections 4–5.
+- Modular toggling of the entities/repositories built on this schema: `ARCHITECTURE SPECIFICATION.md`, Sections 4–5.
 - Per-customer database isolation (each customer gets their own copy of this schema plus their one enabled feature module): `ARCHITECTURE SPECIFICATION.md` Section 6, `DEPLOYMENT & FLEET STRATEGY.md`.
 - API shapes built on top of these tables: `API_CONTRACT.md`.
 - Entity/DTO/Mapper naming conventions: `CODING_CONVENTIONS.md`.

@@ -8,7 +8,7 @@
 > **Trạng thái tài liệu:** Kế hoạch triển khai Giai đoạn 2 (Affiliated Unit Management), xây dựng trên nền tảng Giai đoạn 1 đã hoàn thành.
 >
 > **Tài liệu tham chiếu bắt buộc:**
-> - [ARCHITECTURE SPECIFICATION.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/ARCHITECTURE%20SPECIFICATION.md) — Cơ chế Compile-time Modularity (feature flag → package → Flyway folder).
+> - [ARCHITECTURE SPECIFICATION.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/ARCHITECTURE%20SPECIFICATION.md) — Cơ chế Modular Feature Architecture (feature flag → package → Flyway folder + modular JPA config).
 > - [DATA_MODEL.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/DATA_MODEL.md) — Quy ước schema cho bảng module mới.
 > - [API_CONTRACT.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/API_CONTRACT.md) — Quy ước endpoint cho module mới.
 > - [CODING_CONVENTIONS.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/CODING_CONVENTIONS.md) — Naming, MapStruct, cấu trúc thư mục FE.
@@ -25,7 +25,7 @@
 2. **Hình học Point Layer:** Cả 3 module đều sử dụng dữ liệu không gian dạng **Điểm (`geom geometry(Point, 4326)`)**, toạ độ `[longitude, latitude]`.
 3. **Dữ liệu lãnh đạo (`local_leaders`):** Nối dây API backend với DTO `leaders: []` để tự động hiển thị ngay khi nạp dữ liệu.
 4. **Mô hình Triển khai:** 3 deployment độc lập với 3 container app và 3 database riêng biệt (`gialai_ocop`, `gialai_science`, `gialai_agriculture`), dùng chung dữ liệu ranh giới xã lõi.
-5. **Compile-time Modularity:** Kiểm soát qua biến môi trường backend `FEATURES_*_ENABLED` và frontend `VITE_ENABLE_*`.
+5. **Modular Feature Architecture:** Kiểm soát qua biến môi trường backend `FEATURES_*_ENABLED` (kích hoạt Controller + Dynamic Flyway + Modular JPA config) và frontend `VITE_ENABLE_*`.
 
 ---
 
@@ -201,7 +201,7 @@
 - **Việc cần làm:**
   - `FE/src/pages/home/components/OcopPanel.tsx` — bảng danh sách (phân trang, dùng `useQuery` + `ocopKeys.list(...)`), nút "Thêm mới" mở modal form (đặt tại `FE/src/pages/home/components/OcopFormModal.tsx`, code tay bằng Tailwind, **không** dùng Radix/Shadcn dialog — giữ đúng quyết định đã chốt ở Giai đoạn 1 `Phase1-task.md` TSK-4: *"modal CRUD user được code tay bằng Tailwind... để nhẹ hơn"*, áp dụng nhất quán cho mọi modal mới).
   - Form gồm: tên, loại sản phẩm, mô tả, dropdown chọn xã (tái dùng dữ liệu `GET /api/wards` đã có), 2 ô số `latitude`/`longitude` (validate trong khoảng toạ độ hợp lý của Gia Lai — tỉnh nằm trong khoảng vĩ độ ~12.7°–15.3°N, kinh độ ~107.3°–109.4°E — validate mềm, chỉ cảnh báo không chặn cứng vì agent không nên tự đặt biên chính xác tuyệt đối), widget upload ảnh gọi `POST /api/files` (TSK-9) trước, nhận `publicUrl` rồi mới `POST /api/ocop`.
-  - Thêm nút điều hướng "OCOP" vào `SidebarDrawer.tsx`, **chỉ hiển thị khi `FEATURE_FLAGS.ocop === true`** (import từ `src/config/features.ts`) — đúng cơ chế Compile-time Modularity, không phải role-based như "Quản lý người dùng".
+  - Thêm nút điều hướng "OCOP" vào `SidebarDrawer.tsx`, **chỉ hiển thị khi `FEATURE_FLAGS.ocop === true`** (import từ `src/config/features.ts`) — đúng cơ chế Feature Flag Modularity, không phải role-based như "Quản lý người dùng".
   - Áp dụng đúng bảng màu OCOP đã định nghĩa ở `Design_rule.md` mục 2 (`#F97316` light theme) cho mọi badge/icon liên quan tới OCOP trong UI quản trị này.
 - **Cách verify:** `viewer` đăng nhập → không thấy mục "OCOP" trong sidebar (khi cờ FE bật) nếu quyết định ẩn hoàn toàn với non-admin; hoặc hiển thị read-only (không có nút Thêm/Sửa/Xoá) nếu cho phép xem danh sách.
 

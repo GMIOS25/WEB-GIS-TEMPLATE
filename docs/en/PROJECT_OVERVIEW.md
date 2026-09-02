@@ -17,7 +17,7 @@ The system allows managing, updating, and querying information of commune/ward/t
 
 ### 2. Implementation Roadmap (Phased Approach)
 
-The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture) based on each client's specific requirements at the package build time (Compile-time):
+The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture) based on each client's specific requirements (Build-time for Frontend, Deployment-time Configuration for Backend):
 
 | Phase       | Phase Name                     | Core Deliverables                                                                                                                                                                                                                                                                                                                              |
 | :---------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -168,14 +168,14 @@ graph TD
 
 ### 7. Modular & Pluggable Architecture Design (Modularity & Pluggability)
 
-The system is designed to facilitate quick packaging and exclusion of unnecessary functional components depending on each customer's purchase order using **Compile-time Modularity**:
+The system is designed to facilitate quick packaging and exclusion of unnecessary functional components depending on each customer's purchase order using **Modular Feature Architecture** (Build-time Frontend + Config-driven Backend):
 
 1. **Frontend (Vite/React):**
    - Utilizes environment variables (`VITE_ENABLE_OCOP`, `VITE_ENABLE_SCIENCE`, `VITE_ENABLE_AGRICULTURE`, etc.) inside the `.env` file for each build target.
-   - The Routing system and Menu Sidebar automatically inspect these environment variables to register or hide corresponding pages/functionalities.
+   - The Routing system and Menu Sidebar automatically inspect these environment variables to register or hide corresponding pages/functionalities and code-split bundles.
 2. **Backend (Spring Boot):**
    - Isolates specific feature modules into designated packages (e.g., `com.website.gis.features.ocop`).
-   - Uses Spring Profiles along with conditional annotations like `@ConditionalOnProperty` to only instantiate controllers, mappers, and repositories when their respective feature toggles are enabled in the configuration file. If a feature is disabled, the corresponding endpoints will return 404.
+   - Uses configuration properties (`features.*.enabled`) along with `@ConditionalOnProperty` on dedicated `*FeatureConfig` classes and controllers to conditionally register Spring Data JPA repositories, Hibernate Entity scanning, and REST endpoints. If a feature is disabled, its endpoints return 404 and its entities are omitted from Hibernate Metamodel (ensuring `ddl-auto=validate` functions safely without missing table errors).
 3. **Database (PostgreSQL & Flyway):**
    - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`, etc.).
    - During application startup, depending on active profiles, the system dynamically appends corresponding path locations to Flyway scan targets, avoiding the creation of unused tables in client databases.

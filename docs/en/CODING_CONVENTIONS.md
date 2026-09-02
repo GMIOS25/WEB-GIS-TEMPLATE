@@ -341,10 +341,11 @@ When implementing a pluggable feature module (`ocop`, `science`, `agriculture`),
 - Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `science` → entity `ScienceUnit`, module `agriculture` → entity `AgricultureUnit`.
 - DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `ScienceUnitDto`, `AgricultureUnitDto`).
 - Mappers live inside the module's own package, `com.website.gis.features.<module>.mapper` (per Section 3.1) — kept self-contained within the module, not in a shared top-level package, so the module stays independently removable.
+- Configuration: `<Module>FeatureConfig` lives in `com.website.gis.features.<module>.config` annotated with `@ConditionalOnProperty(name = "features.<module>.enabled", havingValue = "true")`, `@EntityScan`, and `@EnableJpaRepositories`.
 
 ## 7. Cross-References
 
-- Compile-time toggling mechanics these conventions plug into: `ARCHITECTURE SPECIFICATION.md`.
+- Modular toggling mechanics these conventions plug into: `ARCHITECTURE SPECIFICATION.md`.
 - Table/column names these entities map to: `DATA_MODEL.md`.
 - Endpoint shapes these controllers must expose: `API_CONTRACT.md`.
 - Local environment setup to run and test code written under these conventions: `DEVELOPMENT_SETUP.md`.
