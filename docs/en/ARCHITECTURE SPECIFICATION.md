@@ -81,8 +81,7 @@ Each client deployment will have its own `.env` file containing feature switches
 
 ```env
 # Core Administrative Configurations
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_PROVINCE_CODE=52
+VITE_API_BASE_URL=http://localhost:8080
 
 # Feature Modularity Toggles
 VITE_ENABLE_SCIENCE=false
