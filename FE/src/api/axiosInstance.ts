@@ -11,7 +11,10 @@ import axios from 'axios';
  * trong mọi request tới BE — thay cho việc FE tự gắn header Authorization.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  // Khi VITE_API_BASE_URL rỗng/không set:
+  // - Local dev (import.meta.env.DEV = true): gọi sang backend local 'http://localhost:8080'
+  // - Production single-image (chạy sau Caddy): gọi relative '' (cùng origin /api/...)
+  baseURL: import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8080' : ''),
   timeout: 10000,
   withCredentials: true,
   headers: {

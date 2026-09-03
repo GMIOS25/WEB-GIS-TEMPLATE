@@ -81,9 +81,10 @@ Each client deployment will have its own `.env` file containing feature switches
 
 ```env
 # Core Administrative Configurations
-VITE_API_BASE_URL=http://localhost:8080
+# In local dev: http://localhost:8080. In Docker production (same origin via Caddy): leave empty ("")
+VITE_API_BASE_URL=
 
-# Feature Modularity Toggles
+# Feature Modularity Toggles (passed into Dockerfe-build via docker-compose build args)
 VITE_ENABLE_SCIENCE=false
 VITE_ENABLE_OCOP=true
 VITE_ENABLE_AGRICULTURE=false

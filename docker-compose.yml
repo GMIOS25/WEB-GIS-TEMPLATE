@@ -3,6 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_ENABLE_OCOP: ${VITE_ENABLE_OCOP:-${FEATURES_OCOP_ENABLED:-false}}
+        VITE_ENABLE_SCIENCE: ${VITE_ENABLE_SCIENCE:-${FEATURES_SCIENCE_ENABLED:-false}}
+        VITE_ENABLE_AGRICULTURE: ${VITE_ENABLE_AGRICULTURE:-${FEATURES_AGRICULTURE_ENABLED:-false}}
     image: gialai-gis-app:latest
     container_name: gialai-gis-app
     restart: unless-stopped

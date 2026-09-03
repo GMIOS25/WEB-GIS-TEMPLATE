@@ -106,6 +106,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_ENABLE_OCOP: ${VITE_ENABLE_OCOP:-${FEATURES_OCOP_ENABLED:-false}}
+        VITE_ENABLE_SCIENCE: ${VITE_ENABLE_SCIENCE:-${FEATURES_SCIENCE_ENABLED:-false}}
+        VITE_ENABLE_AGRICULTURE: ${VITE_ENABLE_AGRICULTURE:-${FEATURES_AGRICULTURE_ENABLED:-false}}
     image: gialai-gis-app:latest
     container_name: gialai-gis-app
     restart: unless-stopped
@@ -205,12 +210,48 @@ SEED_ADMIN_PASSWORD=
 SEED_VIEWER_USERNAME=viewer
 SEED_VIEWER_PASSWORD=
 
-# --- Feature flags (per customer deployment) ---
+# --- Feature flags: Backend (Runtime) ---
 # Names match the @Value("${features.<module>.enabled}") properties:
 FEATURES_OCOP_ENABLED=false
 FEATURES_SCIENCE_ENABLED=false
 FEATURES_AGRICULTURE_ENABLED=false
+
+# --- Feature flags & Config: Frontend (Build-time) ---
+# Optional overrides (defaults inherit from FEATURES_*_ENABLED via docker-compose build args):
+VITE_API_BASE_URL=
+VITE_ENABLE_OCOP=false
+VITE_ENABLE_SCIENCE=false
+VITE_ENABLE_AGRICULTURE=false
 ```
+
+### 4.4. Build-Time vs Runtime Lifecycle Architecture
+
+A critical architectural distinction exists between Frontend and Backend configuration:
+
+1. **Frontend (Build-Time):**
+   - React + Vite is compiled into static assets (`/fe/dist`) inside Stage 1 (`fe-build`) of the `Dockerfile` via `RUN pnpm build`.
+   - Vite bakes `import.meta.env.VITE_*` into static JavaScript strings at build time.
+   - Vite cannot read variables passed via `env_file` because `env_file` only affects the runtime container (Stage 3).
+   - `docker-compose.yml` bridges this gap by mapping environment variables into Docker build args:
+     ```yaml
+     args:
+       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+       VITE_ENABLE_OCOP: ${VITE_ENABLE_OCOP:-${FEATURES_OCOP_ENABLED:-false}}
+       VITE_ENABLE_SCIENCE: ${VITE_ENABLE_SCIENCE:-${FEATURES_SCIENCE_ENABLED:-false}}
+       VITE_ENABLE_AGRICULTURE: ${VITE_ENABLE_AGRICULTURE:-${FEATURES_AGRICULTURE_ENABLED:-false}}
+     ```
+   - **Single Source of Truth:** Thanks to the smart fallback `${VITE_ENABLE_OCOP:-${FEATURES_OCOP_ENABLED:-false}}`, administrators only need to set `FEATURES_OCOP_ENABLED=true` in `.env`; the build argument automatically inherits it unless explicitly overridden.
+   - **Mandatory Rebuild:** Whenever changing feature flags or build variables in `.env`, the Docker image **must be rebuilt**:
+     ```bash
+     docker compose up -d --build
+     ```
+
+2. **Backend (Runtime):**
+   - Spring Boot loads relaxed-binding environment variables (`SPRING_*`, `FEATURES_*_ENABLED`, `JWT_*`) dynamically at container boot time from `env_file: - .env`.
+
+3. **API Base URL in Production:**
+   - In single-image production deployment behind Caddy, Frontend and Backend share the same origin.
+   - `VITE_API_BASE_URL` should be left empty (`""`), which causes `axiosInstance.ts` to make relative requests (`/api/...`). In local development (`import.meta.env.DEV`), it automatically falls back to `http://localhost:8080`.
 
 ---
 
