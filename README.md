@@ -242,6 +242,8 @@ Vấn truy cập giao diện web tại: **`http://localhost:5173`**
    docker compose up -d --build
    ```
 
+   > 💡 **Lưu ý Vòng Đời Build-Time:** Cờ `--build` là bắt buộc mỗi khi bạn thay đổi các cờ tính năng (`FEATURES_*_ENABLED` hoặc `VITE_*`) trong file `.env`. `docker-compose.yml` sẽ tự động chuyển tiếp các cờ này vào quá trình đóng gói Frontend (Vite) trước khi nhúng vào Spring Boot.
+
 3. Kiểm tra trạng thái các container:
    ```bash
    docker compose ps

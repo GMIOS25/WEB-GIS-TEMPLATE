@@ -32,7 +32,8 @@ export function resolveImageUrl(url?: string | null): string | undefined {
     return trimmed;
   }
 
-  const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+  const fallbackBase = import.meta.env.DEV ? 'http://localhost:8080' : '';
+  const base = (import.meta.env.VITE_API_BASE_URL || fallbackBase).replace(/\/+$/, '');
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   return `${base}${path}`;
 }

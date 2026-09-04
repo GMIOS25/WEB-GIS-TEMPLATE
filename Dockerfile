@@ -17,6 +17,19 @@ RUN corepack prepare pnpm@9 --activate
 COPY FE/package.json FE/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY FE/ .
+
+# Build arguments passed from docker-compose.yml or docker build --build-arg
+ARG VITE_API_BASE_URL=""
+ARG VITE_ENABLE_OCOP="false"
+ARG VITE_ENABLE_SCIENCE="false"
+ARG VITE_ENABLE_AGRICULTURE="false"
+
+# Expose to environment for Vite build-time replacement
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_ENABLE_OCOP=$VITE_ENABLE_OCOP \
+    VITE_ENABLE_SCIENCE=$VITE_ENABLE_SCIENCE \
+    VITE_ENABLE_AGRICULTURE=$VITE_ENABLE_AGRICULTURE
+
 RUN pnpm build
 # Output: /fe/dist
 

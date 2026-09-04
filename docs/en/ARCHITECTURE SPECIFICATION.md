@@ -49,6 +49,7 @@ graph TD
 ## 2. Modular Feature Architecture (Feature Toggling)
 
 To deliver bespoke packages for 3 provincial clients (Client 1: OCOP Gia Lai, Client 2: Science & Tech, Client 3: Agriculture) while maintaining a single, unified codebase and a **single Docker base image artifact** (12-Factor App), the system utilizes a **Coordinated Modularity** pattern:
+
 - **Backend (Deployment-time / Configuration-driven):** Runtime feature flags (`features.*.enabled`) conditionally load Spring REST controllers, MapStruct mappers, Spring Data JPA repositories, and Hibernate Entity scanning via dedicated `*FeatureConfig` classes.
 - **Frontend (Runtime-synchronized & Build-friendly):** In development, `.env` flags (`VITE_ENABLE_*`) can be used for isolated testing. In multi-container Docker deployments built from a single image, the frontend reads enabled modules dynamically from the backend container at runtime, eliminating the need to compile separate frontend artifacts for each customer.
 - **Database (Dynamic Migration Partitioning):** Flyway dynamically calculates the migration classpath scan list, creating only tables corresponding to enabled features.
@@ -80,10 +81,10 @@ In local development, developers can toggle features directly via `.env`:
 
 ```env
 # Core Administrative Configurations
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_PROVINCE_CODE=52
+# In local dev: http://localhost:8080. In Docker production (same origin via Caddy): leave empty ("")
+VITE_API_BASE_URL=
 
-# Feature Modularity Toggles (Local Dev Defaults)
+# Feature Modularity Toggles
 VITE_ENABLE_SCIENCE=false
 VITE_ENABLE_OCOP=true
 VITE_ENABLE_AGRICULTURE=false
@@ -100,9 +101,9 @@ Module navigation is orchestrated via an `activeView` state (`'map' | 'admin' | 
 ```typescript
 // src/config/features.ts
 export const FEATURE_FLAGS = {
-  ocop: import.meta.env.VITE_ENABLE_OCOP === 'true',
-  science: import.meta.env.VITE_ENABLE_SCIENCE === 'true',
-  agriculture: import.meta.env.VITE_ENABLE_AGRICULTURE === 'true',
+  ocop: import.meta.env.VITE_ENABLE_OCOP === "true",
+  science: import.meta.env.VITE_ENABLE_SCIENCE === "true",
+  agriculture: import.meta.env.VITE_ENABLE_AGRICULTURE === "true",
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
@@ -274,6 +275,7 @@ BE/src/main/java/com/website/gis/
 To ensure absolute runtime safety without ghost beans or schema validation crashes, feature toggling operates at two coordinated levels:
 
 #### Tier 1: Modular JPA & Entity Scanning (`*FeatureConfig`)
+
 Each module defines an isolated configuration class annotated with `@ConditionalOnProperty`. This controls both `@EntityScan` and `@EnableJpaRepositories`:
 
 ```java
@@ -295,6 +297,7 @@ public class OcopFeatureConfig {
 - **Why this is critical:** If `features.ocop.enabled=false`, Spring Boot excludes `OcopProduct` from Hibernate's `Metamodel` and skips creating `OcopProductRepository`. As a result, `spring.jpa.hibernate.ddl-auto=validate` executes cleanly against the database without failing on tables omitted by Flyway.
 
 #### Tier 2: Conditional REST Endpoints (`*Controller`)
+
 Controllers are independently guarded with `@ConditionalOnProperty`:
 
 ```java
@@ -368,10 +371,13 @@ BE/src/main/resources/db/migration/
 > **Why Namespaced Migration Versions (`V5_1.x`, `V5_2.x`, `V5_3.x`)?**
 >
 > When Flyway scans multiple locations, all migrations are merged into a single global version registry. If each module used local versions starting from `V1` (e.g. `science/V1__...` and `ocop/V1__...`), enabling more than one module in a single deployment would cause Flyway startup to fail with:
+>
 > ```
 > org.flywaydb.core.api.FlywayException: Found more than one migration with version 1
 > ```
+>
 > To prevent collision across any combination of active feature modules, the codebase uses partitioned version prefixes:
+>
 > - `core/`: `V1` – `V4`
 > - `ocop/`: `V5_1.x`
 > - `science/`: `V5_2.x`
