@@ -48,7 +48,7 @@ Toàn bộ cấu trúc cơ sở dữ liệu và dữ liệu ban đầu được 
 - `V4`: Nạp toạ độ, ranh giới địa giới hành chính (`MULTIPOLYGON`) 135 xã/phường tỉnh Gia Lai.
 - `DatabaseSeeder`: Tự động nạp tài khoản mẫu `admin`/`viewer` (kích hoạt qua cấu hình `SEED_DEFAULT_ACCOUNTS=true`).
 
-Chi tiết cài đặt môi trường xem tại [DEVELOPMENT_SETUP.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/DEVELOPMENT_SETUP.md).
+Chi tiết cài đặt môi trường xem tại [DEVELOPMENT_SETUP.md](./en/DEVELOPMENT_SETUP.md).
 
 ---
 
@@ -66,7 +66,7 @@ Chi tiết cài đặt môi trường xem tại [DEVELOPMENT_SETUP.md](file:///d
 
 #### **TSK-2: Xây dựng REST APIs** — ✅ Hoàn thành
 
-- **Nội dung:** Xây dựng hệ thống REST API theo chuẩn [API_CONTRACT.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/API_CONTRACT.md):
+- **Nội dung:** Xây dựng hệ thống REST API theo chuẩn [API_CONTRACT.md](./en/API_CONTRACT.md):
   - **Xác thực:** `POST /api/auth/login` (cấp cookie `HttpOnly`), `GET /api/auth/me` (khôi phục phiên), `POST /api/auth/logout` (xoá cookie).
   - **Quản lý User (Chỉ ADMIN):** `GET /api/admin/users`, `POST /api/admin/users`, `PUT /api/admin/users/{id}`, `DELETE /api/admin/users/{id}` (có chặn tự xoá và chặn xoá admin cuối cùng).
   - **Tra cứu bản đồ:** `GET /api/wards` (danh sách xã), `GET /api/wards/{code}` (chi tiết xã), `GET /api/wards/{code}/geojson` (GeoJSON xã), `GET /api/wards/geojson` (FeatureCollection 135 xã), `GET /api/wards/province/geojson` (ranh giới tỉnh).

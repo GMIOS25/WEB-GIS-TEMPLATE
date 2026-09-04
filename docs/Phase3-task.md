@@ -5,9 +5,9 @@
 ---
 
 > [!IMPORTANT]
-> **Trạng thái tài liệu (Cập nhật 2026-08-21): Giai đoạn 3 đã HOÀN THÀNH trong môi trường phát triển cục bộ (Local Development).**
+> **Trạng thái tài liệu (Cập nhật 2026-08-21 & 2026-09): Giai đoạn 3 đã HOÀN THÀNH trong môi trường phát triển cục bộ (Local Development).**
 >
-> Cả 3 module (`ocop`, `science`, `agriculture`) đều đã được tích hợp hiển thị dạng Điểm (**Point layer** — `geometry(Point, 4326)`). Bảng màu tuân thủ `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Cam, Science: `#64748B` Xám Slate, Agriculture: `#6B7280` Xám Cool).
+> Module OCOP đã hoàn thiện toàn diện nghiệp vụ thực tế (xếp hạng sao vàng, đa ngành hàng, hotline, địa chỉ cơ sở và hiển thị bản đồ). Hai module `science` và `agriculture` hoạt động ở vai trò Scaffold khung mẫu thử nghiệm tính độc lập của các lớp dữ liệu trên bản đồ. Bảng màu tuân thủ `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Cam, Science: `#64748B` Xám Slate, Agriculture: `#6B7280` Xám Cool).
 
 ---
 
@@ -17,7 +17,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **TSK-17** | Endpoint GeoJSON cho OCOP / Science / Agriculture (`GET /api/{feature}/geojson`) | Backend | **HOÀN THÀNH** | Jackson `ObjectMapper` FeatureCollection, tọa độ `[lng, lat]`, cache header `private, max-age=3600`, 100% pass tests. |
 | **TSK-18** | Truy vấn tìm kiếm bán kính (`GET /api/{feature}/nearby`) | Backend / DB | **HOÀN THÀNH** | PostGIS `ST_DWithin` trên `geography`, bổ sung Expression GiST index `idx_*_geog`, validate lat/lng/radius, 100% pass tests. |
-| **TSK-19** | Lọc theo vùng hành chính (`GET /api/{feature}?wardCode=...`) | Backend | **HOÀN THÀNH** | Cả 3 controller hỗ trợ lọc theo xã kết hợp phân trang và tìm kiếm tên, 100% pass tests. |
+| **TSK-19** | Lọc theo vùng hành chính (`GET /api/{feature}?wardCode=...`) | Backend | **HOÀN THÀNH** | Cả 3 controller hỗ trợ lọc theo xã kết hợp phân trang; riêng OCOP hỗ trợ tìm kiếm tên qua `?q=`, 100% pass tests. |
 | **TSK-20** | Layer điểm OCOP trên bản đồ chính (có clustering & halo) | Frontend | **HOÀN THÀNH** | `PoiMarkerClusterLayer.tsx`, màu `#F97316`, halo viền trắng, badge `(N)`, popup thông tin + nút `[Xem chi tiết]`. |
 | **TSK-21** | Layer điểm Science & Agriculture trên bản đồ chính | Frontend | **HOÀN THÀNH** | Tích hợp trong `PoiMarkerClusterLayer.tsx` với màu Slate `#64748B` và Cool Gray `#6B7280`, độc lập theo feature flag. |
 | **TSK-22** | Sidebar điều khiển lớp dữ liệu (Single Source of Truth) + Legend | Frontend | **HOÀN THÀNH** | `SidebarDrawer.tsx` quản lý duy nhất layer state, có chấm màu Legend đối chiếu trực quan (🟠, 🔘, ⚪). |
@@ -34,14 +34,14 @@
 
 #### **TSK-17: Endpoint GeoJSON (`GET /api/{feature}/geojson`)**
 - Trả về `FeatureCollection` Point chuẩn GeoJSON RFC 7946: `geometry.coordinates = [longitude, latitude]`.
-- Properties tối thiểu: `{ id, name, productType/unitType, wardCode, imageUrl }`.
+- Properties tối thiểu: `{ id, name, productType/unitType, wardCode, imageUrl }`. OCOP bổ sung `productTypes`, `starRating`, `contactPhone`, `locationAddress`.
 - Cache-Control: `private, max-age=3600`.
 - Tự động tắt (trả về 404) khi `features.<module>.enabled=false`.
 
 #### **TSK-18: Radius Search & GiST Index (`GET /api/{feature}/nearby`)**
 - Endpoint: `GET /api/{feature}/nearby?lat={lat}&lng={lng}&radiusKm={radiusKm}`.
 - Migration Flyway bổ sung Expression GiST index tối ưu cho phép cast geography:
-  - `V5_1_1__add_geog_gist_index_ocop.sql`
+  - `ocop`: index `idx_ocop_products_geog` đã được tạo trực tiếp trong `V5_1__create_ocop_products.sql` (file `V5_1_1__insert_data_ocop.sql` nạp dữ liệu mẫu ban đầu).
   - `V5_2_1__add_geog_gist_index_science.sql`
   - `V5_3_1__add_geog_gist_index_agriculture.sql`
 - Native query: `ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)`.
@@ -49,7 +49,7 @@
 - Response contract: `List<Dto>` đồng nhất với chuẩn Phase 2.
 
 #### **TSK-19: Administrative Ward Filter**
-- Cả 3 controller hỗ trợ `?wardCode=` kết hợp tìm kiếm `?q=` và phân trang `Pageable`.
+- Cả 3 controller hỗ trợ `?wardCode=` kết hợp phân trang `Pageable`. Riêng OCOP hỗ trợ tìm kiếm tên sản phẩm qua `?q=`.
 
 ---
 

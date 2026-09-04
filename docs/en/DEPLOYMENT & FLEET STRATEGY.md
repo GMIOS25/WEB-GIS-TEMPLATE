@@ -12,8 +12,8 @@ It complements `ARCHITECTURE SPECIFICATION.md` (Sections 6–7), which defines t
 | :----------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Hosting**        | Rented VPS, domestic cloud provider — **Viettel IDC** (per `PROJECT_OVERVIEW.md` Section 1's data-sovereignty requirement).          |
 | **OS**             | Ubuntu Server (LTS).                                                                                                                 |
-| **Orchestration**  | Plain **Docker Compose**.                                                                                                            |
-| **Architecture**   | 1 VPS hosting 3 isolated customer stacks (`gialai_ocop`, `gialai_science`, `gialai_agriculture`) + Caddy reverse proxy for TLS.     |
+| **Orchestration**  | Plain **Docker Compose** or Lightweight PaaS (Dokploy / Coolify).                                                                    |
+| **Architecture**   | 1 VPS hosting 3 isolated customer container stacks (Client 1: `gialai_ocop` in production; Clients 2 & 3: `gialai_science`, `gialai_agriculture` scaffolds) + Caddy reverse proxy for TLS. |
 | **Deploy trigger** | Git-based build / CI-CD or manual: SSH in, `git pull`, rebuild, `docker compose up -d`.                                               |
 
 ---
@@ -24,46 +24,66 @@ It complements `ARCHITECTURE SPECIFICATION.md` (Sections 6–7), which defines t
 graph TD
     Internet[Internet / Browser]
     Proxy[Caddy: TLS termination + reverse proxy]
-    App[App Container: Spring Boot + embedded React static build]
-    DB[(PostgreSQL + PostGIS)]
-    Backup[Backup job: pg_dump -> local disk]
+    subgraph Client1Stack [Client 1 Stack: OCOP Production]
+        AppOcop[App Container: Spring Boot + embedded React]
+        DBOcop[(PostgreSQL PostGIS: gialai_ocop)]
+    end
+    subgraph Client2Stack [Client 2 Stack: Science Prototype]
+        AppSci[App Container: Spring Boot + embedded React]
+        DBSci[(PostgreSQL PostGIS: gialai_science)]
+    end
+    subgraph Client3Stack [Client 3 Stack: Agriculture Prototype]
+        AppAgri[App Container: Spring Boot + embedded React]
+        DBAgri[(PostgreSQL PostGIS: gialai_agriculture)]
+    end
 
-    Internet -->|HTTPS 443| Proxy
-    Proxy -->|HTTP 8080| App
-    App -->|JDBC 5432| DB
-    DB -.->|scheduled| Backup
+    Internet -->|HTTPS ocop.gialai.gov.vn| Proxy
+    Internet -->|HTTPS khcn.gialai.gov.vn| Proxy
+    Internet -->|HTTPS nongnghiep.gialai.gov.vn| Proxy
+
+    Proxy -->|HTTP 8081| AppOcop
+    Proxy -->|HTTP 8082| AppSci
+    Proxy -->|HTTP 8083| AppAgri
+
+    AppOcop --> DBOcop
+    AppSci --> DBSci
+    AppAgri --> DBAgri
 ```
 
-- **App container:** a single Spring Boot fat JAR that serves both the REST API (`/api/**`) and the built React static assets (per `PROJECT_OVERVIEW.md` Section 3.4 — "no separate Nginx required"). Built as a multi-stage Docker image (Section 3).
+- **App container:** A single Spring Boot fat JAR that serves both the REST API (`/api/**`) and the built React static assets (per `PROJECT_OVERVIEW.md` Section 3.4 — "no separate Nginx required"). Built as a multi-stage Docker image (Section 3).
 - **DB container:** `postgis/postgis` image, dedicated database per customer, data on a named Docker volume.
 - **Reverse proxy:** **Caddy** (not Nginx), chosen for automatic Let's Encrypt certificate issuance/renewal with near-zero configuration.
 
 ---
 
-## 3. Dockerfile (Multi-Stage Build)
+## 3. Dockerfile (Multi-Stage Build & Single-Artifact Packaging)
 
-The frontend and backend are built into a **single runtime image** so that the deployed artifact matches the "Spring Boot App with embedded React" model already committed to in `PROJECT_OVERVIEW.md` Section 3.4.
+The frontend and backend are built into a **single runtime artifact (Fat JAR / Docker image)**:
+1. **Frontend Stage:** React/Vite builds the single-page application into `/fe/dist`.
+2. **Backend Stage:** The built assets from `/fe/dist` are copied directly into Spring Boot's resource directory (`src/main/resources/static`). Maven then packages everything into a single fat `.jar`.
+3. **Runtime Stage:** A lightweight JRE image executes `java -jar app.jar`. Spring Boot automatically serves static files from `classpath:/static/` at `/` while serving REST controllers at `/api/**`.
+
+> [!IMPORTANT]
+> **Single-Artifact Runtime Configuration Rules:**
+> - **API Base URL:** In a single-artifact build, the frontend is served on the exact same host and port as the backend. The frontend API client MUST use relative paths (e.g. `/api/...` or empty `baseURL`) instead of hardcoding `http://localhost:8080`. Hardcoding `localhost:8080` in build-time `.env` will break browser requests on production domains.
+> - **Feature Flag Propagation:** When 3 containers run from the same built Docker image, compile-time Vite environment variables (`import.meta.env.VITE_ENABLE_*`) are identical. To enable different feature modules per container (`OCOP` on Stack 1, `SCIENCE` on Stack 2), the frontend should dynamically read active module settings from the backend container's runtime environment variables (via `/api/auth/me` or `/api/public/config`).
 
 ```dockerfile
 # syntax=docker/dockerfile:1
 #
-# Multi-stage build theo đúng mô hình đã chốt trong
-# docs/en/DEPLOYMENT & FLEET STRATEGY.md (Section 3): FE + BE build thành DUY NHẤT
-# 1 image runtime - Spring Boot phục vụ luôn cả /api/** lẫn static assets của React
-# ("no separate Nginx required" - xem PROJECT_OVERVIEW.md Section 3.4).
+# Multi-stage build: FE + BE build thanh DUY NHAT 1 image runtime.
+# Spring Boot phuc vu ca /api/** lan static assets cua React tu classpath:/static.
 
 # ---- Stage 1: Build Frontend (Vite/React) ----
 FROM node:20-alpine AS fe-build
 WORKDIR /fe
 RUN corepack enable
-# Pin cứng version pnpm theo đúng lockfileVersion đang dùng (pnpm-lock.yaml hiện tại
-# là lockfileVersion 9.0) thay vì chỉ "corepack enable" suông - corepack không tự biết
-# version nào nếu package.json không có field "packageManager", có thể fetch nhầm
-# major version pnpm khác gây lệch lockfile.
 RUN corepack prepare pnpm@9 --activate
 COPY FE/package.json FE/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY FE/ .
+# Do not bake hardcoded localhost:8080 for single-artifact production builds
+ENV VITE_API_BASE_URL=""
 RUN pnpm build
 # Output: /fe/dist
 
@@ -73,10 +93,6 @@ WORKDIR /be
 COPY BE/pom.xml ./
 COPY BE/.mvn .mvn
 COPY BE/mvnw ./
-# Defensive chmod: mvnw cần bit thực thi. Repo đã fix ở mức git (100755), nhưng một số
-# cách lấy source (vd. giải nén từ zip GitHub "Download ZIP" thay vì git clone) không
-# giữ lại execute bit, nên chmod lại ở đây cho chắc thay vì phụ thuộc hoàn toàn vào
-# git mode.
 RUN chmod +x mvnw
 RUN ./mvnw -B dependency:go-offline
 COPY BE/src ./src
@@ -273,24 +289,27 @@ find "$BACKUP_DIR" -name "gialai_*_Sun_*.dump" -mtime +27 -delete
 
 ## 6. Multi-Customer Deployment Strategy & Fleet Scaling
 
-The project architecture natively supports running multiple customer deployments (e.g. OCOP, Science, Agriculture) while guaranteeing absolute data isolation.
+The project architecture natively supports running multiple customer deployments while guaranteeing absolute data isolation.
 
 ### 6.1. Deployment Topology: 1 VPS, 3 Containers, 3 Databases
 
-For the 3 current modules/clients, all instances run on **1 physical VPS** (Viettel IDC) partitioned into independent stacks:
-- **Shared Base Data:** Administrative commune boundaries (`wards`, `gis_wards`) are identical across deployments.
-- **Isolated Applications & Databases:** Each customer runs in its own application container (`AppOcop`, `AppScience`, `AppAgri`) and connects to its own dedicated database (`gialai_ocop`, `gialai_science`, `gialai_agriculture`).
-- **No Shared Network/Data Path:** Enforces the "database-per-customer" principle with zero cross-tenant leakage.
+For the 3 clients, all customer stacks run on **1 physical VPS** (Viettel IDC) partitioned into independent container stacks:
+- **Client 1 (OCOP - Production Reference):** `AppOcop` container + `gialai_ocop` database container. Fully active and verified.
+- **Client 2 (Science - Prototype Scaffold):** `AppScience` container + `gialai_science` database container. Ready for rollout upon client requirements gathering.
+- **Client 3 (Agriculture - Prototype Scaffold):** `AppAgri` container + `gialai_agriculture` database container. Ready for rollout upon client requirements gathering.
+- **Shared Base GIS Data:** All 3 databases initialize the identical 135 commune boundaries of Gia Lai (`wards`, `gis_wards`) via Flyway V1–V4 migrations.
+- **Complete Tenant Isolation:** Each customer runs in its own application container and connects exclusively to its own dedicated database. There is no shared memory, no shared database connection, and zero cross-tenant query risk.
 
 ### 6.2. Multi-Instance Management (Dokploy / Coolify or Multi-Compose)
 
 When managing multiple projects on the VPS via Docker Compose or PaaS (Dokploy / Coolify):
-1. **Repository:** All deployments build from the same unified repository code artifact.
-2. **Configuration (`.env`):** Each customer project specifies its active module via standard environment flags:
-   - Backend: `FEATURES_OCOP_ENABLED=true` / `FEATURES_SCIENCE_ENABLED=true` / `FEATURES_AGRICULTURE_ENABLED=true`
-   - Frontend: `VITE_ENABLE_OCOP=true` / `VITE_ENABLE_SCIENCE=true` / `VITE_ENABLE_AGRICULTURE=true`
-   - Database credentials: Pointing to that customer's own database container.
-3. **Routing:** Caddy (or the PaaS reverse proxy) routes incoming subdomains (`ocop.gialai.gov.vn`, `khcn.gialai.gov.vn`, `nongnghiep.gialai.gov.vn`) to the respective container port with automatic TLS termination.
+1. **Single Artifact:** All deployments execute the exact same built Docker image / fat JAR artifact (where React static assets are bundled inside Spring Boot's static resources).
+2. **Runtime Configuration (`.env` per stack):** Each customer container stack specifies its active module and database connection via environment variables:
+   - Stack 1 (`.env.ocop`): `FEATURES_OCOP_ENABLED=true`, `SPRING_DATASOURCE_URL=jdbc:postgresql://db-ocop:5432/gialai_ocop`
+   - Stack 2 (`.env.science`): `FEATURES_SCIENCE_ENABLED=true`, `SPRING_DATASOURCE_URL=jdbc:postgresql://db-science:5432/gialai_science`
+   - Stack 3 (`.env.agriculture`): `FEATURES_AGRICULTURE_ENABLED=true`, `SPRING_DATASOURCE_URL=jdbc:postgresql://db-agri:5432/gialai_agriculture`
+3. **Frontend Runtime Flag Synchronization:** Because a single artifact is shared across all 3 containers, the frontend UI dynamically synchronizes its feature flags at runtime from the backend container (e.g. via `/api/auth/me` or `/api/public/config`), ensuring each container presents only its designated feature set to users.
+4. **Subdomain Routing:** Caddy (or the PaaS reverse proxy) routes incoming subdomains (`ocop.gialai.gov.vn`, `khcn.gialai.gov.vn`, `nongnghiep.gialai.gov.vn`) to the respective container port with automatic TLS termination.
 
 ---
 

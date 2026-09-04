@@ -8,24 +8,24 @@
 > **Trạng thái tài liệu:** Kế hoạch triển khai Giai đoạn 2 (Affiliated Unit Management), xây dựng trên nền tảng Giai đoạn 1 đã hoàn thành.
 >
 > **Tài liệu tham chiếu bắt buộc:**
-> - [ARCHITECTURE SPECIFICATION.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/ARCHITECTURE%20SPECIFICATION.md) — Cơ chế Modular Feature Architecture (feature flag → package → Flyway folder + modular JPA config).
-> - [DATA_MODEL.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/DATA_MODEL.md) — Quy ước schema cho bảng module mới.
-> - [API_CONTRACT.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/API_CONTRACT.md) — Quy ước endpoint cho module mới.
-> - [CODING_CONVENTIONS.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/en/CODING_CONVENTIONS.md) — Naming, MapStruct, cấu trúc thư mục FE.
-> - [Design_rule.md](file:///d:/Workspace/WEB%20GIS%20TEMPLATE/docs/UI-UX/Design_rule.md) — Quy tắc thiết kế UI/UX và màu sắc.
+> - [ARCHITECTURE SPECIFICATION.md](./en/ARCHITECTURE%20SPECIFICATION.md) — Cơ chế Modular Feature Architecture (feature flag → package → Flyway folder + modular JPA config).
+> - [DATA_MODEL.md](./en/DATA_MODEL.md) — Quy ước schema cho bảng module mới.
+> - [API_CONTRACT.md](./en/API_CONTRACT.md) — Quy ước endpoint cho module mới.
+> - [CODING_CONVENTIONS.md](./en/CODING_CONVENTIONS.md) — Naming, MapStruct, cấu trúc thư mục FE.
+> - [Design_rule.md](./UI-UX/Design_rule.md) — Quy tắc thiết kế UI/UX và màu sắc.
 
 > [!TIP]
-> **Triết lý Giai đoạn 2:** Giai đoạn 2 chứng minh **kiến trúc modularity "cắm là chạy"** — xây dựng module OCOP làm mẫu tham chiếu, sau đó nhân bản cho 2 module Science và Agriculture. Cả 3 module đều là dạng Điểm (**Point layer**). Giai đoạn 2 tập trung xây dựng "sổ đăng ký" (registry) CRUD + upload tài liệu/ảnh + nhập toạ độ (lat/lng) cho từng đơn vị trực thuộc (việc hiển thị điểm trên bản đồ thuộc Giai đoạn 3).
+> **Triết lý Giai đoạn 2:** Giai đoạn 2 tập trung hoàn thiện **nghiệp vụ thực tế cho Khách hàng 1 (Chương trình OCOP Gia Lai)**, đồng thời chứng minh **kiến trúc modularity "cắm là chạy"** bằng cách tạo 2 module mẫu Scaffold (Science và Agriculture) làm khung tham chiếu kỹ thuật. Cả 3 module ban đầu đều ở dạng Điểm (**Point layer**). Giai đoạn 2 tập trung xây dựng "sổ đăng ký" (registry) CRUD + upload tài liệu/ảnh + nhập toạ độ (lat/lng) cho từng đơn vị (việc hiển thị điểm trên bản đồ thuộc Giai đoạn 3). Khi làm việc chính thức với 2 khách hàng KH&CN và Nông nghiệp trong tương lai, 2 module đó sẽ được khảo sát và thiết kế lại độc lập theo yêu cầu chuyên biệt của họ.
 
 ---
 
 ## 1. Quy ước kỹ thuật cốt lõi
 
-1. **3 Feature Modules:** Hệ thống hỗ trợ 3 module chuyên đề độc lập: `ocop`, `science`, `agriculture`.
-2. **Hình học Point Layer:** Cả 3 module đều sử dụng dữ liệu không gian dạng **Điểm (`geom geometry(Point, 4326)`)**, toạ độ `[longitude, latitude]`.
+1. **Module Nghiệp vụ Thực tế & 2 Module Scaffold:** OCOP là module nghiệp vụ thực tế đầu tiên đã hoàn thiện schema. Hai module `science` và `agriculture` đóng vai trò scaffold khung mẫu để kiểm tra tính độc lập và khả năng tách rời của kiến trúc.
+2. **Hình học Point Layer:** Các module hiện tại sử dụng dữ liệu không gian dạng **Điểm (`geom geometry(Point, 4326)`)**, toạ độ `[longitude, latitude]`.
 3. **Dữ liệu lãnh đạo (`local_leaders`):** Nối dây API backend với DTO `leaders: []` để tự động hiển thị ngay khi nạp dữ liệu.
-4. **Mô hình Triển khai:** 3 deployment độc lập với 3 container app và 3 database riêng biệt (`gialai_ocop`, `gialai_science`, `gialai_agriculture`), dùng chung dữ liệu ranh giới xã lõi.
-5. **Modular Feature Architecture:** Kiểm soát qua biến môi trường backend `FEATURES_*_ENABLED` (kích hoạt Controller + Dynamic Flyway + Modular JPA config) và frontend `VITE_ENABLE_*`.
+4. **Mô hình Triển khai:** 1 VPS vật lý hosting 3 khách hàng, phân tách thành 3 deployment độc lập với 3 container app và 3 database riêng biệt (`gialai_ocop`, `gialai_science`, `gialai_agriculture`), dùng chung dữ liệu ranh giới xã lõi.
+5. **Modular Feature Architecture:** Kiểm soát tính năng độc lập qua cấu hình môi trường runtime backend `FEATURES_*_ENABLED` (kích hoạt Controller + Dynamic Flyway + Modular JPA config) và frontend đồng bộ tương ứng.
 
 ---
 
@@ -145,33 +145,17 @@
   6. Ghi migration `BE/src/main/resources/db/migration/core/V5__create_attachments.sql` (đây là bảng **core**, không phải feature — vì service dùng chung mọi module) nếu quyết định lưu metadata file vào DB thay vì chỉ dựa vào tên file trên đĩa; nếu không cần tra cứu/liệt kê file độc lập, có thể bỏ qua bảng riêng và chỉ lưu `imageUrl`/`documentUrl` dạng string trực tiếp trên từng entity (`OcopProduct.imageUrl` v.v.) — **khuyến nghị phương án đơn giản này trước**, chỉ thêm bảng `attachments` nếu về sau cần 1 tổ chức có nhiều hơn 1 ảnh/tài liệu.
 - **Cách verify:** Unit test `LocalFileStorageService` (không cần Testcontainers, chỉ cần thư mục temp — dùng `@TempDir` của JUnit 5). Test upload file giả mạo đuôi (đổi tên `.exe` thành `.png`) bị từ chối đúng.
 
-#### **TSK-10: Module Science (nhân bản từ OCOP)**
+#### **TSK-10: Module Science (Scaffold Prototype thử nghiệm kiến trúc)**
 
-- **Việc cần làm:** lặp lại chính xác các bước ở TSK-8, đổi `ocop` → `science`, `OcopProduct` → `ScienceUnit`, bảng `science_units` (cùng shape cột với `ocop_products`, theo đúng câu *"science_units should follow the identical shape"* ở `DATA_MODEL.md` mục 4.1). Migration tại `db/migration/science/V1__create_science_units.sql`.
-- **Khác biệt duy nhất so với OCOP:** không cần lặp lại việc thiết kế `FileStorageService` (TSK-9 đã xong, tái sử dụng interface có sẵn) — chỉ cần gọi `POST /api/files` từ FE giống OCOP.
-- **Cách verify:** giống hệt TSK-8, đổi endpoint thành `/api/science`.
+- **Bản chất nghiệp vụ:** Đây là **module khung mẫu (scaffold)** dùng để thử nghiệm khả năng cô lập tính năng và tính pluggable của hệ thống. Vì chưa làm việc trực tiếp với khách hàng Sở KH&CN, cấu hình ban đầu sử dụng schema điểm POI tối thiểu. Khi bắt tay làm việc chính thức trong tương lai, module này sẽ được khảo sát và tái thiết kế hoàn toàn theo bài toán thực tế của đơn vị KH&CN (đề tài, dự án, đơn vị ĐMST...).
+- **Việc cần làm trong giai đoạn này:** triển khai khung mẫu tương tự TSK-8 với `science_units` và package `com.website.gis.features.science`, kiểm thử độc lập qua cờ `features.science.enabled`.
+- **Cách verify:** giống TSK-8, kiểm tra cờ tắt trả về 404, bật trả về danh sách scaffold.
 
-#### **TSK-11: Module Agriculture (nhân bản từ OCOP — dạng Point POI)**
+#### **TSK-11: Module Agriculture (Scaffold Prototype thử nghiệm kiến trúc)**
 
-- **Việc cần làm:** lặp lại chính xác các bước ở TSK-8, đổi `ocop` → `agriculture`, `OcopProduct` → `AgricultureUnit`, bảng `agriculture_units` (cùng shape cột với `ocop_products`, theo đúng `DATA_MODEL.md` mục 4.1). Migration tại `db/migration/agriculture/V1__create_agriculture_units.sql`:
-  1. Migration `db/migration/agriculture/V1__create_agriculture_units.sql`:
-     ```sql
-     CREATE TABLE agriculture_units (
-         id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
-         name varchar(255) NOT NULL,
-         unit_type varchar(100),
-         description text,
-         ward_code varchar(20) NOT NULL,
-         geom geometry(Point, 4326) NOT NULL,
-         image_url varchar(500),
-         PRIMARY KEY (id),
-         CONSTRAINT agriculture_units_ward_code_fkey FOREIGN KEY (ward_code) REFERENCES wards (code)
-     );
-     CREATE INDEX idx_agriculture_units_ward_code ON public.agriculture_units USING btree (ward_code);
-     CREATE INDEX idx_agriculture_units_geom ON public.agriculture_units USING gist (geom);
-     ```
-  2. Package `com.website.gis.features.agriculture` — entity `AgricultureUnit`, repo `AgricultureUnitRepository`, DTOs (`AgricultureUnitDto`, `AgricultureUnitCreateRequest`, `AgricultureUnitUpdateRequest` có `latitude`/`longitude`), mapper `AgricultureUnitMapper`, `AgricultureController` với `@ConditionalOnProperty(name = "features.agriculture.enabled", havingValue = "true")`, CRUD y hệt pattern TSK-8.
-- **Cách verify:** giống hệt TSK-8, đổi endpoint thành `/api/agriculture`.
+- **Bản chất nghiệp vụ:** Tương tự Module Science, đây là **module khung mẫu (scaffold)** để kiểm nghiệm tính độc lập của module Nông nghiệp. Yêu cầu chuyên sâu của ngành nông nghiệp (vùng trồng Polygon, cơ sở chăn nuôi, chuỗi liên kết...) sẽ được khảo sát và phát triển chi tiết khi tiếp xúc khách hàng Sở Nông nghiệp & PTNT.
+- **Việc cần làm trong giai đoạn này:** triển khai khung mẫu bảng `agriculture_units` và package `com.website.gis.features.agriculture`, điều khiển qua cờ `features.agriculture.enabled`.
+- **Cách verify:** giống TSK-8, đổi endpoint thành `/api/agriculture`.
 
 ---
 

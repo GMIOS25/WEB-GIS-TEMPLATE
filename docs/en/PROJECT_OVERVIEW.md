@@ -17,13 +17,13 @@ The system allows managing, updating, and querying information of commune/ward/t
 
 ### 2. Implementation Roadmap (Phased Approach)
 
-The project is divided into 3 development phases. The system is designed as a flexible, common framework (Template), supporting feature toggles for specific modules (OCOP, Science, Agriculture) based on each client's specific requirements (Build-time for Frontend, Deployment-time Configuration for Backend):
+The project serves 3 distinct provincial client deployments sharing a common Administrative Core. The system is designed as a flexible, common framework (Template), supporting pluggable feature modules (OCOP, Science, Agriculture). Currently, **Client 1 (OCOP Gia Lai)** has completed production-grade business requirements, while **Clients 2 & 3 (Science & Agriculture)** have scaffold proof-of-concept modules in place awaiting specific requirement discovery:
 
 | Phase       | Phase Name                     | Core Deliverables                                                                                                                                                                                                                                                                                                                              |
 | :---------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Phase 1** | **Administrative Foundation**  | - Commune-level administrative map: Display Gia Lai borders, select and view area details directly on the map.<br>- Administrative information lookup: Fast search of communes/wards.<br>- User roles (ADMIN: account administration, VIEWER: map lookup). Direct data or boundary editing via the web is not supported.                       |
-| **Phase 2** | **Affiliated Unit Management** | - Expand management registries for affiliated organizations and units at the commune/ward level as independent modules (OCOP production units, Sci-Tech units, Agricultural production units).<br>- Develop Resource Management Module (Upload avatar, actual photos, attached files/documents for each organization).                         |
-| **Phase 3** | **GIS Map Integration**        | - Geopoint coordinate mapping (Point) and visualization of enabled modules' organizations on the map.<br>- Establish spatial relations between organizations and managing administrative units.<br>- Map-based queries (radius search, administrative area filter).<br>- Visual reporting and analytics on the map via toggleable data layers. |
+| **Phase 1** | **Administrative Foundation (Core)**  | - Shared by all 3 clients: Commune-level administrative map (135 wards of Gia Lai code 52), boundary display, fast search.<br>- Authentication & user administration (ADMIN / VIEWER), JWT HttpOnly cookies.<br>- Standardized storage service for media uploads (`/api/files`).                                                                  |
+| **Phase 2** | **Affiliated Unit Management** | - **OCOP Module (Client 1 - Production):** Registry management for OCOP production facilities with multi-category product types, 1–5 star ratings, contact hotline, facility address, coordinate tracking, and image uploads.<br>- **Science & Agriculture Modules (Scaffold):** Lightweight placeholder modules validating the pluggable architecture; to be customized when engaging the respective clients. |
+| **Phase 3** | **GIS Map Integration**        | - Point-layer mapping and MarkerCluster visualization on Leaflet map.<br>- Interactive coordinate map picker (`MapPicker`) for administrative forms.<br>- Spatial radius search (`ST_DWithin` on geography with GiST indexes) and ward filtering.<br>- Single source of truth layer control with synchronized visual legends.               |
 
 ---
 
@@ -168,18 +168,16 @@ graph TD
 
 ### 7. Modular & Pluggable Architecture Design (Modularity & Pluggability)
 
-The system is designed to facilitate quick packaging and exclusion of unnecessary functional components depending on each customer's purchase order using **Modular Feature Architecture** (Build-time Frontend + Config-driven Backend):
+The system delivers bespoke solutions for 3 client deployments from a single unified codebase while maintaining a **Single Runtime Artifact (Fat JAR/Docker Image)**:
 
-1. **Frontend (Vite/React):**
-   - Utilizes environment variables (`VITE_ENABLE_OCOP`, `VITE_ENABLE_SCIENCE`, `VITE_ENABLE_AGRICULTURE`, etc.) inside the `.env` file for each build target.
-   - The Routing system and Menu Sidebar automatically inspect these environment variables to register or hide corresponding pages/functionalities and code-split bundles.
-2. **Backend (Spring Boot):**
-   - Isolates specific feature modules into designated packages (e.g., `com.website.gis.features.ocop`).
-   - Uses configuration properties (`features.*.enabled`) along with `@ConditionalOnProperty` on dedicated `*FeatureConfig` classes and controllers to conditionally register Spring Data JPA repositories, Hibernate Entity scanning, and REST endpoints. If a feature is disabled, its endpoints return 404 and its entities are omitted from Hibernate Metamodel (ensuring `ddl-auto=validate` functions safely without missing table errors).
-3. **Database (PostgreSQL & Flyway):**
-   - Partitions DDL/DML initialization scripts into dedicated Flyway folders (`db/migration/core` for the base admin boundaries, and separate folders like `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`, etc.).
-   - During application startup, depending on active profiles, the system dynamically appends corresponding path locations to Flyway scan targets, avoiding the creation of unused tables in client databases.
-4. **Deployment Isolation:**
-   - Each customer runs as a fully separate application container **and** a fully separate database instance ("database-per-customer"), not a shared multi-tenant database with row-level filtering. This guarantees that one customer can never query or view another customer's specialized data, since there is no network or code path between them.
-   - Multiple customer stacks may share a single Virtual Private Server (VPS) for cost efficiency, but this is purely an infrastructure placement decision and carries no code-level coupling.
-   - See `ARCHITECTURE SPECIFICATION.md` (Sections 6–7) for the isolation model and rollout mechanics, and `DEPLOYMENT & FLEET STRATEGY.md` for the full operational runbook (fleet registry, build pipeline, rollout scripts, and standard runbooks for onboarding customers, emergency fixes, partial feature rollouts, and core data corrections).
+1. **Frontend & Backend Modularity Coordination:**
+   - **Backend (Spring Boot):** Isolates specific feature modules into dedicated packages (e.g., `com.website.gis.features.ocop`). Feature properties (`features.*.enabled`) paired with `@ConditionalOnProperty` dynamically toggle REST controllers, Spring Data JPA repositories, and Flyway migration scanning.
+   - **Frontend (React/Vite):** In development, features can be toggled via environment variables (`VITE_ENABLE_*`). For production Docker deployments, to enable a **single built image** to serve any client stack, the frontend synchronizes active feature flags from the backend container at runtime, eliminating the need to rebuild separate frontend bundles for each customer.
+2. **Database (PostgreSQL & Flyway Partitioning):**
+   - Partitioned Flyway migration folders (`db/migration/core`, `db/migration/ocop`, `db/migration/science`, `db/migration/agriculture`).
+   - Active database instances only execute migrations corresponding to enabled modules via `DynamicFlywayConfig`, keeping client schemas clean and free from unused tables.
+3. **Multi-Tenant Deployment Topology (1 VPS, 3 Containers, 3 Databases):**
+   - All 3 customer instances run on **1 physical VPS** (e.g. Viettel IDC) for cost efficiency.
+   - Strict isolation is enforced via **container-per-customer** and **database-per-customer** (`gialai_ocop`, `gialai_science`, `gialai_agriculture`). There is zero cross-tenant database sharing or network coupling.
+   - A reverse proxy (Caddy) routes client subdomains (`ocop.gialai.gov.vn`, `khcn.gialai.gov.vn`, `nongnghiep.gialai.gov.vn`) to the appropriate container with automatic SSL termination.
+   - See `ARCHITECTURE SPECIFICATION.md` (Sections 6–7) and `DEPLOYMENT & FLEET STRATEGY.md` for full operational and isolation specifications.

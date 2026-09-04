@@ -35,13 +35,15 @@
 
 Dự án **Gia Lai Web GIS Template** đáp ứng nhu cầu số hóa thông tin hành chính địa phương (áp dụng mã hành chính chính thức **52** cho tỉnh Gia Lai hợp nhất).
 
-Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho phép mở rộng linh hoạt theo từng giai đoạn và bật/tắt các module chuyên ngành (OCOP, Khoa học Công nghệ, Nông nghiệp, Điểm du lịch...) thông qua cơ chế **Compile-time Modularity & Feature Toggles**.
+Hệ thống được thiết kế theo kiến trúc **Core Platform + Feature Extensions**, giải quyết bài toán phục vụ **3 nhóm khách hàng** với mức độ sẵn sàng thực tế khác nhau:
+1. **Khách hàng 1 (Sản phẩm OCOP - Đã hoàn thiện):** Đã làm việc trực tiếp về nghiệp vụ, hoàn thiện schema quản lý sản phẩm (`product_types`, `star_rating`, liên hệ, địa chỉ), tra cứu bản đồ POI và chức năng tìm kiếm toàn diện.
+2. **Khách hàng 2 (Khoa học & Công nghệ) & Khách hàng 3 (Nông nghiệp):** Đang duy trì dưới dạng **module khung mẫu (Scaffold Prototypes)**. Khi chính thức làm việc với khách hàng để thu thập yêu cầu cụ thể, các module này sẽ được phát triển chuyên biệt mà không làm ảnh hưởng tới core hệ thống.
 
 ### Mục Tiêu Cốt Lõi:
 
-1. **Chủ quyền dữ liệu địa lý:** Tự lưu trữ và xử lý ranh giới hình học (`MultiPolygon`) và điểm tọa độ (`Point`) trực tiếp từ PostgreSQL/PostGIS.
-2. **Hiệu năng & Tối ưu hóa:** Sử dụng Tile Layer mở (CartoDB) và render ranh giới động bằng Leaflet dạng GeoJSON.
-3. **Mô hình triển khai gọn nhẹ:** Đóng gói ứng dụng Fullstack (Spring Boot + static React build) trong **1 Docker Image duy nhất**, được bảo vệ bởi Caddy Reverse Proxy hỗ trợ tự động HTTPS.
+1. **Chủ quyền dữ liệu địa lý:** Tự lưu trữ và xử lý ranh giới hình học (`MultiPolygon`) và điểm tọa độ (`Point`) trực tiếp từ PostgreSQL/PostGIS cho toàn bộ 135 xã/phường.
+2. **Cách ly dữ liệu tuyệt đối (Database-per-customer):** Trên cùng 1 VPS/Cloud Server, mỗi khách hàng chạy trên **1 container ứng dụng và 1 cơ sở dữ liệu riêng biệt**, bảo đảm an toàn dữ liệu và không rò rỉ chéo.
+3. **Đóng gói Single-Artifact gọn nhẹ:** Ứng dụng Fullstack (React static files nhúng trực tiếp vào Spring Boot static resources) được đóng gói trong **1 Docker Image duy nhất**, cấu hình linh hoạt qua biến môi trường tại runtime và được bảo vệ bởi Caddy Reverse Proxy hỗ trợ tự động HTTPS.
 
 ---
 
@@ -56,6 +58,10 @@ Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho 
   - Tìm kiếm nhanh thông tin đơn vị hành chính theo tên hoặc mã định danh.
   - Quản lý danh sách cán bộ lãnh đạo địa phương (Chủ tịch UBND, Phó Chủ tịch... từ bảng `local_leaders`). Đã nạp đầy đủ dữ liệu 135 xã/phường và hiển thị trực tiếp trên giao diện tra cứu.
 
+- 🛍️ **Chuyên Đề OCOP (Production Reference):**
+  - Quản lý và định vị sản phẩm OCOP theo chuẩn 1 - 5 sao vàng.
+  - Phân loại đa ngành hàng (`productTypes`), liên hệ trực tiếp (`tel:`), địa chỉ cơ sở và tìm kiếm từ khóa linh hoạt.
+
 - 🔐 **Xác Thực & Phân Quyền Người Dùng (RBAC):**
   - Bảo mật bằng Spring Security + JWT đóng gói an toàn trong **HttpOnly Cookie** (`gis_token`).
   - Hỗ trợ 2 nhóm quyền phân biệt:
@@ -63,7 +69,7 @@ Hệ thống đóng vai trò làm khung mẫu cơ sở (Template Framework) cho 
     - **`VIEWER`**: Quyền tra cứu bản đồ và xem thông tin hành chính.
 
 - 🧩 **Kiến Trúc Module Linh Hoạt (Feature Toggles):**
-  - Cho phép bật/tắt các module chuyên ngành (OCOP, Khoa học Công nghệ, Nông nghiệp) bằng biến môi trường mà không ảnh hưởng tới core hệ thống.
+  - Cho phép bật/tắt các module chuyên ngành (OCOP, Khoa học Công nghệ, Nông nghiệp) linh hoạt theo từng container khách hàng mà không ảnh hưởng tới core hệ thống.
 
 - 📑 **Tài Liệu API & Monitoring Tự Động:**
   - Tích hợp sẵn Swagger UI / OpenAPI 3.0 và Spring Boot Actuator để kiểm tra sức khỏe hệ thống (Health Check).

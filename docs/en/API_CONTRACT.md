@@ -275,20 +275,11 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 - **Response Body:**
   - Status `200 OK`
   - Content-Type: `application/json`
-  - Description: Returns a raw GeoJSON Feature coordinates geometry object representing the boundary of the ward.
+  - Description: Returns a raw GeoJSON Geometry object (direct output of PostGIS `ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.00003), 6)`) representing the simplified boundary geometry of the ward. Note: Unlike `/api/wards/geojson`, this endpoint returns a raw Geometry (`MultiPolygon` / `Polygon`), not wrapped in a `Feature` or `FeatureCollection`.
   ```json
   {
-    "type": "Feature",
-    "geometry": {
-      "type": "MultiPolygon",
-      "coordinates": [[[[107.9812, 13.9723], [107.9854, 13.9745], ...]]]
-    },
-    "properties": {
-      "code": "21112",
-      "name": "Ia Kring",
-      "fullName": "Phường Ia Kring",
-      "areaKm2": 6.84
-    }
+    "type": "MultiPolygon",
+    "coordinates": [[[[107.9812, 13.9723], [107.9854, 13.9745]]]]
   }
   ```
 
@@ -298,7 +289,8 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 - **Response Body:**
   - Status `200 OK`
   - Content-Type: `application/json`
-  - Description: Returns a GeoJSON `FeatureCollection` containing all ward boundaries of Gia Lai Province.
+  - Cache-Control: `private, max-age=3600`
+  - Description: Returns a structured GeoJSON `FeatureCollection` containing all 135 ward boundaries of Gia Lai Province with administrative metadata embedded in each feature's `properties`.
   ```json
   {
     "type": "FeatureCollection",
@@ -307,7 +299,7 @@ For list endpoints that support pagination, the server uses standard Spring Boot
         "type": "Feature",
         "geometry": {
           "type": "MultiPolygon",
-          "coordinates": [...]
+          "coordinates": [[[[107.9812, 13.9723], [107.9854, 13.9745]]]]
         },
         "properties": {
           "code": "21112",
@@ -326,19 +318,12 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 - **Response Body:**
   - Status `200 OK`
   - Content-Type: `application/json`
-  - Description: Returns the boundary polygon of Gia Lai province (Province Code: **52**).
+  - Cache-Control: `private, max-age=3600`
+  - Description: Returns the simplified boundary geometry of Gia Lai province (Province Code: **52**) as a raw GeoJSON Geometry object (`ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.0005), 6)`).
   ```json
   {
-    "type": "Feature",
-    "geometry": {
-      "type": "Polygon",
-      "coordinates": [...]
-    },
-    "properties": {
-      "code": "52",
-      "name": "Gia Lai",
-      "fullName": "Tỉnh Gia Lai"
-    }
+    "type": "Polygon",
+    "coordinates": [[[107.5123, 13.5432], [108.4321, 13.5678], [108.5123, 14.1234], [107.5123, 13.5432]]]
   }
   ```
 
@@ -375,6 +360,11 @@ For list endpoints that support pagination, the server uses standard Spring Boot
 ### 4.5. Feature Modules (`ocop`, `science`, `agriculture`)
 
 These modules are implemented as independent pluggable feature extensions. Each controller is conditional upon `features.<module>.enabled=true` (returning `404 Not Found` when disabled).
+
+> [!IMPORTANT]
+> **Module Maturity & Contract Stability:**
+> - **OCOP (`/api/ocop`) — Production Reference (Client 1):** Verified client requirements. Features a complete domain schema (`productTypes`, `starRating`, address, phone), full PUT replacement semantics, and full-text keyword search (`q`).
+> - **Science (`/api/science`) & Agriculture (`/api/agriculture`) — Scaffold Prototypes (Clients 2 & 3):** Requirements for Client 2 (Science & Technology Department) and Client 3 (Agriculture Department) have **not** yet been gathered. Their current API endpoints and DTOs (`unitType`, `description`, PATCH-like PUT updates) serve as architectural proof-of-concept placeholders. Their contract will evolve and branch off significantly upon client onboarding.
 
 #### `GET /api/{ocop|science|agriculture}`
 - **Access:** Authenticated Users (`ADMIN`, `VIEWER`)

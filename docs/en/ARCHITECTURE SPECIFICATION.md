@@ -48,47 +48,48 @@ graph TD
 
 ## 2. Modular Feature Architecture (Feature Toggling)
 
-To deliver bespoke packages for different clients (e.g., Client A only needs OCOP, Client B only needs science & agriculture) while maintaining a single, unified codebase and single Docker base image (12-Factor App), the system utilizes a **Hybrid Modularity** pattern:
-- **Frontend (Build-time / Environment-driven):** Feature flags (`VITE_ENABLE_*`) control UI routes, dynamic sidebar menus, Leaflet layer overlays, and trigger Vite code-splitting (`React.lazy()`) to eliminate unused bundle chunks.
+To deliver bespoke packages for 3 provincial clients (Client 1: OCOP Gia Lai, Client 2: Science & Tech, Client 3: Agriculture) while maintaining a single, unified codebase and a **single Docker base image artifact** (12-Factor App), the system utilizes a **Coordinated Modularity** pattern:
 - **Backend (Deployment-time / Configuration-driven):** Runtime feature flags (`features.*.enabled`) conditionally load Spring REST controllers, MapStruct mappers, Spring Data JPA repositories, and Hibernate Entity scanning via dedicated `*FeatureConfig` classes.
+- **Frontend (Runtime-synchronized & Build-friendly):** In development, `.env` flags (`VITE_ENABLE_*`) can be used for isolated testing. In multi-container Docker deployments built from a single image, the frontend reads enabled modules dynamically from the backend container at runtime, eliminating the need to compile separate frontend artifacts for each customer.
 - **Database (Dynamic Migration Partitioning):** Flyway dynamically calculates the migration classpath scan list, creating only tables corresponding to enabled features.
 
 ```mermaid
 sequenceDiagram
     participant Config as Deployment Environment (.env / application.properties)
-    participant FE as Vite Compiler & Bundler (Frontend)
-    participant BE as Spring Boot Bean & JPA Registry (Backend)
+    participant BE as Spring Boot Bean, JPA & Migration Registry (Backend)
+    participant FE as React GIS Workspace (Frontend)
     participant DB as Dynamic Flyway Migrator (Database)
 
-    Config->>FE: Inject Build/Runtime Variables (e.g., VITE_ENABLE_OCOP=true)
     Config->>BE: Set Feature Properties (e.g., features.ocop.enabled=true)
-    Config->>DB: DynamicFlywayConfig appends active migration folders
-
-    Note over FE: Code-splits & conditionally renders OCOP panels & map layers
+    BE->>DB: DynamicFlywayConfig appends active migration folders (core + ocop)
+    BE->>FE: Serves runtime configuration & active feature statuses
+    Note over FE: Lazily loads & displays OCOP panels, filters, & map cluster layers
     Note over BE: Loads OcopFeatureConfig (EntityScan & JpaRepositories) & OcopController
-    Note over DB: Executes core + active module migrations (e.g., core + ocop)
+    Note over DB: Executes core + active module migrations
 ```
 
 ---
 
 ## 3. Frontend Modularity Implementation (React + Vite)
 
-Modularity in the frontend is controlled by environment variables injected at build time.
+Modularity in the frontend operates seamlessly across local development and single-artifact production container deployments.
 
-### 3.1. Environment Configuration (`.env`)
+### 3.1. Environment Configuration & Runtime Synchronization
 
-Each client deployment will have its own `.env` file containing feature switches:
+In local development, developers can toggle features directly via `.env`:
 
 ```env
 # Core Administrative Configurations
 VITE_API_BASE_URL=http://localhost:8080/api
 VITE_PROVINCE_CODE=52
 
-# Feature Modularity Toggles
+# Feature Modularity Toggles (Local Dev Defaults)
 VITE_ENABLE_SCIENCE=false
 VITE_ENABLE_OCOP=true
 VITE_ENABLE_AGRICULTURE=false
 ```
+
+In production, since the frontend is embedded directly into the Spring Boot fat JAR (`src/main/resources/static`) inside a single Docker image artifact, the frontend dynamically synchronizes with the backend container's active feature set upon initialization.
 
 ### 3.2. Dynamic View Switching & Component Code Splitting
 
@@ -484,7 +485,7 @@ Given the isolation model above, every customer runs the **same application arti
 
 | Layer    | What varies per customer                                                                      |
 | :------- | :-------------------------------------------------------------------------------------------- |
-| Frontend | `.env` build-time feature flags (`VITE_ENABLE_OCOP`, etc. — Section 3.1)                      |
+| Frontend | Runtime synchronization from active Backend container (or `.env` build flags in dev)          |
 | Backend  | `application.properties`/env-var feature flags (`FEATURES_OCOP_ENABLED`, etc. — Section 4.3)  |
 | Database | Which Flyway feature folders get scanned (Section 5.2) — determines which tables exist at all |
 | Infra    | A dedicated database instance and, per Section 7, a dedicated deployment slot                 |
@@ -494,18 +495,20 @@ Because the differences are entirely configuration-driven, onboarding a new cust
 ### 6.3. Infrastructure Placement: 1 VPS, 3 Containers, 3 Databases
 
 - **Shared Core:** All 3 customer deployments share the same baseline geographical data (the 135 commune/ward boundaries of Gia Lai).
-- **Independent Stacks on 1 VPS:** Multiple customers' independent stacks (app + own DB, per Section 6.1) run on the same physical VPS for cost efficiency. Each gets its own containers, own database, own volumes, and isolated network namespaces.
+- **Independent Stacks on 1 VPS:** Multiple customers' independent stacks (app container + dedicated DB, per Section 6.1) run on the same physical VPS for cost efficiency. Each gets its own containers, own database, own volumes, and isolated network namespaces.
 - **Logical/Data Isolation:** Hard guarantee with separate app processes and separate databases.
 
-### 6.4. Geometry Type Convention Across Feature Modules
+### 6.4. Domain and Geometry Specifications Across Feature Modules
 
 > **Naming note:** Canonical module keys are standardized to `ocop`, `science`, and `agriculture` across code (`features.science.enabled`, `features.agriculture.enabled`), configuration, and documentation.
 
-All 3 feature modules (`ocop`, `science`, `agriculture`) are **Point-type modules**:
+1. **Module OCOP (Client 1 — Production Implementation):**
+   - **Domain Shape:** Manages certified OCOP facilities and products with fields: `name`, `product_types text[]`, `star_rating` (1–5 stars), `contact_phone`, `location_address`, `ward_code`, `geom geometry(Point, 4326)`, and `image_url`.
+   - **Spatial Visualization:** Rendered on Leaflet map as interactive point markers with cluster support (`PoiMarkerClusterLayer`), styled with warm orange palette (`#F97316`), and interactive search/radius filtering.
 
-- Each record represents one point of interest (POI) with an inline `geometry(Point, 4326)` column.
-- Rendered on the frontend as interactive Leaflet markers with clustering at province zoom levels and unclustering at commune zoom levels (`OcopMarkers`, `ScienceMarkers`, `AgricultureMarkers`).
-- Styled using distinct, non-overlapping color palettes defined in `docs/UI-UX/Design_rule.md` (OCOP: `#F97316` Orange, Science: `#64748B` Slate Gray, Agriculture: `#6B7280` Cool Gray).
+2. **Modules Science & Agriculture (Clients 2 & 3 — Scaffold Prototypes):**
+   - **Architectural Purpose:** Currently implemented as lightweight scaffold prototypes using point geometry (`geometry(Point, 4326)`) to validate the multi-module build, dynamic Flyway migration, and Leaflet layer toggle mechanics.
+   - **Future Evolution:** When initiating requirements gathering with the respective provincial departments (Department of Science & Technology, Department of Agriculture & Rural Development), these modules will be completely redesigned to fit their specialized domain models (e.g. agricultural polygon cultivation zones, research projects, patent registries) rather than blindly duplicating the OCOP structure.
 
 ---
 

@@ -212,21 +212,22 @@ Standard PostGIS system table (spatial reference system definitions). Created au
 
 ---
 
-## 4. Convention for Future Feature Module Tables
+## 4. Feature Module Schemas (Production OCOP & Scaffold Modules)
 
-All 3 feature modules (`ocop`, `science`, `agriculture`) are **point-type POI modules**. A single table with an inline PostGIS Point geometry (`geom geometry(Point, 4326)`) is used for each module, keeping the architecture clean and consistent:
+The system supports pluggable feature modules that extend the core administrative foundation.
 
-### 4.1. Point-type Module Pattern
+### 4.1. OCOP Schema (Client 1 — Verified Production Model)
+
+The `ocop_products` table reflects real-world business requirements for the Gia Lai OCOP Program, including multi-category tagging (`text[]` with GIN indexing), 1–5 star quality rankings, facility contact info, and spatial indexing:
 
 ```sql
--- 1. Schema for features/ocop (with array and rating support)
 CREATE TABLE ocop_products (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
     name varchar(255) NOT NULL,
     product_types text[] DEFAULT '{}',          -- Array of product types for multi-category support
     star_rating integer,                        -- OCOP star rating (1-5)
     contact_phone varchar(13),                  -- Contact phone number
-    location_address text,                      -- Detailed address
+    location_address text,                      -- Detailed facility address
     ward_code varchar(20) NOT NULL,
     geom geometry(Point, 4326) NOT NULL,
     image_url varchar(500),
@@ -237,8 +238,16 @@ CREATE INDEX idx_ocop_products_ward_code ON public.ocop_products USING btree (wa
 CREATE INDEX idx_ocop_products_geom ON public.ocop_products USING gist (geom);
 CREATE INDEX idx_ocop_products_types ON public.ocop_products USING gin (product_types); -- GIN index for fast array search
 CREATE INDEX idx_ocop_products_geog ON public.ocop_products USING gist (CAST(geom AS geography));
+```
 
--- 2. Schema for features/science (identical shape)
+### 4.2. Science & Agriculture Schemas (Clients 2 & 3 — Scaffold Prototypes)
+
+> [!NOTE]
+> **Scaffold Notice for Science & Agriculture:**  
+> The tables below (`science_units`, `agriculture_units`) are minimal scaffold models built to demonstrate modular JPA configuration and Flyway dynamic scanning. Because requirements discovery for these two clients is scheduled for future phases, their actual production schemas will be designed independently (and may include multi-table relationships, polygon farming zones, or project registries) without being restricted to this initial point shape.
+
+```sql
+-- Scaffold Schema for features/science
 CREATE TABLE science_units (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
     name varchar(255) NOT NULL,
@@ -254,7 +263,7 @@ CREATE INDEX idx_science_units_ward_code ON public.science_units USING btree (wa
 CREATE INDEX idx_science_units_geom ON public.science_units USING gist (geom);
 CREATE INDEX idx_science_units_geog ON public.science_units USING gist (CAST(geom AS geography));
 
--- 3. Schema for features/agriculture (identical shape)
+-- Scaffold Schema for features/agriculture
 CREATE TABLE agriculture_units (
     id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
     name varchar(255) NOT NULL,
@@ -271,7 +280,7 @@ CREATE INDEX idx_agriculture_units_geom ON public.agriculture_units USING gist (
 CREATE INDEX idx_agriculture_units_geog ON public.agriculture_units USING gist (CAST(geom AS geography));
 ```
 
-### 4.2. Migration Placement
+### 4.3. Migration Placement
 
 All feature migrations belong to their dedicated folders:
 - `BE/src/main/resources/db/migration/ocop/`
