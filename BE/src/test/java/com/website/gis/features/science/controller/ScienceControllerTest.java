@@ -2,6 +2,7 @@ package com.website.gis.features.science.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.repository.WardRepository;
@@ -9,7 +10,6 @@ import com.website.gis.core.security.*;
 import com.website.gis.features.science.dto.ScienceUnitCreateRequest;
 import com.website.gis.features.science.dto.ScienceUnitUpdateRequest;
 import com.website.gis.features.science.entity.ScienceUnit;
-import com.website.gis.features.science.mapper.ScienceUnitMapperImpl;
 import com.website.gis.features.science.repository.ScienceUnitRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = ScienceController.class)
 @TestPropertySource(properties = "features.science.enabled=true")
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, ScienceUnitMapperImpl.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class,
         RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class ScienceControllerTest {
 

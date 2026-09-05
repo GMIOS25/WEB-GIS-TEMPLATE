@@ -2,6 +2,7 @@ package com.website.gis.features.ocop.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.entity.Province;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.repository.UserRepository;
@@ -10,7 +11,6 @@ import com.website.gis.core.security.*;
 import com.website.gis.features.ocop.dto.OcopProductCreateRequest;
 import com.website.gis.features.ocop.dto.OcopProductUpdateRequest;
 import com.website.gis.features.ocop.entity.OcopProduct;
-import com.website.gis.features.ocop.mapper.OcopProductMapperImpl;
 import com.website.gis.features.ocop.repository.OcopProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(OcopController.class)
 @TestPropertySource(properties = "features.ocop.enabled=true")
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, OcopProductMapperImpl.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class,
         RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class OcopControllerTest {
 

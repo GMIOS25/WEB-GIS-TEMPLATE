@@ -1,8 +1,8 @@
 package com.website.gis.features.agriculture.controller;
 
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.controller.WardController;
-import com.website.gis.core.mapper.WardMapperImpl;
 import com.website.gis.core.repository.GisWardRepository;
 import com.website.gis.core.repository.LocalLeaderRepository;
 import com.website.gis.core.repository.UserRepository;
@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = WardController.class)
 @TestPropertySource(properties = "features.agriculture.enabled=false")
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, WardMapperImpl.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class,
         RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class AgricultureDisabledTest {
 

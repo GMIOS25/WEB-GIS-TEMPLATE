@@ -30,6 +30,7 @@ import org.testcontainers.utility.DockerImageName;
 class AuthControllerIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
             DockerImageName.parse("postgis/postgis:15-3.4-alpine").asCompatibleSubstituteFor("postgres"))
             .withDatabaseName("testdb")

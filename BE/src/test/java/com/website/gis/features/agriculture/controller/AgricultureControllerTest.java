@@ -2,6 +2,7 @@ package com.website.gis.features.agriculture.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.repository.WardRepository;
@@ -9,7 +10,6 @@ import com.website.gis.core.security.*;
 import com.website.gis.features.agriculture.dto.AgricultureUnitCreateRequest;
 import com.website.gis.features.agriculture.dto.AgricultureUnitUpdateRequest;
 import com.website.gis.features.agriculture.entity.AgricultureUnit;
-import com.website.gis.features.agriculture.mapper.AgricultureUnitMapperImpl;
 import com.website.gis.features.agriculture.repository.AgricultureUnitRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = AgricultureController.class)
 @TestPropertySource(properties = "features.agriculture.enabled=true")
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, AgricultureUnitMapperImpl.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class,
         RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class AgricultureControllerTest {
 

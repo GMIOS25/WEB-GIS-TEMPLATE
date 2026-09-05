@@ -1,11 +1,11 @@
 package com.website.gis.core.controller;
 
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.LocalLeader;
 import com.website.gis.core.entity.Province;
 import com.website.gis.core.entity.Ward;
-import com.website.gis.core.mapper.WardMapperImpl;
 import com.website.gis.core.repository.GisWardRepository;
 import com.website.gis.core.repository.LocalLeaderRepository;
 import com.website.gis.core.repository.UserRepository;
@@ -37,7 +37,7 @@ import com.website.gis.core.security.RestAuthenticationEntryPoint;
 import com.website.gis.core.security.SecurityErrorResponseWriter;
 
 @WebMvcTest(WardController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, WardMapperImpl.class, RestAccessDeniedHandler.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class, RestAccessDeniedHandler.class,
         RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class WardControllerTest {
 

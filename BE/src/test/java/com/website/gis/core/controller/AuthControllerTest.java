@@ -2,9 +2,9 @@ package com.website.gis.core.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
+import com.website.gis.config.TestMapperConfig;
 import com.website.gis.core.dto.LoginRequest;
 import com.website.gis.core.entity.User;
-import com.website.gis.core.mapper.UserMapperImpl;
 import com.website.gis.core.repository.UserRepository;
 import com.website.gis.core.security.CustomUserDetailsService;
 import com.website.gis.core.security.JwtAuthenticationFilter;
@@ -37,7 +37,7 @@ import com.website.gis.core.security.RestAuthenticationEntryPoint;
 import com.website.gis.core.security.SecurityErrorResponseWriter;
 
 @WebMvcTest(AuthController.class)
-@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, UserMapperImpl.class, RestAccessDeniedHandler.class,
+@Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class, RestAccessDeniedHandler.class,
         RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class AuthControllerTest {
 
