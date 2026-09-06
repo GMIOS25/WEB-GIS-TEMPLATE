@@ -46,10 +46,16 @@ spring.jpa.open-in-view=false
 # Lưu ý: Từ Hibernate 6 (Spring Boot 3.x), Hibernate tự động nhận diện tính năng Spatial 
 # của PostgreSQL nên bạn không cần chỉ định cứng PostgisDialect nữa.
 
-# 2b. Bật nén gzip cho response JSON (GeoJSON trả về rất lớn -> giảm mạnh thời gian tải)
+# 2b. Bật nén gzip cho response JSON & Dynamic API (GeoJSON trả về rất lớn -> giảm mạnh thời gian tải)
 server.compression.enabled=true
-server.compression.mime-types=application/json,application/xml,text/html,text/plain,text/css,application/javascript
+server.compression.mime-types=text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json,application/geo+json,application/xml,image/svg+xml
 server.compression.min-response-size=1024
+
+# 2c-1. Tự động phục vụ static assets đã được pre-compress (.br, .gz) bởi Vite build
+spring.web.resources.chain.enabled=true
+spring.web.resources.chain.compressed=true
+spring.web.resources.chain.cache=true
+
 
 # 2c. Virtual Threads (JDK 21+, Project Loom) - Spring Boot 3.2+ hỗ trợ sẵn qua 1 property,
 # không cần đổi code. App này chủ yếu I/O-bound (chờ JDBC/PostGIS trả kết quả truy vấn
