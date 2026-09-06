@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+/* Be Vietnam Pro - Self-hosted font declarations */
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-v12-latin_vietnamese-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-v12-latin_vietnamese-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-v12-latin_vietnamese-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-v12-latin_vietnamese-700.woff2') format('woff2');
+}
+
 @theme {
   --font-sans: "Be Vietnam Pro", "Noto Sans", system-ui, -apple-system, sans-serif;
   
