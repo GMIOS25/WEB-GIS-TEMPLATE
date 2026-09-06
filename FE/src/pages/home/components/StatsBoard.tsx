@@ -15,14 +15,15 @@ const StatsBoard: React.FC<StatsBoardProps> = ({
   scienceCount = 0,
   agricultureCount = 0,
 }) => {
+  // Fallback to provincial known statistics (220 wards, ~15,510.99 km²) when commune GeoJSON is not loaded yet
   const totalWards = useMemo(() => {
-    return geoJsonData ? geoJsonData.features.length : 0;
+    return geoJsonData ? geoJsonData.features.length : 220;
   }, [geoJsonData]);
 
   const totalArea = useMemo(() => {
     return geoJsonData
       ? geoJsonData.features.reduce((sum: number, f) => sum + (Number(f.properties.areaKm2) || 0), 0)
-      : 0;
+      : 15510.99;
   }, [geoJsonData]);
 
   return (

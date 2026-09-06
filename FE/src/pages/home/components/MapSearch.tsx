@@ -6,12 +6,14 @@ interface MapSearchProps {
   geoJsonData: GeoJsonData | null;
   selectedWard: GeoJsonFeature | null;
   setSelectedWard: (ward: GeoJsonFeature | null) => void;
+  onTriggerLoadCommune?: () => void;
 }
 
 const MapSearch: React.FC<MapSearchProps> = ({
   geoJsonData,
   selectedWard,
   setSelectedWard,
+  onTriggerLoadCommune,
 }) => {
   const [searchQuery, setSearchQuery] = useState(
     selectedWard?.properties.fullName ?? selectedWard?.properties.name ?? ''
@@ -57,7 +59,10 @@ const MapSearch: React.FC<MapSearchProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onFocus={() => setIsSearchFocused(true)}
+          onFocus={() => {
+            setIsSearchFocused(true);
+            onTriggerLoadCommune?.();
+          }}
           placeholder="Tìm kiếm xã/phường..."
           className="w-full py-2 pr-4 bg-transparent text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none"
         />

@@ -41,11 +41,11 @@ const Home: React.FC = () => {
 
   // Map settings - Single Source of Truth for Layers
   const [layers, setLayers] = useState<MapLayersState>({
-    province: false,
-    commune: true,
-    ocop: true,
-    science: true,
-    agriculture: true,
+    province: true,
+    commune: false,
+    ocop: false,
+    science: false,
+    agriculture: false,
   });
 
   const [selectedWard, setSelectedWard] = useState<GeoJsonFeature | null>(null);
@@ -60,13 +60,14 @@ const Home: React.FC = () => {
   });
   const [isPickingCenter, setIsPickingCenter] = useState(false);
 
-  // 1. Fetch GIS Boundary Data using TanStack Query
+  // 1. Fetch GIS Boundary Data conditionally using TanStack Query
   const { data: geoJsonData = null, isLoading: isWardsLoading } = useQuery<GeoJsonData>({
     queryKey: queryKeys.wards.geojson(),
     queryFn: async () => {
       const res = await api.get<GeoJsonData>('/api/wards/geojson');
       return res.data;
     },
+    enabled: layers.commune,
     staleTime: 1000 * 60 * 30, // 30 mins
   });
 
@@ -76,6 +77,7 @@ const Home: React.FC = () => {
       const res = await api.get('/api/wards/province/geojson');
       return res.data;
     },
+    enabled: layers.province,
     staleTime: 1000 * 60 * 60, // 1 hour
   });
 
@@ -108,6 +110,16 @@ const Home: React.FC = () => {
       [layer]: !prev[layer],
     }));
   }, []);
+
+  // Auto-activate commune boundary layer when user zooms in closely (zoom >= 11)
+  const handleZoomChange = useCallback((zoom: number) => {
+    if (zoom >= 11 && !layers.commune) {
+      setLayers((prev) => ({
+        ...prev,
+        commune: true,
+      }));
+    }
+  }, [layers.commune]);
 
   // Map center picked for radius search
   const handleMapCenterPicked = useCallback((lat: number, lng: number) => {
@@ -226,6 +238,7 @@ const Home: React.FC = () => {
             radiusSearchState={radiusSearchState}
             isPickingCenter={isPickingCenter}
             onMapCenterPicked={handleMapCenterPicked}
+            onZoomChange={handleZoomChange}
             onSelectDetail={handleSelectPoiDetail}
           />
         );
@@ -237,9 +250,9 @@ const Home: React.FC = () => {
       {/* 1. VIEW PORT ROUTER */}
       <div className="absolute inset-0 z-0 bg-neutral-100 flex items-center justify-center">
         {isWardsLoading && activeView === 'map' && (
-          <div className="absolute inset-0 bg-white/90 z-30 flex flex-col items-center justify-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-            <span className="text-sm font-semibold text-neutral-600">Đang tải bản đồ địa giới Gia Lai...</span>
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-white/95 backdrop-blur-sm border border-neutral-200 rounded-full px-4 py-2 shadow-md flex items-center space-x-2.5 text-xs font-medium text-neutral-600 animate-fade-in">
+            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-primary-500 border-t-transparent" />
+            <span>Đang tải dữ liệu ranh giới xã/phường...</span>
           </div>
         )}
 
@@ -256,7 +269,17 @@ const Home: React.FC = () => {
             selectedWard={selectedWard}
             setSelectedWard={(ward) => {
               setSelectedWard(ward);
-              if (ward) setSelectedPoi(null);
+              if (ward) {
+                setSelectedPoi(null);
+                if (!layers.commune) {
+                  setLayers((prev) => ({ ...prev, commune: true }));
+                }
+              }
+            }}
+            onTriggerLoadCommune={() => {
+              if (!layers.commune) {
+                setLayers((prev) => ({ ...prev, commune: true }));
+              }
             }}
           />
 

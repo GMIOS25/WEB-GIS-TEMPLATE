@@ -63,15 +63,21 @@ const PoiFocusController: React.FC<{ selectedPoi: SelectedPoiDetail | null }> = 
   return null;
 };
 
-// Sub-component to capture map clicks for radius search center picking
-const MapClickHandler: React.FC<{
+// Sub-component to capture map clicks and zoom events
+const MapEventsHandler: React.FC<{
   isPickingCenter?: boolean;
   onMapCenterPicked?: (lat: number, lng: number) => void;
-}> = ({ isPickingCenter, onMapCenterPicked }) => {
+  onZoomChange?: (zoom: number) => void;
+}> = ({ isPickingCenter, onMapCenterPicked, onZoomChange }) => {
   useMapEvents({
     click(e) {
       if (isPickingCenter && onMapCenterPicked) {
         onMapCenterPicked(e.latlng.lat, e.latlng.lng);
+      }
+    },
+    zoomend(e) {
+      if (onZoomChange) {
+        onZoomChange(e.target.getZoom());
       }
     },
   });
@@ -97,6 +103,7 @@ interface GisMapProps {
   radiusSearchState?: RadiusSearchState | null;
   isPickingCenter?: boolean;
   onMapCenterPicked?: (lat: number, lng: number) => void;
+  onZoomChange?: (zoom: number) => void;
   onSelectDetail?: (type: 'ocop' | 'science' | 'agriculture', id: number) => void;
 }
 
@@ -113,6 +120,7 @@ const GisMap: React.FC<GisMapProps> = ({
   radiusSearchState,
   isPickingCenter,
   onMapCenterPicked,
+  onZoomChange,
   onSelectDetail,
 }) => {
   // Use ref to avoid stale closures in Leaflet event listeners
@@ -227,6 +235,7 @@ const GisMap: React.FC<GisMapProps> = ({
       scrollWheelZoom={true}
       zoomControl={false}
       className="w-full h-full"
+      preferCanvas={true}
       // A shared, padded Canvas renderer as the map's default renderer for all vector
       // layers. Canvas draws every polygon into a single <canvas> element instead of
       // one <path> DOM node per feature (the default SVG renderer) — for a layer with
@@ -349,9 +358,10 @@ const GisMap: React.FC<GisMapProps> = ({
         </>
       )}
 
-      <MapClickHandler
+      <MapEventsHandler
         isPickingCenter={isPickingCenter}
         onMapCenterPicked={onMapCenterPicked}
+        onZoomChange={onZoomChange}
       />
 
       <MapController selectedWard={selectedWard} />
