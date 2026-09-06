@@ -3,21 +3,16 @@ package com.website.gis.features.ocop.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.config.TestMapperConfig;
-import com.website.gis.core.entity.Province;
-import com.website.gis.core.entity.Ward;
+import com.website.gis.core.exception.BadRequestException;
+import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.repository.UserRepository;
-import com.website.gis.core.repository.WardRepository;
 import com.website.gis.core.security.*;
 import com.website.gis.features.ocop.dto.OcopProductCreateRequest;
+import com.website.gis.features.ocop.dto.OcopProductDto;
 import com.website.gis.features.ocop.dto.OcopProductUpdateRequest;
-import com.website.gis.features.ocop.entity.OcopProduct;
-import com.website.gis.features.ocop.repository.OcopProductRepository;
+import com.website.gis.features.ocop.service.OcopService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -32,21 +27,17 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(OcopController.class)
 @TestPropertySource(properties = "features.ocop.enabled=true")
 @Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class,
         RestAccessDeniedHandler.class, RestAuthenticationEntryPoint.class, SecurityErrorResponseWriter.class })
 class OcopControllerTest {
-
-    private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Autowired
     private MockMvc mockMvc;
@@ -55,10 +46,7 @@ class OcopControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private OcopProductRepository ocopProductRepository;
-
-    @MockitoBean
-    private WardRepository wardRepository;
+    private OcopService ocopService;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -69,24 +57,20 @@ class OcopControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    private Ward testWard;
-    private OcopProduct testProduct;
+    private OcopProductDto testProductDto;
 
     @BeforeEach
     void setUp() {
-        Province province = Province.builder().code("52").fullName("Tỉnh Gia Lai").build();
-        testWard = Ward.builder().code("21112").name("Ia Kring").fullName("Phường Ia Kring").province(province).build();
-        Point point = GF.createPoint(new Coordinate(107.9812, 13.9723));
-
-        testProduct = OcopProduct.builder()
+        testProductDto = OcopProductDto.builder()
                 .id(1)
                 .name("Cà phê Robusta Pleiku")
                 .productTypes(List.of("Đồ uống", "Nông sản"))
                 .starRating(4)
                 .contactPhone("0905123456")
                 .locationAddress("123 Hùng Vương, Pleiku")
-                .ward(testWard)
-                .geom(point)
+                .wardCode("21112")
+                .latitude(new BigDecimal("13.9723"))
+                .longitude(new BigDecimal("107.9812"))
                 .imageUrl("https://example.com/coffee.jpg")
                 .build();
     }
@@ -100,8 +84,8 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetOcopProducts_asViewer_thenReturnPaginatedList() throws Exception {
-        Mockito.when(ocopProductRepository.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(testProduct)));
+        Mockito.when(ocopService.getAll(any(), any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(testProductDto)));
 
         mockMvc.perform(get("/api/ocop"))
                 .andExpect(status().isOk())
@@ -118,7 +102,30 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetOcopGeoJson_asViewer_thenReturnFeatureCollection() throws Exception {
-        Mockito.when(ocopProductRepository.findAll()).thenReturn(List.of(testProduct));
+        String mockGeoJson = """
+                {
+                  "type": "FeatureCollection",
+                  "features": [
+                    {
+                      "type": "Feature",
+                      "geometry": {
+                        "type": "Point",
+                        "coordinates": [107.9812, 13.9723]
+                      },
+                      "properties": {
+                        "id": 1,
+                        "name": "Cà phê Robusta Pleiku",
+                        "starRating": 4,
+                        "productTypes": ["Đồ uống"],
+                        "wardCode": "21112",
+                        "imageUrl": "https://example.com/coffee.jpg"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        Mockito.when(ocopService.getGeoJson()).thenReturn(mockGeoJson);
 
         mockMvc.perform(get("/api/ocop/geojson"))
                 .andExpect(status().isOk())
@@ -139,10 +146,8 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_validParams_thenReturnList() throws Exception {
-        Mockito.when(ocopProductRepository.findNearbyIds(13.9723, 107.9812, 10000.0))
-                .thenReturn(List.of(1));
-        Mockito.when(ocopProductRepository.findByIdIn(List.of(1)))
-                .thenReturn(List.of(testProduct));
+        Mockito.when(ocopService.getNearby(13.9723, 107.9812, 10.0))
+                .thenReturn(List.of(testProductDto));
 
         mockMvc.perform(get("/api/ocop/nearby")
                         .param("lat", "13.9723")
@@ -158,7 +163,7 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_emptyResults_thenReturnEmptyList() throws Exception {
-        Mockito.when(ocopProductRepository.findNearbyIds(13.9723, 107.9812, 10000.0))
+        Mockito.when(ocopService.getNearby(13.9723, 107.9812, 10.0))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/ocop/nearby")
@@ -173,6 +178,9 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_invalidLat_thenReturn400() throws Exception {
+        Mockito.when(ocopService.getNearby(95.0, 107.9812, 10.0))
+                .thenThrow(new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)"));
+
         mockMvc.perform(get("/api/ocop/nearby")
                         .param("lat", "95.0")
                         .param("lng", "107.9812")
@@ -183,6 +191,9 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_invalidLng_thenReturn400() throws Exception {
+        Mockito.when(ocopService.getNearby(13.9723, -190.0, 10.0))
+                .thenThrow(new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)"));
+
         mockMvc.perform(get("/api/ocop/nearby")
                         .param("lat", "13.9723")
                         .param("lng", "-190.0")
@@ -193,6 +204,9 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyOcopProducts_invalidRadiusKm_thenReturn400() throws Exception {
+        Mockito.when(ocopService.getNearby(13.9723, 107.9812, -5.0))
+                .thenThrow(new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0"));
+
         mockMvc.perform(get("/api/ocop/nearby")
                         .param("lat", "13.9723")
                         .param("lng", "107.9812")
@@ -203,7 +217,7 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetOcopProductById_found_thenReturnDto() throws Exception {
-        Mockito.when(ocopProductRepository.findById(1)).thenReturn(Optional.of(testProduct));
+        Mockito.when(ocopService.getById(1)).thenReturn(testProductDto);
 
         mockMvc.perform(get("/api/ocop/1"))
                 .andExpect(status().isOk())
@@ -215,7 +229,7 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetOcopProductById_notFound_thenReturn404() throws Exception {
-        Mockito.when(ocopProductRepository.findById(999)).thenReturn(Optional.empty());
+        Mockito.when(ocopService.getById(999)).thenThrow(new ResourceNotFoundException("OCOP product not found with ID: 999"));
 
         mockMvc.perform(get("/api/ocop/999"))
                 .andExpect(status().isNotFound());
@@ -252,8 +266,7 @@ class OcopControllerTest {
                 .imageUrl("https://example.com/honey.jpg")
                 .build();
 
-        Mockito.when(wardRepository.findById("21112")).thenReturn(Optional.of(testWard));
-        Mockito.when(ocopProductRepository.save(any(OcopProduct.class))).thenReturn(testProduct);
+        Mockito.when(ocopService.create(any(OcopProductCreateRequest.class))).thenReturn(testProductDto);
 
         mockMvc.perform(post("/api/ocop")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -293,9 +306,7 @@ class OcopControllerTest {
                 .longitude(new BigDecimal("107.9812"))
                 .build();
 
-        Mockito.when(ocopProductRepository.findById(1)).thenReturn(Optional.of(testProduct));
-        Mockito.when(wardRepository.findById("21112")).thenReturn(Optional.of(testWard));
-        Mockito.when(ocopProductRepository.save(any(OcopProduct.class))).thenReturn(testProduct);
+        Mockito.when(ocopService.update(eq(1), any(OcopProductUpdateRequest.class))).thenReturn(testProductDto);
 
         mockMvc.perform(put("/api/ocop/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -306,12 +317,10 @@ class OcopControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void whenDeleteOcopProduct_asAdmin_thenReturn200() throws Exception {
-        Mockito.when(ocopProductRepository.findById(1)).thenReturn(Optional.of(testProduct));
+        Mockito.doNothing().when(ocopService).delete(1);
 
         mockMvc.perform(delete("/api/ocop/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("OCOP product deleted successfully"));
-
-        Mockito.verify(ocopProductRepository).delete(testProduct);
     }
 }

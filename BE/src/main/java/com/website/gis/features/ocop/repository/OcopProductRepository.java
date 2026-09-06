@@ -43,6 +43,9 @@ public interface OcopProductRepository extends JpaRepository<OcopProduct, Intege
                                 @Param("lng") double lng,
                                 @Param("radiusMeters") double radiusMeters);
 
+    @Query(value = "SELECT geojson FROM v_ocop_geojson", nativeQuery = true)
+    Optional<String> findOcopFeatureCollection();
+
     @EntityGraph(attributePaths = {"ward"})
     List<OcopProduct> findByIdIn(List<Integer> ids);
 }

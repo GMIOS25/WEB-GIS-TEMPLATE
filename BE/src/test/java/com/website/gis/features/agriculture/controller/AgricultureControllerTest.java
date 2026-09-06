@@ -3,20 +3,15 @@ package com.website.gis.features.agriculture.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.config.TestMapperConfig;
-import com.website.gis.core.entity.Ward;
+import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.repository.UserRepository;
-import com.website.gis.core.repository.WardRepository;
 import com.website.gis.core.security.*;
 import com.website.gis.features.agriculture.dto.AgricultureUnitCreateRequest;
+import com.website.gis.features.agriculture.dto.AgricultureUnitDto;
 import com.website.gis.features.agriculture.dto.AgricultureUnitUpdateRequest;
-import com.website.gis.features.agriculture.entity.AgricultureUnit;
-import com.website.gis.features.agriculture.repository.AgricultureUnitRepository;
+import com.website.gis.features.agriculture.service.AgricultureService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,9 +26,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -50,10 +45,7 @@ class AgricultureControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private AgricultureUnitRepository agricultureUnitRepository;
-
-    @MockitoBean
-    private WardRepository wardRepository;
+    private AgricultureService agricultureService;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -64,26 +56,18 @@ class AgricultureControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    private AgricultureUnit sampleUnit;
-    private Ward sampleWard;
+    private AgricultureUnitDto sampleDto;
 
     @BeforeEach
     void setUp() {
-        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
-        Point point = gf.createPoint(new Coordinate(108.0123, 13.9876));
-
-        sampleWard = Ward.builder()
-                .code("21112")
-                .name("Xã An Phú")
-                .build();
-
-        sampleUnit = AgricultureUnit.builder()
+        sampleDto = AgricultureUnitDto.builder()
                 .id(1)
-                .name("Trang trại Cà phê Đak Đoa")
-                .unitType("Trang trại")
-                .description("Cà phê Robusta chất lượng cao")
-                .ward(sampleWard)
-                .geom(point)
+                .name("Hợp tác xã Nông nghiệp Chư Păh")
+                .unitType("Hợp tác xã")
+                .description("Sản xuất cà phê hữu cơ")
+                .wardCode("21112")
+                .latitude(new BigDecimal("13.9876"))
+                .longitude(new BigDecimal("108.0123"))
                 .imageUrl("https://example.com/agri.jpg")
                 .build();
     }
@@ -97,12 +81,14 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetAll_asViewer_thenReturnPage() throws Exception {
-        Mockito.when(agricultureUnitRepository.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(sampleUnit)));
+        Mockito.when(agricultureService.getAll(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(sampleDto)));
 
         mockMvc.perform(get("/api/agriculture"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].name").value("Trang trại Cà phê Đak Đoa"))
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Hợp tác xã Nông nghiệp Chư Păh"))
+                .andExpect(jsonPath("$.content[0].unitType").value("Hợp tác xã"))
                 .andExpect(jsonPath("$.content[0].wardCode").value("21112"))
                 .andExpect(jsonPath("$.content[0].latitude").value(13.9876))
                 .andExpect(jsonPath("$.content[0].longitude").value(108.0123));
@@ -111,7 +97,29 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetAgricultureGeoJson_asViewer_thenReturnFeatureCollection() throws Exception {
-        Mockito.when(agricultureUnitRepository.findAll()).thenReturn(List.of(sampleUnit));
+        String mockGeoJson = """
+                {
+                  "type": "FeatureCollection",
+                  "features": [
+                    {
+                      "type": "Feature",
+                      "geometry": {
+                        "type": "Point",
+                        "coordinates": [108.0123, 13.9876]
+                      },
+                      "properties": {
+                        "id": 1,
+                        "name": "Hợp tác xã Nông nghiệp Chư Păh",
+                        "unitType": "Hợp tác xã",
+                        "wardCode": "21112",
+                        "imageUrl": "https://example.com/agri.jpg"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        Mockito.when(agricultureService.getGeoJson()).thenReturn(mockGeoJson);
 
         mockMvc.perform(get("/api/agriculture/geojson"))
                 .andExpect(status().isOk())
@@ -122,8 +130,8 @@ class AgricultureControllerTest {
                 .andExpect(jsonPath("$.features[0].geometry.coordinates[0]").value(108.0123))
                 .andExpect(jsonPath("$.features[0].geometry.coordinates[1]").value(13.9876))
                 .andExpect(jsonPath("$.features[0].properties.id").value(1))
-                .andExpect(jsonPath("$.features[0].properties.name").value("Trang trại Cà phê Đak Đoa"))
-                .andExpect(jsonPath("$.features[0].properties.unitType").value("Trang trại"))
+                .andExpect(jsonPath("$.features[0].properties.name").value("Hợp tác xã Nông nghiệp Chư Păh"))
+                .andExpect(jsonPath("$.features[0].properties.unitType").value("Hợp tác xã"))
                 .andExpect(jsonPath("$.features[0].properties.wardCode").value("21112"))
                 .andExpect(jsonPath("$.features[0].properties.imageUrl").value("https://example.com/agri.jpg"));
     }
@@ -131,10 +139,8 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyAgricultureUnits_validParams_thenReturnList() throws Exception {
-        Mockito.when(agricultureUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
-                .thenReturn(List.of(1));
-        Mockito.when(agricultureUnitRepository.findByIdIn(List.of(1)))
-                .thenReturn(List.of(sampleUnit));
+        Mockito.when(agricultureService.getNearby(13.9876, 108.0123, 10.0))
+                .thenReturn(List.of(sampleDto));
 
         mockMvc.perform(get("/api/agriculture/nearby")
                         .param("lat", "13.9876")
@@ -142,7 +148,7 @@ class AgricultureControllerTest {
                         .param("radiusKm", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].name").value("Trang trại Cà phê Đak Đoa"))
+                .andExpect(jsonPath("$[0].name").value("Hợp tác xã Nông nghiệp Chư Păh"))
                 .andExpect(jsonPath("$[0].latitude").value(13.9876))
                 .andExpect(jsonPath("$[0].longitude").value(108.0123));
     }
@@ -150,7 +156,7 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyAgricultureUnits_emptyResults_thenReturnEmptyList() throws Exception {
-        Mockito.when(agricultureUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
+        Mockito.when(agricultureService.getNearby(13.9876, 108.0123, 10.0))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/agriculture/nearby")
@@ -165,6 +171,9 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyAgricultureUnits_invalidLat_thenReturn400() throws Exception {
+        Mockito.when(agricultureService.getNearby(95.0, 108.0123, 10.0))
+                .thenThrow(new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)"));
+
         mockMvc.perform(get("/api/agriculture/nearby")
                         .param("lat", "95.0")
                         .param("lng", "108.0123")
@@ -175,6 +184,9 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyAgricultureUnits_invalidLng_thenReturn400() throws Exception {
+        Mockito.when(agricultureService.getNearby(13.9876, -190.0, 10.0))
+                .thenThrow(new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)"));
+
         mockMvc.perform(get("/api/agriculture/nearby")
                         .param("lat", "13.9876")
                         .param("lng", "-190.0")
@@ -185,29 +197,32 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyAgricultureUnits_invalidRadiusKm_thenReturn400() throws Exception {
+        Mockito.when(agricultureService.getNearby(13.9876, 108.0123, 0.0))
+                .thenThrow(new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0"));
+
         mockMvc.perform(get("/api/agriculture/nearby")
                         .param("lat", "13.9876")
                         .param("lng", "108.0123")
-                        .param("radiusKm", "-1"))
+                        .param("radiusKm", "0"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetById_asViewer_thenReturnSingle() throws Exception {
-        Mockito.when(agricultureUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
+        Mockito.when(agricultureService.getById(1)).thenReturn(sampleDto);
 
         mockMvc.perform(get("/api/agriculture/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Trang trại Cà phê Đak Đoa"));
+                .andExpect(jsonPath("$.name").value("Hợp tác xã Nông nghiệp Chư Păh"));
     }
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenCreate_asViewer_thenReturn403() throws Exception {
         AgricultureUnitCreateRequest request = AgricultureUnitCreateRequest.builder()
-                .name("Hợp tác xã Nông nghiệp")
+                .name("Hợp tác xã")
                 .wardCode("21112")
                 .latitude(new BigDecimal("13.98"))
                 .longitude(new BigDecimal("108.01"))
@@ -223,23 +238,22 @@ class AgricultureControllerTest {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void whenCreate_asAdmin_thenReturn201() throws Exception {
         AgricultureUnitCreateRequest request = AgricultureUnitCreateRequest.builder()
-                .name("Trang trại Cà phê Đak Đoa")
-                .unitType("Trang trại")
-                .description("Cà phê Robusta chất lượng cao")
+                .name("Hợp tác xã Nông nghiệp Chư Păh")
+                .unitType("Hợp tác xã")
+                .description("Sản xuất cà phê hữu cơ")
                 .wardCode("21112")
                 .latitude(new BigDecimal("13.9876"))
                 .longitude(new BigDecimal("108.0123"))
                 .imageUrl("https://example.com/agri.jpg")
                 .build();
 
-        Mockito.when(wardRepository.findById("21112")).thenReturn(Optional.of(sampleWard));
-        Mockito.when(agricultureUnitRepository.save(any(AgricultureUnit.class))).thenReturn(sampleUnit);
+        Mockito.when(agricultureService.create(any(AgricultureUnitCreateRequest.class))).thenReturn(sampleDto);
 
         mockMvc.perform(post("/api/agriculture")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Trang trại Cà phê Đak Đoa"));
+                .andExpect(jsonPath("$.name").value("Hợp tác xã Nông nghiệp Chư Păh"));
     }
 
     @Test
@@ -249,8 +263,7 @@ class AgricultureControllerTest {
                 .name("Tên mới")
                 .build();
 
-        Mockito.when(agricultureUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
-        Mockito.when(agricultureUnitRepository.save(any(AgricultureUnit.class))).thenReturn(sampleUnit);
+        Mockito.when(agricultureService.update(eq(1), any(AgricultureUnitUpdateRequest.class))).thenReturn(sampleDto);
 
         mockMvc.perform(put("/api/agriculture/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -261,11 +274,10 @@ class AgricultureControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void whenDelete_asAdmin_thenReturn200() throws Exception {
-        Mockito.when(agricultureUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
+        Mockito.doNothing().when(agricultureService).delete(1);
 
         mockMvc.perform(delete("/api/agriculture/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Xóa đơn vị nông nghiệp thành công"));
+                .andExpect(jsonPath("$.message").value("Xóa cơ sở nông nghiệp thành công"));
     }
 }
-

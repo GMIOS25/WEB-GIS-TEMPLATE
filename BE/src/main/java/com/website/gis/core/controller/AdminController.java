@@ -3,18 +3,12 @@ package com.website.gis.core.controller;
 import com.website.gis.core.dto.UserCreateRequest;
 import com.website.gis.core.dto.UserDto;
 import com.website.gis.core.dto.UserUpdateRequest;
-import com.website.gis.core.entity.User;
-import com.website.gis.core.exception.BadRequestException;
-import com.website.gis.core.exception.ResourceNotFoundException;
-import com.website.gis.core.mapper.UserMapper;
-import com.website.gis.core.repository.UserRepository;
+import com.website.gis.core.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,73 +17,34 @@ import java.util.List;
 @RequestMapping("/api/admin/users")
 public class AdminController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final UserMapper userMapper;
+    private final UserService userService;
 
-    public AdminController(UserRepository userRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.userMapper = userMapper;
+    public AdminController(UserService userService) {
+        this.userService = userService;
     }
 
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
-        List<UserDto> users = userRepository.findAll().stream()
-                .map(userMapper::toDto)
-                .toList();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PostMapping
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserCreateRequest request) {
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new BadRequestException("Username already exists");
-        }
-
-        User user = userMapper.toEntity(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        User savedUser = userRepository.save(user);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userMapper.toDto(savedUser));
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
-            @Valid @RequestBody UserUpdateRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
-        userMapper.updateEntityFromRequest(request, user);
-
-        if (StringUtils.hasText(request.getPassword())) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
-        User updatedUser = userRepository.save(user);
-
-        return ResponseEntity.ok(userMapper.toDto(updatedUser));
+                                              @Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = auth.getName();
+        String currentUsername = auth != null ? auth.getName() : null;
 
-        if (user.getUsername().equals(currentUsername)) {
-            throw new BadRequestException("You cannot delete your own account");
-        }
-
-        if ("ADMIN".equals(user.getRole()) && userRepository.countByRole("ADMIN") <= 1) {
-            throw new BadRequestException("Cannot delete the last remaining ADMIN account");
-        }
-
-        userRepository.delete(user);
+        userService.deleteUser(id, currentUsername);
         return ResponseEntity.ok("User deleted successfully");
     }
 }

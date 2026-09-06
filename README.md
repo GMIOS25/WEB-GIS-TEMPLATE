@@ -120,19 +120,32 @@ Hệ thống được thiết kế theo kiến trúc **Core Platform + Feature E
 graph TD
     Client[Client Browser: React 19 + Leaflet]
     Caddy[Caddy Reverse Proxy: Port 80 / 443]
-    App[App Container: Spring Boot 3.5 + Embedded React Static Assets]
-    DB[(Database Container: PostgreSQL 15 + PostGIS 3.4)]
+    
+    subgraph App[App Container: Spring Boot 3.5]
+        Controller[Presentation Layer: Thin REST Controllers]
+        Service[Service Layer: Business Workflows & Security]
+        Repo[Data Access Layer: JPA Repositories]
+    end
+    
+    subgraph DB[(Database Container: PostgreSQL 15 + PostGIS 3.4)]
+        Views[PostGIS Spatial Views: jsonb_agg + ST_AsGeoJSON]
+        Tables[(Core & Modular Tables)]
+    end
 
     Client <-->|HTTPS / HTTP| Caddy
-    Caddy <-->|Reverse Proxy / Internal Network| App
-    App <-->|JPA / Spatial SQL Queries| DB
+    Caddy <-->|Reverse Proxy| Controller
+    Controller <-->|Calls Workflow| Service
+    Service <-->|CRUD Entities| Repo
+    Repo <-->|JPA / SQL| Tables
+    Service <-->|Direct GeoJSON Stream| Views
 ```
 
-### Luồng Dữ Liệu Địa Lý (GIS Data Flow):
+### Luồng Dữ Liệu Địa Lý (GIS Data Flow & Performance Offloading):
 
-1. **PostgreSQL/PostGIS** lưu trữ dữ liệu ranh giới ở kiểu hình học `MULTIPOLYGON` (Hệ tọa độ WGS84 - SRID 4326).
-2. **Spring Boot Backend** truy vấn dữ liệu thông qua Hibernate Spatial / JTS Core và chuyển đổi thành đối tượng Chuẩn GeoJSON.
-3. **React Frontend** nhận GeoJSON qua REST API và render các lớp ranh giới lên khung bản đồ **Leaflet**.
+1. **PostgreSQL/PostGIS** lưu trữ dữ liệu ranh giới (`MULTIPOLYGON`) và vị trí POI (`POINT`) theo chuẩn WGS84 (SRID 4326).
+2. **PostGIS Native Views (`v_*_geojson`):** Toàn bộ cấu trúc GeoJSON FeatureCollection được biên dịch trực tiếp ở tầng cơ sở dữ liệu bằng các hàm C tối ưu (`jsonb_build_object`, `jsonb_agg`, `ST_AsGeoJSON`), loại bỏ hoàn toàn chi phí cấp phát bộ nhớ Java Heap (Jackson AST).
+3. **Service Layer:** Quản lý toàn vẹn nghiệp vụ (giao dịch `@Transactional`, phân quyền, kiểm tra an toàn tài khoản, validation toạ độ), giữ cho Controller mỏng nhẹ và sáng rõ.
+4. **React Frontend:** Nhận GeoJSON siêu tốc qua REST API và render các lớp bản đồ tương tác qua **Leaflet**.
 
 ---
 

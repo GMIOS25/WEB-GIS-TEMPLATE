@@ -291,9 +291,28 @@ Never place feature tables into `db/migration/core/`.
 
 ---
 
-## 5. Cross-References
+## 5. PostGIS Native Spatial Views (Data-Intensive Offloading)
+
+To maximize query performance and avoid Java Heap GC overhead when constructing massive GeoJSON structures, the database layer compiles GeoJSON FeatureCollections directly via PostgreSQL/PostGIS views:
+
+### 5.1. Core Spatial Views (`db/migration/core/V5__create_gis_views.sql`)
+
+- **`v_wards_geojson`**: Compiles all 135 Gia Lai commune/ward MultiPolygons and administrative properties (`code`, `name`, `fullName`, `areaKm2`) into a single RFC 7946 `FeatureCollection` via `jsonb_build_object`, `jsonb_agg`, and `ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.00003), 6)`.
+- **`v_province_geojson`**: Returns the simplified province boundary MultiPolygon GeoJSON (`ST_SimplifyPreserveTopology(geom, 0.0005), 6`).
+
+### 5.2. Modular Feature Views
+
+- **`v_ocop_geojson`** (`V5_1_2__create_ocop_views.sql`): Compiles all active OCOP product Points into a `FeatureCollection` with product attributes (`productTypes`, `starRating`, `contactPhone`, `locationAddress`, `wardCode`, `imageUrl`).
+- **`v_science_geojson`** (`V5_2_2__create_science_views.sql`): Compiles science unit Points into a `FeatureCollection` with science unit attributes (`unitType`, `wardCode`, `imageUrl`).
+- **`v_agriculture_geojson`** (`V5_3_2__create_agriculture_views.sql`): Compiles agricultural unit Points into a `FeatureCollection` with agricultural unit attributes (`unitType`, `wardCode`, `imageUrl`).
+
+All views use `COALESCE(jsonb_agg(...), '[]'::jsonb)` to guarantee a valid empty `FeatureCollection` even when underlying tables contain 0 rows.
+
+---
+
+## 6. Cross-References
 
 - Modular toggling of the entities/repositories built on this schema: `ARCHITECTURE SPECIFICATION.md`, Sections 4–5.
 - Per-customer database isolation (each customer gets their own copy of this schema plus their one enabled feature module): `ARCHITECTURE SPECIFICATION.md` Section 6, `DEPLOYMENT & FLEET STRATEGY.md`.
 - API shapes built on top of these tables: `API_CONTRACT.md`.
-- Entity/DTO/Mapper naming conventions: `CODING_CONVENTIONS.md`.
+- Entity/DTO/Mapper/Service naming conventions: `CODING_CONVENTIONS.md`.

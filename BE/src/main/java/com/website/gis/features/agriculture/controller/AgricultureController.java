@@ -1,22 +1,10 @@
 package com.website.gis.features.agriculture.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.website.gis.core.entity.Ward;
-import com.website.gis.core.exception.BadRequestException;
-import com.website.gis.core.exception.ResourceNotFoundException;
-import com.website.gis.core.repository.WardRepository;
-import com.website.gis.core.util.GisPointUtils;
 import com.website.gis.features.agriculture.dto.AgricultureUnitCreateRequest;
 import com.website.gis.features.agriculture.dto.AgricultureUnitDto;
 import com.website.gis.features.agriculture.dto.AgricultureUnitUpdateRequest;
-import com.website.gis.features.agriculture.entity.AgricultureUnit;
-import com.website.gis.features.agriculture.mapper.AgricultureUnitMapper;
-import com.website.gis.features.agriculture.repository.AgricultureUnitRepository;
+import com.website.gis.features.agriculture.service.AgricultureService;
 import jakarta.validation.Valid;
-import org.locationtech.jts.geom.Point;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +14,8 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -39,65 +25,17 @@ import java.util.concurrent.TimeUnit;
 @ConditionalOnProperty(name = "features.agriculture.enabled", havingValue = "true")
 public class AgricultureController {
 
-    private final AgricultureUnitRepository agricultureUnitRepository;
-    private final WardRepository wardRepository;
-    private final AgricultureUnitMapper agricultureUnitMapper;
-    private final ObjectMapper objectMapper;
+    private final AgricultureService agricultureService;
 
-    public AgricultureController(AgricultureUnitRepository agricultureUnitRepository,
-                                 WardRepository wardRepository,
-                                 AgricultureUnitMapper agricultureUnitMapper,
-                                 ObjectMapper objectMapper) {
-        this.agricultureUnitRepository = agricultureUnitRepository;
-        this.wardRepository = wardRepository;
-        this.agricultureUnitMapper = agricultureUnitMapper;
-        this.objectMapper = objectMapper;
+    public AgricultureController(AgricultureService agricultureService) {
+        this.agricultureService = agricultureService;
     }
 
     @GetMapping(value = "/geojson", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> getAgricultureGeoJson() {
-        List<AgricultureUnit> units = agricultureUnitRepository.findAll();
-
-        ArrayNode features = objectMapper.createArrayNode();
-        for (AgricultureUnit unit : units) {
-            if (unit.getGeom() == null) {
-                continue;
-            }
-
-            ObjectNode feature = objectMapper.createObjectNode();
-            feature.put("type", "Feature");
-
-            ObjectNode geometry = feature.putObject("geometry");
-            geometry.put("type", "Point");
-            ArrayNode coordinates = geometry.putArray("coordinates");
-            coordinates.add(BigDecimal.valueOf(unit.getGeom().getX()));
-            coordinates.add(BigDecimal.valueOf(unit.getGeom().getY()));
-
-            ObjectNode properties = feature.putObject("properties");
-            properties.put("id", unit.getId());
-            properties.put("name", unit.getName());
-            if (unit.getUnitType() != null) {
-                properties.put("unitType", unit.getUnitType());
-            } else {
-                properties.putNull("unitType");
-            }
-            properties.put("wardCode", unit.getWard() != null ? unit.getWard().getCode() : null);
-            if (unit.getImageUrl() != null) {
-                properties.put("imageUrl", unit.getImageUrl());
-            } else {
-                properties.putNull("imageUrl");
-            }
-
-            features.add(feature);
-        }
-
-        ObjectNode featureCollection = objectMapper.createObjectNode();
-        featureCollection.put("type", "FeatureCollection");
-        featureCollection.set("features", features);
-
+    public ResponseEntity<String> getAgricultureGeoJson() {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePrivate())
-                .body(featureCollection);
+                .body(agricultureService.getGeoJson());
     }
 
     @GetMapping("/nearby")
@@ -105,109 +43,35 @@ public class AgricultureController {
             @RequestParam("lat") Double lat,
             @RequestParam("lng") Double lng,
             @RequestParam("radiusKm") Double radiusKm) {
-
-        validateNearbyParams(lat, lng, radiusKm);
-
-        List<Integer> nearbyIds = agricultureUnitRepository.findNearbyIds(lat, lng, radiusKm * 1000.0);
-        if (nearbyIds.isEmpty()) {
-            return ResponseEntity.ok(List.of());
-        }
-
-        List<AgricultureUnit> units = agricultureUnitRepository.findByIdIn(nearbyIds);
-        return ResponseEntity.ok(units.stream().map(agricultureUnitMapper::toDto).toList());
-    }
-
-    private static void validateNearbyParams(Double lat, Double lng, Double radiusKm) {
-        if (lat == null || lat < -90.0 || lat > 90.0) {
-            throw new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)");
-        }
-        if (lng == null || lng < -180.0 || lng > 180.0) {
-            throw new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)");
-        }
-        if (radiusKm == null || radiusKm <= 0.0) {
-            throw new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0");
-        }
+        return ResponseEntity.ok(agricultureService.getNearby(lat, lng, radiusKm));
     }
 
     @GetMapping
     public ResponseEntity<Page<AgricultureUnitDto>> getAll(
             @RequestParam(required = false) String wardCode,
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-
-        Page<AgricultureUnit> page;
-        if (StringUtils.hasText(wardCode)) {
-            page = agricultureUnitRepository.findByWardCode(wardCode, pageable);
-        } else {
-            page = agricultureUnitRepository.findAll(pageable);
-        }
-
-        return ResponseEntity.ok(page.map(agricultureUnitMapper::toDto));
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(agricultureService.getAll(wardCode, pageable));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AgricultureUnitDto> getById(@PathVariable Integer id) {
-        AgricultureUnit unit = agricultureUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn vị nông nghiệp không tồn tại: " + id));
-        return ResponseEntity.ok(agricultureUnitMapper.toDto(unit));
+        return ResponseEntity.ok(agricultureService.getById(id));
     }
 
     @PostMapping
     public ResponseEntity<AgricultureUnitDto> create(@Valid @RequestBody AgricultureUnitCreateRequest request) {
-        Ward ward = wardRepository.findById(request.getWardCode())
-                .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
-
-        Point point = GisPointUtils.createPoint(request.getLatitude(), request.getLongitude());
-
-        AgricultureUnit unit = AgricultureUnit.builder()
-                .name(request.getName())
-                .unitType(request.getUnitType())
-                .description(request.getDescription())
-                .ward(ward)
-                .geom(point)
-                .imageUrl(request.getImageUrl())
-                .build();
-
-        AgricultureUnit saved = agricultureUnitRepository.save(unit);
-        return ResponseEntity.status(HttpStatus.CREATED).body(agricultureUnitMapper.toDto(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(agricultureService.create(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<AgricultureUnitDto> update(@PathVariable Integer id,
-                                                    @Valid @RequestBody AgricultureUnitUpdateRequest request) {
-        AgricultureUnit unit = agricultureUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn vị nông nghiệp không tồn tại: " + id));
-
-        if (StringUtils.hasText(request.getName())) {
-            unit.setName(request.getName());
-        }
-        if (request.getUnitType() != null) {
-            unit.setUnitType(request.getUnitType());
-        }
-        if (request.getDescription() != null) {
-            unit.setDescription(request.getDescription());
-        }
-        if (StringUtils.hasText(request.getWardCode())) {
-            Ward ward = wardRepository.findById(request.getWardCode())
-                    .orElseThrow(() -> new BadRequestException("Mã xã/phường không tồn tại: " + request.getWardCode()));
-            unit.setWard(ward);
-        }
-        if (request.getLatitude() != null && request.getLongitude() != null) {
-            unit.setGeom(GisPointUtils.createPoint(request.getLatitude(), request.getLongitude()));
-        }
-        if (request.getImageUrl() != null) {
-            unit.setImageUrl(request.getImageUrl());
-        }
-
-        AgricultureUnit saved = agricultureUnitRepository.save(unit);
-        return ResponseEntity.ok(agricultureUnitMapper.toDto(saved));
+                                                     @Valid @RequestBody AgricultureUnitUpdateRequest request) {
+        return ResponseEntity.ok(agricultureService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Integer id) {
-        AgricultureUnit unit = agricultureUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Đơn vị nông nghiệp không tồn tại: " + id));
-
-        agricultureUnitRepository.delete(unit);
-        return ResponseEntity.ok(Map.of("message", "Xóa đơn vị nông nghiệp thành công"));
+        agricultureService.delete(id);
+        return ResponseEntity.ok(Map.of("message", "Xóa cơ sở nông nghiệp thành công"));
     }
 }

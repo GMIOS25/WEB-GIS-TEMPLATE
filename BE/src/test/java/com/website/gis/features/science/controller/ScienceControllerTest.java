@@ -3,20 +3,15 @@ package com.website.gis.features.science.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.config.TestMapperConfig;
-import com.website.gis.core.entity.Ward;
+import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.repository.UserRepository;
-import com.website.gis.core.repository.WardRepository;
 import com.website.gis.core.security.*;
 import com.website.gis.features.science.dto.ScienceUnitCreateRequest;
+import com.website.gis.features.science.dto.ScienceUnitDto;
 import com.website.gis.features.science.dto.ScienceUnitUpdateRequest;
-import com.website.gis.features.science.entity.ScienceUnit;
-import com.website.gis.features.science.repository.ScienceUnitRepository;
+import com.website.gis.features.science.service.ScienceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,7 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,10 +45,7 @@ class ScienceControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private ScienceUnitRepository scienceUnitRepository;
-
-    @MockitoBean
-    private WardRepository wardRepository;
+    private ScienceService scienceService;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -65,26 +56,18 @@ class ScienceControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    private ScienceUnit sampleUnit;
-    private Ward sampleWard;
+    private ScienceUnitDto sampleDto;
 
     @BeforeEach
     void setUp() {
-        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
-        Point point = gf.createPoint(new Coordinate(108.0123, 13.9876));
-
-        sampleWard = Ward.builder()
-                .code("21112")
-                .name("Xã An Phú")
-                .build();
-
-        sampleUnit = ScienceUnit.builder()
+        sampleDto = ScienceUnitDto.builder()
                 .id(1)
                 .name("Trung tâm Ứng dụng Tiến bộ KH&CN Gia Lai")
                 .unitType("Trung tâm nghiên cứu")
                 .description("Nghiên cứu công nghệ sinh học")
-                .ward(sampleWard)
-                .geom(point)
+                .wardCode("21112")
+                .latitude(new BigDecimal("13.9876"))
+                .longitude(new BigDecimal("108.0123"))
                 .imageUrl("https://example.com/science.jpg")
                 .build();
     }
@@ -98,12 +81,14 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetAll_asViewer_thenReturnPage() throws Exception {
-        Mockito.when(scienceUnitRepository.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(sampleUnit)));
+        Mockito.when(scienceService.getAll(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(sampleDto)));
 
         mockMvc.perform(get("/api/science"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("Trung tâm Ứng dụng Tiến bộ KH&CN Gia Lai"))
+                .andExpect(jsonPath("$.content[0].unitType").value("Trung tâm nghiên cứu"))
                 .andExpect(jsonPath("$.content[0].wardCode").value("21112"))
                 .andExpect(jsonPath("$.content[0].latitude").value(13.9876))
                 .andExpect(jsonPath("$.content[0].longitude").value(108.0123));
@@ -112,7 +97,29 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetScienceGeoJson_asViewer_thenReturnFeatureCollection() throws Exception {
-        Mockito.when(scienceUnitRepository.findAll()).thenReturn(List.of(sampleUnit));
+        String mockGeoJson = """
+                {
+                  "type": "FeatureCollection",
+                  "features": [
+                    {
+                      "type": "Feature",
+                      "geometry": {
+                        "type": "Point",
+                        "coordinates": [108.0123, 13.9876]
+                      },
+                      "properties": {
+                        "id": 1,
+                        "name": "Trung tâm Ứng dụng Tiến bộ KH&CN Gia Lai",
+                        "unitType": "Trung tâm nghiên cứu",
+                        "wardCode": "21112",
+                        "imageUrl": "https://example.com/science.jpg"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        Mockito.when(scienceService.getGeoJson()).thenReturn(mockGeoJson);
 
         mockMvc.perform(get("/api/science/geojson"))
                 .andExpect(status().isOk())
@@ -132,10 +139,8 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_validParams_thenReturnList() throws Exception {
-        Mockito.when(scienceUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
-                .thenReturn(List.of(1));
-        Mockito.when(scienceUnitRepository.findByIdIn(List.of(1)))
-                .thenReturn(List.of(sampleUnit));
+        Mockito.when(scienceService.getNearby(13.9876, 108.0123, 10.0))
+                .thenReturn(List.of(sampleDto));
 
         mockMvc.perform(get("/api/science/nearby")
                         .param("lat", "13.9876")
@@ -151,7 +156,7 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_emptyResults_thenReturnEmptyList() throws Exception {
-        Mockito.when(scienceUnitRepository.findNearbyIds(13.9876, 108.0123, 10000.0))
+        Mockito.when(scienceService.getNearby(13.9876, 108.0123, 10.0))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/science/nearby")
@@ -166,6 +171,9 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_invalidLat_thenReturn400() throws Exception {
+        Mockito.when(scienceService.getNearby(95.0, 108.0123, 10.0))
+                .thenThrow(new BadRequestException("Vĩ độ (lat) không hợp lệ (phải từ -90 đến 90)"));
+
         mockMvc.perform(get("/api/science/nearby")
                         .param("lat", "95.0")
                         .param("lng", "108.0123")
@@ -176,6 +184,9 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_invalidLng_thenReturn400() throws Exception {
+        Mockito.when(scienceService.getNearby(13.9876, -190.0, 10.0))
+                .thenThrow(new BadRequestException("Kinh độ (lng) không hợp lệ (phải từ -180 đến 180)"));
+
         mockMvc.perform(get("/api/science/nearby")
                         .param("lat", "13.9876")
                         .param("lng", "-190.0")
@@ -186,6 +197,9 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetNearbyScienceUnits_invalidRadiusKm_thenReturn400() throws Exception {
+        Mockito.when(scienceService.getNearby(13.9876, 108.0123, 0.0))
+                .thenThrow(new BadRequestException("Bán kính (radiusKm) phải lớn hơn 0"));
+
         mockMvc.perform(get("/api/science/nearby")
                         .param("lat", "13.9876")
                         .param("lng", "108.0123")
@@ -196,7 +210,7 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetById_asViewer_thenReturnSingle() throws Exception {
-        Mockito.when(scienceUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
+        Mockito.when(scienceService.getById(1)).thenReturn(sampleDto);
 
         mockMvc.perform(get("/api/science/1"))
                 .andExpect(status().isOk())
@@ -233,8 +247,7 @@ class ScienceControllerTest {
                 .imageUrl("https://example.com/science.jpg")
                 .build();
 
-        Mockito.when(wardRepository.findById("21112")).thenReturn(Optional.of(sampleWard));
-        Mockito.when(scienceUnitRepository.save(any(ScienceUnit.class))).thenReturn(sampleUnit);
+        Mockito.when(scienceService.create(any(ScienceUnitCreateRequest.class))).thenReturn(sampleDto);
 
         mockMvc.perform(post("/api/science")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -250,8 +263,7 @@ class ScienceControllerTest {
                 .name("Tên mới")
                 .build();
 
-        Mockito.when(scienceUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
-        Mockito.when(scienceUnitRepository.save(any(ScienceUnit.class))).thenReturn(sampleUnit);
+        Mockito.when(scienceService.update(eq(1), any(ScienceUnitUpdateRequest.class))).thenReturn(sampleDto);
 
         mockMvc.perform(put("/api/science/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -262,11 +274,10 @@ class ScienceControllerTest {
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
     void whenDelete_asAdmin_thenReturn200() throws Exception {
-        Mockito.when(scienceUnitRepository.findById(1)).thenReturn(Optional.of(sampleUnit));
+        Mockito.doNothing().when(scienceService).delete(1);
 
         mockMvc.perform(delete("/api/science/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Xóa đơn vị khoa học thành công"));
     }
 }
-

@@ -198,21 +198,24 @@ public interface UserMapper {
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminController {
-    private final UserRepository userRepository;
-    private final UserMapper userMapper;
+    private final UserService userService;
 
-    public AdminController(UserRepository userRepository, UserMapper userMapper) {
-        this.userRepository = userRepository;
-        this.userMapper = userMapper;
+    public AdminController(UserService userService) {
+        this.userService = userService;
     }
 }
 ```
 
-If a `@Service` layer is introduced later, mappers move with the logic they support — inject them into the service instead, following the same constructor-injection pattern.
+### 3.2. Mandatory Service Layer Pattern
+All controllers are strictly **Thin Controllers** (< 80 lines). They must delegate to a dedicated `@Service`:
+- Controllers handle HTTP routing, `@Valid` parameter validation, and `ResponseEntity` wrapping.
+- `@Service` classes (`UserService`, `WardService`, `OcopService`, `ScienceService`, `AgricultureService`) handle 100% of business workflows, `@Transactional` boundaries, password hashing, access safety rules (e.g. preventing self-deletion or last-admin deletion), and entity mapping via MapStruct.
+- Repositories and Mappers are injected into Services via constructor injection, never directly into Controllers.
 
-### 3.3. What MapStruct Does *Not* Replace
-
-Not every controller method is a pure mapping. Where a field's value depends on conditional business logic — e.g. `AdminController.updateUser()` only re-hashing `password` when the request actually supplies one, or `AuthController.getCurrentUser()` overriding `role` from the authenticated `Authentication`'s granted authorities — keep that logic explicit in the controller after calling the mapper, rather than forcing it into a `@Mapping` expression. MapStruct removes repetitive field-copying; it does not replace conditionals that only make sense to a human reading the endpoint's business rules.
+### 3.3. PostGIS GeoJSON Offload Convention
+Controllers or Services must **never** manually iterate through entity collections using Jackson `ObjectMapper`, `ArrayNode`, or `ObjectNode` to assemble GeoJSON FeatureCollections. Instead:
+- GeoJSON FeatureCollections must be compiled directly at the database layer via PostgreSQL/PostGIS views (`v_wards_geojson`, `v_ocop_geojson`, `v_science_geojson`, `v_agriculture_geojson`).
+- Services query the view via repository methods returning `String` or `Optional<String>` and stream the result directly with `MediaType.APPLICATION_JSON_VALUE`.
 
 ---
 
@@ -337,7 +340,7 @@ FE/
 When implementing a pluggable feature module (`ocop`, `science`, `agriculture`), the package/class naming must follow the same conventions above, applied consistently per module:
 
 - Package: `com.website.gis.features.<module>` (lowercase, singular where natural — e.g. `features.ocop`, `features.science`, `features.agriculture`).
-- Controller: `<Module>Controller`, Repository: `<Module>Repository` (and `<Module>Service` only if complex business logic requires a dedicated service layer per Section 3.2).
+- Controller: `<Module>Controller`, Service: `<Module>Service`, Repository: `<Module>Repository` (following the 3-tier Thin Controller + Service Layer pattern per Section 3.2).
 - Entity class name should match the domain noun, not the module name literally where they differ — e.g. module `ocop` → entity `OcopProduct` (per `DATA_MODEL.md` Section 4.1), module `science` → entity `ScienceUnit`, module `agriculture` → entity `AgricultureUnit`.
 - DTOs follow the same `Request`/`Response`/`Dto` suffix rule as Section 1.1 (e.g. `OcopProductDto`, `ScienceUnitDto`, `AgricultureUnitDto`).
 - Mappers live inside the module's own package, `com.website.gis.features.<module>.mapper` (per Section 3.1) — kept self-contained within the module, not in a shared top-level package, so the module stays independently removable.

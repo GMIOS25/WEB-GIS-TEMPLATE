@@ -35,6 +35,9 @@ public interface AgricultureUnitRepository extends JpaRepository<AgricultureUnit
                                 @Param("lng") double lng,
                                 @Param("radiusMeters") double radiusMeters);
 
+    @Query(value = "SELECT geojson FROM v_agriculture_geojson", nativeQuery = true)
+    Optional<String> findAgricultureFeatureCollection();
+
     @EntityGraph(attributePaths = {"ward"})
     List<AgricultureUnit> findByIdIn(List<Integer> ids);
 }

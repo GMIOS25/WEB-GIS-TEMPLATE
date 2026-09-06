@@ -268,11 +268,15 @@ BE/src/main/java/com/website/gis/
         └── repository/           # ScienceUnitRepository.java
 ```
 
-> **Design Choice (No Intermediate Service Layer):** For straightforward CRUD operations and spatial queries, controllers inject repositories and MapStruct mappers directly without an intermediate `@Service` layer. This keeps the codebase lean, reduces boilerplate, and matches `CODING_CONVENTIONS.md`. A dedicated service layer is only introduced if complex multi-entity transaction orchestration is required.
+> **Layered Architecture & Thin Controller Pattern:** 
+> The system strictly adheres to a 3-tier enterprise architecture:
+> 1. **Thin Controllers:** Handle HTTP requests, routing, parameter mapping, `@Valid` triggers, and `ResponseEntity` formatting (< 80 lines each).
+> 2. **Dedicated Service Layer (`*Service`):** Encapsulates 100% of business logic, `@Transactional` boundaries, spatial parameter validation, and repository orchestration (`UserService`, `WardService`, `OcopService`, `ScienceService`, `AgricultureService`).
+> 3. **PostGIS High-Performance Data Layer:** Spatial transformations and GeoJSON FeatureCollection generations are offloaded directly to database views (`v_wards_geojson`, `v_ocop_geojson`, `v_science_geojson`, `v_agriculture_geojson`), eliminating Java Heap serialization overhead.
 
-### 4.2. Two-Tier Conditional Spring Bean & JPA Initialization
+### 4.2. Three-Tier Conditional Spring Bean, Service & JPA Initialization
 
-To ensure absolute runtime safety without ghost beans or schema validation crashes, feature toggling operates at two coordinated levels:
+To ensure absolute runtime safety without ghost beans or schema validation crashes, feature toggling operates at three coordinated levels:
 
 #### Tier 1: Modular JPA & Entity Scanning (`*FeatureConfig`)
 
@@ -296,15 +300,29 @@ public class OcopFeatureConfig {
 
 - **Why this is critical:** If `features.ocop.enabled=false`, Spring Boot excludes `OcopProduct` from Hibernate's `Metamodel` and skips creating `OcopProductRepository`. As a result, `spring.jpa.hibernate.ddl-auto=validate` executes cleanly against the database without failing on tables omitted by Flyway.
 
-#### Tier 2: Conditional REST Endpoints (`*Controller`)
+#### Tier 2: Conditional Service Layer (`*Service`)
 
-Controllers are independently guarded with `@ConditionalOnProperty`:
+Services are annotated with `@Service`, `@Transactional(readOnly = true)`, and guarded with `@ConditionalOnProperty`:
+
+```java
+package com.website.gis.features.ocop.service;
+
+@Service
+@Transactional(readOnly = true)
+@ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
+public class OcopService {
+    // Encapsulates search, pagination, nearby spatial queries, and PostGIS GeoJSON streaming
+}
+```
+
+#### Tier 3: Conditional REST Endpoints (`*Controller`)
+
+Controllers are thin delegates independently guarded with `@ConditionalOnProperty`:
 
 ```java
 package com.website.gis.features.ocop.controller;
 
-import com.website.gis.features.ocop.mapper.OcopProductMapper;
-import com.website.gis.features.ocop.repository.OcopProductRepository;
+import com.website.gis.features.ocop.service.OcopService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -314,17 +332,13 @@ import org.springframework.web.bind.annotation.RestController;
 @ConditionalOnProperty(name = "features.ocop.enabled", havingValue = "true")
 public class OcopController {
 
-    private final OcopProductRepository ocopProductRepository;
-    private final OcopProductMapper ocopProductMapper;
+    private final OcopService ocopService;
 
-    public OcopController(OcopProductRepository ocopProductRepository,
-                          OcopProductMapper ocopProductMapper) {
-        this.ocopProductRepository = ocopProductRepository;
-        this.ocopProductMapper = ocopProductMapper;
+    public OcopController(OcopService ocopService) {
+        this.ocopService = ocopService;
     }
 
-    // Endpoints mapped here return 404 (Not Found) if disabled,
-    // as Spring Boot does not load the controller bean at startup.
+    // Endpoints mapped here delegate directly to ocopService.
 }
 ```
 
@@ -356,16 +370,20 @@ BE/src/main/resources/db/migration/
 │   ├── V1__create_schema_admin_units.sql         # Base admin schema (provinces, wards, local_leaders, users)
 │   ├── V2__import_data_admin_units.sql          # Seed admin units & 135 local leaders
 │   ├── V3__create_gis_tables.sql                # Spatial GIS tables (gis_provinces, gis_wards)
-│   └── V4__import_gis_data_gialai.sql           # PostGIS boundaries & geometries (Gia Lai code 52)
+│   ├── V4__import_gis_data_gialai.sql           # PostGIS boundaries & geometries (Gia Lai code 52)
+│   └── V5__create_gis_views.sql                 # PostGIS native GeoJSON views (v_wards_geojson, v_province_geojson)
 ├── ocop/
 │   ├── V5_1__create_ocop_products.sql           # Specific schema for OCOP products
-│   └── V5_1_1__insert_data_ocop.sql             # Sample/seed OCOP POI data
+│   ├── V5_1_1__insert_data_ocop.sql             # Sample/seed OCOP POI data
+│   └── V5_1_2__create_ocop_views.sql            # PostGIS GeoJSON view for OCOP (v_ocop_geojson)
 ├── science/
 │   ├── V5_2__create_science_units.sql           # Specific schema for science units
-│   └── V5_2_1__add_geog_gist_index_science.sql  # Spatial geography index
+│   ├── V5_2_1__add_geog_gist_index_science.sql  # Spatial geography index
+│   └── V5_2_2__create_science_views.sql         # PostGIS GeoJSON view for Science (v_science_geojson)
 └── agriculture/
     ├── V5_3__create_agriculture_units.sql       # Specific schema for agriculture units
-    └── V5_3_1__add_geog_gist_index_agriculture.sql # Spatial geography index
+    ├── V5_3_1__add_geog_gist_index_agriculture.sql # Spatial geography index
+    └── V5_3_2__create_agriculture_views.sql     # PostGIS GeoJSON view for Agriculture (v_agriculture_geojson)
 ```
 
 > **Why Namespaced Migration Versions (`V5_1.x`, `V5_2.x`, `V5_3.x`)?**

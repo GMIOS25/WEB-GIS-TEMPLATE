@@ -2,18 +2,12 @@ package com.website.gis.core.controller;
 
 import com.website.gis.config.SecurityConfig;
 import com.website.gis.config.TestMapperConfig;
-import com.website.gis.core.entity.GisWard;
-import com.website.gis.core.entity.LocalLeader;
-import com.website.gis.core.entity.Province;
-import com.website.gis.core.entity.Ward;
-import com.website.gis.core.repository.GisWardRepository;
-import com.website.gis.core.repository.LocalLeaderRepository;
+import com.website.gis.core.dto.LeaderDto;
+import com.website.gis.core.dto.WardDetailDto;
+import com.website.gis.core.dto.WardDto;
 import com.website.gis.core.repository.UserRepository;
-import com.website.gis.core.repository.WardRepository;
-import com.website.gis.core.security.CustomUserDetailsService;
-import com.website.gis.core.security.JwtAuthenticationFilter;
-import com.website.gis.core.security.JwtTokenProvider;
-
+import com.website.gis.core.security.*;
+import com.website.gis.core.service.WardService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,15 +20,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import com.website.gis.core.security.RestAccessDeniedHandler;
-import com.website.gis.core.security.RestAuthenticationEntryPoint;
-import com.website.gis.core.security.SecurityErrorResponseWriter;
 
 @WebMvcTest(WardController.class)
 @Import({ SecurityConfig.class, JwtAuthenticationFilter.class, TestMapperConfig.class, RestAccessDeniedHandler.class,
@@ -45,13 +34,7 @@ class WardControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private WardRepository wardRepository;
-
-    @MockitoBean
-    private GisWardRepository gisWardRepository;
-
-    @MockitoBean
-    private LocalLeaderRepository localLeaderRepository;
+    private WardService wardService;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -71,10 +54,14 @@ class WardControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenAuthenticated_thenReturnWards() throws Exception {
-        Province province = Province.builder().code("64").fullName("Tỉnh Gia Lai").build();
-        Ward ward = Ward.builder().code("24124").name("Xã An Phú").fullName("Xã An Phú").province(province).build();
+        WardDto wardDto = WardDto.builder()
+                .code("24124")
+                .name("Xã An Phú")
+                .fullName("Xã An Phú")
+                .provinceName("Tỉnh Gia Lai")
+                .build();
 
-        Mockito.when(wardRepository.findAll()).thenReturn(Collections.singletonList(ward));
+        Mockito.when(wardService.getWards(null)).thenReturn(Collections.singletonList(wardDto));
 
         mockMvc.perform(get("/api/wards"))
                 .andExpect(status().isOk())
@@ -86,13 +73,15 @@ class WardControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetWardDetail_withNoLeaders_thenReturnEmptyLeadersArray() throws Exception {
-        Province province = Province.builder().code("64").fullName("Tỉnh Gia Lai").build();
-        Ward ward = Ward.builder().code("24124").name("Xã An Phú").fullName("Xã An Phú").province(province).build();
-        GisWard gisWard = GisWard.builder().areaKm2(new BigDecimal("12.34")).build();
+        WardDetailDto detailDto = WardDetailDto.builder()
+                .code("24124")
+                .name("Xã An Phú")
+                .fullName("Xã An Phú")
+                .areaKm2(new BigDecimal("12.34"))
+                .leaders(Collections.emptyList())
+                .build();
 
-        Mockito.when(wardRepository.findById("24124")).thenReturn(Optional.of(ward));
-        Mockito.when(gisWardRepository.findByWardCode("24124")).thenReturn(Optional.of(gisWard));
-        Mockito.when(localLeaderRepository.findByWardCode("24124")).thenReturn(Collections.emptyList());
+        Mockito.when(wardService.getWardDetail("24124")).thenReturn(detailDto);
 
         mockMvc.perform(get("/api/wards/24124"))
                 .andExpect(status().isOk())
@@ -105,20 +94,21 @@ class WardControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetWardDetail_withLeaders_thenReturnLeadersList() throws Exception {
-        Province province = Province.builder().code("64").fullName("Tỉnh Gia Lai").build();
-        Ward ward = Ward.builder().code("24124").name("Xã An Phú").fullName("Xã An Phú").province(province).build();
-        GisWard gisWard = GisWard.builder().areaKm2(new BigDecimal("12.34")).build();
-        LocalLeader leader = LocalLeader.builder()
-                .id(1)
+        LeaderDto leaderDto = LeaderDto.builder()
                 .fullName("Nguyễn Văn A")
                 .position("Chủ tịch UBND")
                 .phoneNumber("0905123456")
-                .ward(ward)
                 .build();
 
-        Mockito.when(wardRepository.findById("24124")).thenReturn(Optional.of(ward));
-        Mockito.when(gisWardRepository.findByWardCode("24124")).thenReturn(Optional.of(gisWard));
-        Mockito.when(localLeaderRepository.findByWardCode("24124")).thenReturn(List.of(leader));
+        WardDetailDto detailDto = WardDetailDto.builder()
+                .code("24124")
+                .name("Xã An Phú")
+                .fullName("Xã An Phú")
+                .areaKm2(new BigDecimal("12.34"))
+                .leaders(List.of(leaderDto))
+                .build();
+
+        Mockito.when(wardService.getWardDetail("24124")).thenReturn(detailDto);
 
         mockMvc.perform(get("/api/wards/24124"))
                 .andExpect(status().isOk())
@@ -128,12 +118,11 @@ class WardControllerTest {
                 .andExpect(jsonPath("$.leaders[0].phoneNumber").value("0905123456"));
     }
 
-
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetWardGeoJson_thenReturnGeoJson() throws Exception {
         String mockGeoJson = "{\"type\": \"Polygon\", \"coordinates\": []}";
-        Mockito.when(gisWardRepository.findGeoJsonByWardCode("24124")).thenReturn(Optional.of(mockGeoJson));
+        Mockito.when(wardService.getWardGeoJson("24124")).thenReturn(mockGeoJson);
 
         mockMvc.perform(get("/api/wards/24124/geojson"))
                 .andExpect(status().isOk())
@@ -143,13 +132,25 @@ class WardControllerTest {
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
     void whenGetAllWardsGeoJson_thenReturnFeatureCollection() throws Exception {
-        Object[] row = new Object[] {
-                "24124", "Xã An Phú", "Xã An Phú",
-                new BigDecimal("12.34"),
-                "{\"type\":\"Polygon\",\"coordinates\":[]}"
-        };
-        Mockito.when(gisWardRepository.findAllWardsGeoJsonData())
-                .thenReturn(Collections.singletonList(row));
+        String mockFeatureCollection = """
+                {
+                  "type": "FeatureCollection",
+                  "features": [
+                    {
+                      "type": "Feature",
+                      "geometry": {"type": "Polygon", "coordinates": []},
+                      "properties": {
+                        "code": "24124",
+                        "name": "Xã An Phú",
+                        "fullName": "Xã An Phú",
+                        "areaKm2": 12.34
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        Mockito.when(wardService.getAllWardsGeoJson()).thenReturn(mockFeatureCollection);
 
         mockMvc.perform(get("/api/wards/geojson"))
                 .andExpect(status().isOk())
@@ -163,22 +164,24 @@ class WardControllerTest {
 
     @Test
     @WithMockUser(username = "viewer", roles = "VIEWER")
-    void whenGetAllWardsGeoJson_thenSkipRowWithMalformedGeometry() throws Exception {
-        // Trước bản refactor sang Jackson, geomJson lỗi cú pháp sẽ được nối thẳng vào
-        // chuỗi JSON output qua StringBuilder -> làm hỏng luôn cả FeatureCollection.
-        // Sau khi parse qua ObjectMapper#readTree, hàng lỗi phải bị bỏ qua một cách an
-        // toàn thay vì làm hỏng toàn bộ response.
-        Object[] badRow = new Object[] {
-                "99999", "Xã Lỗi Dữ Liệu", "Xã Lỗi Dữ Liệu",
-                new BigDecimal("1.00"),
-                "{not-valid-geojson"
-        };
-        Mockito.when(gisWardRepository.findAllWardsGeoJsonData())
-                .thenReturn(Collections.singletonList(badRow));
+    void whenGetAllWardsGeoJson_empty_thenReturnEmptyFeatures() throws Exception {
+        String emptyFc = "{\"type\":\"FeatureCollection\",\"features\":[]}";
+        Mockito.when(wardService.getAllWardsGeoJson()).thenReturn(emptyFc);
 
         mockMvc.perform(get("/api/wards/geojson"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.type").value("FeatureCollection"))
                 .andExpect(jsonPath("$.features").isEmpty());
+    }
+
+    @Test
+    @WithMockUser(username = "viewer", roles = "VIEWER")
+    void whenGetProvinceGeoJson_thenReturnGeoJson() throws Exception {
+        String mockGeoJson = "{\"type\": \"MultiPolygon\", \"coordinates\": []}";
+        Mockito.when(wardService.getProvinceGeoJson()).thenReturn(mockGeoJson);
+
+        mockMvc.perform(get("/api/wards/province/geojson"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("MultiPolygon"));
     }
 }

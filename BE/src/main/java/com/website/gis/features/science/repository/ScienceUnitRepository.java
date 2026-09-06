@@ -35,6 +35,9 @@ public interface ScienceUnitRepository extends JpaRepository<ScienceUnit, Intege
                                 @Param("lng") double lng,
                                 @Param("radiusMeters") double radiusMeters);
 
+    @Query(value = "SELECT geojson FROM v_science_geojson", nativeQuery = true)
+    Optional<String> findScienceFeatureCollection();
+
     @EntityGraph(attributePaths = {"ward"})
     List<ScienceUnit> findByIdIn(List<Integer> ids);
 }
