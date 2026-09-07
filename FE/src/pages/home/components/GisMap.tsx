@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, Circle, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 import type { GeoJsonFeature, GeoJsonData, PoiGeoJsonData } from '../../../types/gis';
 import { GIA_LAI_CENTER, DEFAULT_MAP_ZOOM } from '../../../config/gisConstants';
