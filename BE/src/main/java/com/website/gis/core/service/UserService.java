@@ -1,5 +1,6 @@
 package com.website.gis.core.service;
 
+import com.website.gis.config.CacheConfig;
 import com.website.gis.core.dto.UserCreateRequest;
 import com.website.gis.core.dto.UserDto;
 import com.website.gis.core.dto.UserUpdateRequest;
@@ -8,6 +9,7 @@ import com.website.gis.core.exception.BadRequestException;
 import com.website.gis.core.exception.ResourceNotFoundException;
 import com.website.gis.core.mapper.UserMapper;
 import com.website.gis.core.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.USER_DETAILS, allEntries = true)
     public UserDto createUser(UserCreateRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BadRequestException("Username already exists");
@@ -49,6 +52,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.USER_DETAILS, allEntries = true)
     public UserDto updateUser(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -64,6 +68,7 @@ public class UserService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.USER_DETAILS, allEntries = true)
     public void deleteUser(Long id, String currentUsername) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));

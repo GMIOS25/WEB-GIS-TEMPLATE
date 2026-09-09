@@ -60,4 +60,10 @@ class SecurityConfigWebMvcTest {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void whenAccessActuatorMetricsWithoutToken_thenUnauthorized() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+    }
 }

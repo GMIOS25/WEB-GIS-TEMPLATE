@@ -30,10 +30,14 @@ public interface ScienceUnitRepository extends JpaRepository<ScienceUnit, Intege
     @EntityGraph(attributePaths = {"ward"})
     Optional<ScienceUnit> findById(Integer id);
 
-    @Query(value = "SELECT id FROM science_units WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
+    @Query(value = "SELECT id FROM science_units " +
+            "WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters) " +
+            "ORDER BY CAST(geom AS geography) <-> ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography " +
+            "LIMIT :limit", nativeQuery = true)
     List<Integer> findNearbyIds(@Param("lat") double lat,
                                 @Param("lng") double lng,
-                                @Param("radiusMeters") double radiusMeters);
+                                @Param("radiusMeters") double radiusMeters,
+                                @Param("limit") int limit);
 
     @Query(value = "SELECT geojson FROM v_science_geojson", nativeQuery = true)
     Optional<String> findScienceFeatureCollection();

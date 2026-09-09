@@ -3,13 +3,13 @@ package com.website.gis.core.mapper;
 import com.website.gis.core.dto.LeaderDto;
 import com.website.gis.core.dto.WardDetailDto;
 import com.website.gis.core.dto.WardDto;
-import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.LocalLeader;
 import com.website.gis.core.entity.Ward;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -28,22 +28,21 @@ public interface WardMapper {
 
     /**
      * WardDetailDto is assembled from two different entities/repositories
-     * (Ward for the administrative fields, GisWard for areaKm2), so this
+     * (Ward for the administrative fields, a scalar query for areaKm2), so this
      * mapping method takes two source parameters. MapStruct matches each
-     * @Mapping's "source" prefix (ward.* / gisWard.*) to the correct
+     * @Mapping's "source" prefix to the correct
      * parameter automatically.
      *
-     * gisWard may be null (a ward with no GIS row yet) — MapStruct generates
-     * a null check for the whole gisWard.areaKm2 path automatically, so no
-     * manual ternary is needed here (unlike the previous hand-written code).
+     * Querying only areaKm2 avoids hydrating the large bbox/geom columns merely to
+     * build the ward detail response.
      */
     @Mapping(source = "ward.code", target = "code")
     @Mapping(source = "ward.name", target = "name")
     @Mapping(source = "ward.fullName", target = "fullName")
     @Mapping(source = "ward.province.fullName", target = "provinceName")
-    @Mapping(source = "gisWard.areaKm2", target = "areaKm2")
+    @Mapping(source = "areaKm2", target = "areaKm2")
     @Mapping(source = "leaders", target = "leaders")
-    WardDetailDto toDetailDto(Ward ward, GisWard gisWard, List<LocalLeader> leaders);
+    WardDetailDto toDetailDto(Ward ward, BigDecimal areaKm2, List<LocalLeader> leaders);
 
     LeaderDto toLeaderDto(LocalLeader leader);
 

@@ -38,10 +38,14 @@ public interface OcopProductRepository extends JpaRepository<OcopProduct, Intege
     @EntityGraph(attributePaths = {"ward"})
     Page<OcopProduct> findByWardCodeAndNameContainingIgnoreCase(String wardCode, String name, Pageable pageable);
 
-    @Query(value = "SELECT id FROM ocop_products WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)", nativeQuery = true)
+    @Query(value = "SELECT id FROM ocop_products " +
+            "WHERE ST_DWithin(CAST(geom AS geography), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters) " +
+            "ORDER BY CAST(geom AS geography) <-> ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography " +
+            "LIMIT :limit", nativeQuery = true)
     List<Integer> findNearbyIds(@Param("lat") double lat,
                                 @Param("lng") double lng,
-                                @Param("radiusMeters") double radiusMeters);
+                                @Param("radiusMeters") double radiusMeters,
+                                @Param("limit") int limit);
 
     @Query(value = "SELECT geojson FROM v_ocop_geojson", nativeQuery = true)
     Optional<String> findOcopFeatureCollection();

@@ -18,6 +18,9 @@ FE/.env.local
 # Java / Maven / Backend
 **/target
 BE/target
+BE/src/main/resources/application.properties
+BE/src/main/resources/application-*.properties
+!BE/src/main/resources/application-prod.properties
 
 # Logs & temp
 *.log

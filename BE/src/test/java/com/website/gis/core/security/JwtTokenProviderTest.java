@@ -63,6 +63,7 @@ class JwtTokenProviderTest {
 
         assertTrue(provider.validateToken(token));
         assertEquals("admin", provider.getUsernameFromJWT(token));
+        assertEquals("admin", provider.parseValidClaims(token).orElseThrow().getSubject());
     }
 
     @Test

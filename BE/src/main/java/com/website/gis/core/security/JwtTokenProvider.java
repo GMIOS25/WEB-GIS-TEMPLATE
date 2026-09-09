@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -20,13 +21,14 @@ public class JwtTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    @Value("${app.jwt.secret:932326ec1935bc7c0cc163392c96d22e35ed8fb2b6d98fcb69ff4c0b001455e5}")
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration-ms:86400000}")
     private long jwtExpirationInMs;
 
     private SecretKey key;
+    private JwtParser parser;
 
     /**
      * Dùng để tính Max-Age cho cookie HttpOnly chứa JWT (xem AuthController).
@@ -55,6 +57,7 @@ public class JwtTokenProvider {
                             + "Hãy đặt JWT_SECRET là một chuỗi ngẫu nhiên đủ dài (khuyến nghị >= 64 ký tự).");
         }
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.parser = Jwts.parser().verifyWith(key).build();
         logger.info("JwtTokenProvider initialized with a {}-byte signing key.", keyBytes.length);
     }
 
@@ -77,19 +80,20 @@ public class JwtTokenProvider {
     }
 
     public String getUsernameFromJWT(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.getSubject();
+        return parser.parseSignedClaims(token).getPayload().getSubject();
     }
 
     public boolean validateToken(String authToken) {
+        return parseValidClaims(authToken).isPresent();
+    }
+
+    /**
+     * Verifies and parses a token exactly once. The authentication filter consumes
+     * these claims directly instead of parsing the same token twice per request.
+     */
+    public Optional<Claims> parseValidClaims(String authToken) {
         try {
-            Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken);
-            return true;
+            return Optional.of(parser.parseSignedClaims(authToken).getPayload());
         } catch (JwtException ex) {
             // TRƯỚC ĐÂY: liệt kê riêng từng subclass cụ thể (MalformedJwtException,
             // ExpiredJwtException, UnsupportedJwtException) nhưng THIẾU
@@ -110,10 +114,10 @@ public class JwtTokenProvider {
             // khi parse/verify: SignatureException, MalformedJwtException,
             // ExpiredJwtException, UnsupportedJwtException, WeakKeyException...) loại
             // bỏ hẳn rủi ro "quên liệt kê" một subclass mới về sau.
-            logger.warn("Invalid JWT token ({}): {}", ex.getClass().getSimpleName(), ex.getMessage());
+            logger.debug("Invalid JWT token ({}): {}", ex.getClass().getSimpleName(), ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            logger.warn("JWT claims string is empty.");
+            logger.debug("JWT claims string is empty.");
         }
-        return false;
+        return Optional.empty();
     }
 }

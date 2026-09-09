@@ -48,6 +48,7 @@ application-*.yaml
 !**/src/test/resources/application-*.yml
 !**/src/test/resources/application.yaml
 !**/src/test/resources/application-*.yaml
+!BE/src/main/resources/application-prod.properties
 
 
 # Agent/Tooling directories
@@ -65,6 +66,10 @@ docs/secret
 
 # Testing API
 Bruno/
+
+# Local k6 result artifacts (the test script itself remains versioned)
+/perf-*.html
+/perf-*.json
 
 #Agent
 .agents/

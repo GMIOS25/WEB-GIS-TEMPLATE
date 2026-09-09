@@ -55,6 +55,7 @@ FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S gis && adduser -S gis -G gis
 WORKDIR /app
 COPY --from=be-build /be/target/*.jar app.jar
+ENV SPRING_PROFILES_ACTIVE=prod
 USER gis
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

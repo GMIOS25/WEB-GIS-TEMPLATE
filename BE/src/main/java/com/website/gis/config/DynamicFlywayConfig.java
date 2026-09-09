@@ -12,7 +12,7 @@ import java.util.List;
  * Modular schema strategy (Flyway) - xem docs/en/ARCHITECTURE SPECIFICATION.md
  * muc 5.
  *
- * Core migrations (db/migration/core: V1->V4) luon chay. Cac module theo tinh nang
+ * Core migrations (db/migration/core: V1->V6) luon chay. Cac module theo tinh nang
  * (db/migration/ocop: V5_1.x, db/migration/science: V5_2.x, db/migration/agriculture: V5_3.x)
  * duoc dynamically nap vao scan path khi co feature flag tuong ung duoc bat (= true).
  *

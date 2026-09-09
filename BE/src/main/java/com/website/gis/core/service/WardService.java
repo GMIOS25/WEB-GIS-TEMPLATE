@@ -1,8 +1,8 @@
 package com.website.gis.core.service;
 
+import com.website.gis.config.CacheConfig;
 import com.website.gis.core.dto.WardDetailDto;
 import com.website.gis.core.dto.WardDto;
-import com.website.gis.core.entity.GisWard;
 import com.website.gis.core.entity.LocalLeader;
 import com.website.gis.core.entity.Ward;
 import com.website.gis.core.exception.ResourceNotFoundException;
@@ -10,11 +10,13 @@ import com.website.gis.core.mapper.WardMapper;
 import com.website.gis.core.repository.GisWardRepository;
 import com.website.gis.core.repository.LocalLeaderRepository;
 import com.website.gis.core.repository.WardRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -50,22 +52,25 @@ public class WardService {
         Ward ward = wardRepository.findById(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Ward not found with code: " + code));
 
-        GisWard gisWard = gisWardRepository.findByWardCode(code).orElse(null);
+        BigDecimal areaKm2 = gisWardRepository.findAreaKm2ByWardCode(code).orElse(null);
         List<LocalLeader> leaders = localLeaderRepository.findByWardCode(code);
 
-        return wardMapper.toDetailDto(ward, gisWard, leaders);
+        return wardMapper.toDetailDto(ward, areaKm2, leaders);
     }
 
+    @Cacheable(cacheNames = CacheConfig.WARD_GEOJSON, key = "#code", sync = true)
     public String getWardGeoJson(String code) {
         return gisWardRepository.findGeoJsonByWardCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("GeoJSON not found for ward code: " + code));
     }
 
+    @Cacheable(cacheNames = CacheConfig.ALL_WARDS_GEOJSON, sync = true)
     public String getAllWardsGeoJson() {
         return gisWardRepository.findWardsFeatureCollection()
                 .orElse(EMPTY_FEATURE_COLLECTION);
     }
 
+    @Cacheable(cacheNames = CacheConfig.PROVINCE_GEOJSON, sync = true)
     public String getProvinceGeoJson() {
         return gisWardRepository.findProvinceGeoJson()
                 .orElseThrow(() -> new ResourceNotFoundException("Province GeoJSON not found"));

@@ -6,12 +6,14 @@ import org.springframework.data.repository.query.Param;
 
 import com.website.gis.core.entity.GisWard;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 public interface GisWardRepository extends JpaRepository<GisWard, Integer> {
 
-    Optional<GisWard> findByWardCode(String wardCode);
+    @Query("SELECT gw.areaKm2 FROM GisWard gw WHERE gw.ward.code = :wardCode")
+    Optional<BigDecimal> findAreaKm2ByWardCode(@Param("wardCode") String wardCode);
 
     // Giới hạn số chữ số thập phân (6 số ~ sai số 0.1m) để giảm dung lượng JSON, và
     // ST_SimplifyPreserveTopology để giảm SỐ ĐỈNH của polygon — đây mới là yếu tố
