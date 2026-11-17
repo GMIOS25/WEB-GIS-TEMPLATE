@@ -1,0 +1,776 @@
+{
+  "metadata": {
+    "generatedAt": "2026-09-08T08:54:37.032Z",
+    "profile": "quick",
+    "baseUrl": "http://localhost:8080",
+    "targetVus": 50,
+    "targetRps": null,
+    "featureSelection": "ocop",
+    "writesEnabled": false
+  },
+  "root_group": {
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [
+      {
+        "groups": [],
+        "checks": [
+            {
+              "name": "backend health is 200",
+              "path": "::setup::backend health is 200",
+              "id": "219e9c3a97f9585ce416af9117825497",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "passes": 2,
+              "fails": 0,
+              "name": "POST auth_login -> 200",
+              "path": "::setup::POST auth_login -> 200",
+              "id": "e8aad2b317db48006e3cd90d8a55f565"
+            },
+            {
+              "fails": 0,
+              "name": "GET wards_list_setup -> 200",
+              "path": "::setup::GET wards_list_setup -> 200",
+              "id": "ffb3d16dac292c8627ebe7cae4bce136",
+              "passes": 1
+            }
+          ],
+        "name": "setup",
+        "path": "::setup",
+        "id": "5c0f8025f7e0b6654089e5b00e950f1a"
+      },
+      {
+        "id": "910a52df208fdc62c241f1dcb2959fab",
+        "groups": [],
+        "checks": [
+            {
+              "name": "GET province_geojson -> 200",
+              "path": "::map_layers::GET province_geojson -> 200",
+              "id": "a6811383b8a08af8ec05f6003e41f6ba",
+              "passes": 50,
+              "fails": 0
+            },
+            {
+              "id": "1c894954af75ae85ae7c168cc68ad7f2",
+              "passes": 50,
+              "fails": 0,
+              "name": "GET wards_geojson -> 200",
+              "path": "::map_layers::GET wards_geojson -> 200"
+            },
+            {
+              "name": "GET ocop_geojson -> 200",
+              "path": "::map_layers::GET ocop_geojson -> 200",
+              "id": "eb0482e599230f2e2e38c1429f51eeed",
+              "passes": 26,
+              "fails": 0
+            }
+          ],
+        "name": "map_layers",
+        "path": "::map_layers"
+      }
+    ],
+    "checks": [
+      {
+        "name": "POST auth_login -> 200",
+        "path": "::POST auth_login -> 200",
+        "id": "6e171c6a0723d0410d98abc8aa374f3e",
+        "passes": 60,
+        "fails": 0
+      },
+      {
+        "fails": 0,
+        "name": "GET auth_me -> 200",
+        "path": "::GET auth_me -> 200",
+        "id": "f20685c1b6ef681d1b8089c251b697b2",
+        "passes": 189
+      },
+      {
+        "name": "GET ward_detail -> 200",
+        "path": "::GET ward_detail -> 200",
+        "id": "4b1e8b23d130224848533cb74a07dd39",
+        "passes": 428,
+        "fails": 0
+      },
+      {
+        "name": "GET ocop_detail -> 200",
+        "path": "::GET ocop_detail -> 200",
+        "id": "9c4ae53e297fa971ea6a37d4b0968ff8",
+        "passes": 207,
+        "fails": 0
+      },
+      {
+        "name": "GET ward_geojson -> 200",
+        "path": "::GET ward_geojson -> 200",
+        "id": "595f2f81e91bbc48f3e8b4c5c72e9d87",
+        "passes": 114,
+        "fails": 0
+      },
+      {
+        "name": "GET wards_list -> 200",
+        "path": "::GET wards_list -> 200",
+        "id": "d69b61f05fcb4a0adb9fbea10509822a",
+        "passes": 111,
+        "fails": 0
+      },
+      {
+        "passes": 60,
+        "fails": 0,
+        "name": "GET file_download -> 200",
+        "path": "::GET file_download -> 200",
+        "id": "d8abd48d3ed3e7851092cd18e1740f27"
+      },
+      {
+        "passes": 24,
+        "fails": 0,
+        "name": "GET ocop_geojson -> 200",
+        "path": "::GET ocop_geojson -> 200",
+        "id": "64b9a02cc2441ce7ef10841706f2ca74"
+      },
+      {
+        "path": "::GET wards_search -> 200",
+        "id": "6253a9016782ed2e496dbc88e9841206",
+        "passes": 84,
+        "fails": 0,
+        "name": "GET wards_search -> 200"
+      },
+      {
+        "name": "GET admin_users_list -> 200",
+        "path": "::GET admin_users_list -> 200",
+        "id": "1f6cca095ef56403e4ee6c4e5386c868",
+        "passes": 25,
+        "fails": 0
+      },
+      {
+        "name": "GET ocop_nearby -> 200",
+        "path": "::GET ocop_nearby -> 200",
+        "id": "ae67e18b77313dc23808dfa3f2fd6fed",
+        "passes": 212,
+        "fails": 0
+      },
+      {
+        "name": "GET ocop_list -> 200",
+        "path": "::GET ocop_list -> 200",
+        "id": "c224ec6c9cad766fa8fa4d5659b25195",
+        "passes": 315,
+        "fails": 0
+      },
+      {
+        "name": "POST auth_logout -> 200",
+        "path": "::POST auth_logout -> 200",
+        "id": "3825fedc789d359b4441456ae3eb901b",
+        "passes": 10,
+        "fails": 0
+      }
+    ],
+    "name": ""
+  },
+  "options": {
+    "noColor": true,
+    "summaryTrendStats": [
+      "avg",
+      "med",
+      "p(90)",
+      "p(95)",
+      "p(99)",
+      "max"
+    ],
+    "summaryTimeUnit": "ms"
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 61167.7741
+  },
+  "metrics": {
+    "http_req_failed{endpoint:ward_detail}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 428
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 1969,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate>0.99": {
+          "ok": true
+        }
+      }
+    },
+    "group_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 168.60992650334077,
+        "med": 0,
+        "p(90)": 981.9141599999999,
+        "p(95)": 1452.1804799999995,
+        "p(99)": 2163.3810879999987,
+        "max": 2455.5706
+      }
+    },
+    "http_req_failed{endpoint:wards_search}": {
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 84,
+        "rate": 0,
+        "passes": 0
+      }
+    },
+    "http_req_duration{request_type:geojson}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 1696.6193999999996,
+        "p(99)": 2210.584049,
+        "max": 2455.5706,
+        "avg": 297.087925378788,
+        "med": 17.098750000000003,
+        "p(90)": 1412.3584
+      },
+      "thresholds": {
+        "p(95)<2500": {
+          "ok": true
+        },
+        "p(99)<5000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed{endpoint:ocop_list}": {
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 315,
+        "rate": 0
+      }
+    },
+    "http_req_failed{endpoint:ward_geojson}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 114
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed{endpoint:admin_users_list}": {
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 25
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "http_req_duration{request_type:file}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 7.956900000000001,
+        "med": 5.3527000000000005,
+        "p(90)": 11.839550000000003,
+        "p(95)": 34.650025,
+        "p(99)": 44.52232299999996,
+        "max": 51.8267
+      },
+      "thresholds": {
+        "p(95)<1000": {
+          "ok": true
+        },
+        "p(99)<2000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{request_type:spatial}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 19.495484433962268,
+        "med": 11.63995,
+        "p(90)": 28.31384,
+        "p(95)": 49.85979499999998,
+        "p(99)": 212.99666199999993,
+        "max": 245.0518
+      },
+      "thresholds": {
+        "p(95)<750": {
+          "ok": true
+        },
+        "p(99)<1500": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{request_type:admin}": {
+      "values": {
+        "avg": 10.974791999999997,
+        "med": 9.1356,
+        "p(90)": 19.091580000000008,
+        "p(95)": 22.092659999999995,
+        "p(99)": 33.67030399999997,
+        "max": 37.2866
+      },
+      "thresholds": {
+        "p(95)<500": {
+          "ok": true
+        },
+        "p(99)<1000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 55223333,
+        "rate": 902817.4363467641
+      }
+    },
+    "http_req_failed": {
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 1970,
+        "rate": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.028412944162436546,
+        "med": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "p(99)": 0.5138819999999993,
+        "max": 14.024
+      }
+    },
+    "http_req_duration": {
+      "values": {
+        "avg": 54.921042538070985,
+        "med": 11.43495,
+        "p(90)": 41.80599000000002,
+        "p(95)": 75.58742,
+        "p(99)": 1479.7268829999998,
+        "max": 2455.5706
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1970,
+        "rate": 32.2065013642535
+      }
+    },
+    "http_req_duration{request_type:api}": {
+      "values": {
+        "avg": 15.25802321116929,
+        "med": 11.469249999999999,
+        "p(90)": 25.511200000000002,
+        "p(95)": 37.785125,
+        "p(99)": 79.85927999999996,
+        "max": 209.3252
+      },
+      "thresholds": {
+        "p(95)<500": {
+          "ok": true
+        },
+        "p(99)<1500": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "iteration_duration": {
+      "contains": "time",
+      "values": {
+        "avg": 1053.7495955977765,
+        "med": 1038.3022,
+        "p(90)": 1441.95369,
+        "p(95)": 1492.26549,
+        "p(99)": 2494.5376269999942,
+        "max": 3866.8555
+      },
+      "type": "trend"
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.026365786802030458,
+        "med": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "p(99)": 0.6139159999999944,
+        "max": 7.6316
+      }
+    },
+    "http_req_failed{endpoint:province_geojson}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "fails": 50,
+        "rate": 0,
+        "passes": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 2455.5706,
+        "avg": 54.921042538070985,
+        "med": 11.43495,
+        "p(90)": 41.80599000000002,
+        "p(95)": 75.58742,
+        "p(99)": 1479.7268829999998
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 35.28001520002998,
+        "count": 2158
+      }
+    },
+    "http_req_failed{endpoint:ocop_nearby}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 212
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{request_type:auth}": {
+      "values": {
+        "avg": 28.281705363984674,
+        "med": 6.7495,
+        "p(90)": 72.9239,
+        "p(95)": 86.751,
+        "p(99)": 220.91325999999867,
+        "max": 362.4261
+      },
+      "thresholds": {
+        "p(95)<1000": {
+          "ok": true
+        },
+        "p(99)<2000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "http_req_duration{request_type:write}": {
+      "contains": "time",
+      "values": {
+        "avg": 0,
+        "med": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        },
+        "p(99)<3000": {
+          "ok": true
+        }
+      },
+      "type": "trend"
+    },
+    "http_req_duration{endpoint:wards_geojson}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 2413.561577,
+        "max": 2455.5706,
+        "avg": 1470.9323160000004,
+        "med": 1438.8871,
+        "p(90)": 2141.20324,
+        "p(95)": 2220.618635
+      },
+      "thresholds": {
+        "p(95)<2500": {
+          "ok": true
+        },
+        "p(99)<5000": {
+          "ok": true
+        }
+      }
+    },
+    "vus": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "value": 1,
+        "min": 1,
+        "max": 50
+      }
+    },
+    "http_req_failed{endpoint:ocop_detail}": {
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 207
+      }
+    },
+    "http_req_blocked": {
+      "contains": "time",
+      "values": {
+        "p(95)": 0,
+        "p(99)": 0.5862669999999975,
+        "max": 14.024,
+        "avg": 0.03344629441624366,
+        "med": 0,
+        "p(90)": 0
+      },
+      "type": "trend"
+    },
+    "http_req_failed{endpoint:auth_me}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 189
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(99)": 1255.3123009999995,
+        "max": 2170.9787,
+        "avg": 48.81000192893393,
+        "med": 10.960049999999999,
+        "p(90)": 41.452860000000015,
+        "p(95)": 75.30889499999999
+      }
+    },
+    "http_req_failed{endpoint:auth_login}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 62
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed{endpoint:auth_logout}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 10,
+        "rate": 0
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 838719,
+        "rate": 13711.778993769203
+      }
+    },
+    "http_req_failed{endpoint:ocop_geojson}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 50
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_tls_handshaking": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0,
+        "med": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "p(99)": 0,
+        "max": 0
+      }
+    },
+    "http_req_failed{endpoint:wards_geojson}": {
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 50
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "http_req_failed{endpoint:file_download}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 60
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed{endpoint:wards_list}": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 111
+      },
+      "thresholds": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "gis_map_layer_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 29,
+        "p(90)": 1710.5,
+        "p(95)": 2070.25,
+        "p(99)": 2339,
+        "max": 2455,
+        "avg": 600.8412698412699
+      },
+      "thresholds": {
+        "p(95)<3000": {
+          "ok": true
+        },
+        "p(99)<5500": {
+          "ok": true
+        }
+      }
+    },
+    "vus_max": {
+      "contains": "default",
+      "values": {
+        "value": 50,
+        "min": 50,
+        "max": 50
+      },
+      "type": "gauge"
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 6.084674822335028,
+        "med": 0.3293,
+        "p(90)": 1.0083900000000001,
+        "p(95)": 1.5810549999999999,
+        "p(99)": 208.00283999999996,
+        "max": 870.9379
+      }
+    }
+  }
+}
